@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f9fafb;
+  color: #111827;
+}
+
+h1, h2, h3 { font-family: 'Syne', sans-serif; }
+
+/* Ticker */
+.ticker-wrap { overflow: hidden; }
+.ticker-inner { display: flex; width: max-content; animation: ticker 22s linear infinite; }
+.ticker-inner:hover { animation-play-state: paused; }
