@@ -31,7 +31,7 @@ export default function AppRouter() {
 
     <AuthProvider>
 
-      <BrowserRouter>
+      <BrowserRouter basename="/TeoLearn">
 
         <Routes>
 
