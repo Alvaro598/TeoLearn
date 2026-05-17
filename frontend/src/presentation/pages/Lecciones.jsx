@@ -1,61 +1,79 @@
-import {
-  useParams,
-  useNavigate,
-} from "react-router-dom";
-
-import { unidadesData } from "../../data/unidadesData";
-
+﻿import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import LeccionCard from "../components/ui/LeccionCard";
 
 export default function Lecciones() {
 
   const { unidadId } = useParams();
-
   const navigate = useNavigate();
 
-  let lecciones = [];
+  const [lecciones, setLecciones] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  Object.values(unidadesData).forEach(
-    (modulo) => {
+  useEffect(() => {
+    obtenerLecciones();
+  }, []);
 
-      modulo.forEach((unidad) => {
+  async function obtenerLecciones() {
 
-        if (
-          unidad.id === Number(unidadId)
-        ) {
-          lecciones =
-            unidad.lecciones;
-        }
-      });
+    try {
+
+      const response = await fetch(
+        `http://localhost:3000/api/lecciones/unidad/${unidadId}`
+      );
+
+      const data = await response.json();
+
+      setLecciones(data);
+
+    } catch (error) {
+
+      console.error(error);
+
+    } finally {
+
+      setLoading(false);
+
     }
-  );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-10">
+        Cargando lecciones...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
+    <div className="min-h-screen bg-gray-50">
 
-      {/* VOLVER */}
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 text-blue-600 hover:text-blue-800 font-medium"
-      >
-        ← Volver
-      </button>
+      <div className="max-w-5xl mx-auto px-6 py-10">
 
-      {/* TÍTULO */}
-      <h1 className="text-3xl text-center font-bold mb-10 py-5 pb-5">
-        Lecciones
-      </h1>
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-8 text-gray-500"
+        >
+          ← Volver
+        </button>
 
-      {/* GRID */}
-      <div className="grid md:grid-cols-3 gap-8">
+        <h1 className="text-5xl font-extrabold mb-10">
+          Lecciones
+        </h1>
 
-        {lecciones.map((leccion) => (
-          <LeccionCard
-            key={leccion.id}
-            leccion={leccion}
-            unidadId={unidadId}
-          />
-        ))}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+          {lecciones.map((leccion) => (
+
+            <LeccionCard
+              key={leccion.id}
+              leccion={leccion}
+              unidadId={unidadId}
+            />
+
+          ))}
+
+        </div>
 
       </div>
 

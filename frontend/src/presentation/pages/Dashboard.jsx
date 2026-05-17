@@ -40,7 +40,7 @@ export default function Dashboard() {
           <h1 className="text-4xl font-extrabold" style={{fontFamily:'Syne,sans-serif'}}>
             {nombre} 👋
           </h1>
-          <p className="text-gray-500 mt-1">Sigue construyendo tu intuición musical paso a paso.</p>
+          <p className="text-gray-500 mt-1">Sigue construyendo tu identidad musical paso a paso.</p>
         </div>
 
         {/* Stats row */}

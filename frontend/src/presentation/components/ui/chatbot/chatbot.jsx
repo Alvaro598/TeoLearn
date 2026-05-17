@@ -7,7 +7,7 @@ export default function Chatbot() {
   const [messages, setMessages] = useState([
     {
       from: "bot",
-      text: "🎵 Hola, soy Teo y sere tu tutor musical. ¿En qué te puedo ayudar?",
+      text: "🎵 Hola, soy Teo y sere tu tutor musical. ¿En qué te puedo ayudar hoy?",
     },
   ]);
 
@@ -87,7 +87,7 @@ export default function Chatbot() {
         <div className="w-80 h-[420px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 mb-3">
 
           {/* HEADER */}
-          <div className="bg-blue-500 text-white px-4 py-3 flex items-center justify-between">
+          <div className="bg-brand-blue text-white px-4 py-3 flex items-center justify-between">
 
             <div>
               <h2 className="font-semibold">
@@ -117,7 +117,7 @@ export default function Chatbot() {
                 key={i}
                 className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm shadow-sm ${
                   m.from === "user"
-                    ? "bg-blue-500 text-white ml-auto"
+                    ? "bg-brand-blue text-white ml-auto"
                     : "bg-white text-gray-800"
                 }`}
               >
@@ -173,7 +173,7 @@ export default function Chatbot() {
           setOpen(!open)
         }
 
-        className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-xl text-2xl transition"
+        className="w-14 h-14 rounded-full bg-brand-blue hover:bg-blue-800 text-white shadow-xl text-2xl transition"
       >
         🤖
       </button>

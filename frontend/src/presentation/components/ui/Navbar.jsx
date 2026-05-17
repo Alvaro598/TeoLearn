@@ -30,7 +30,7 @@ export default function Navbar() {
 
         <Link
           to="/"
-          className="font-bold text-base sm:text-lg text-blue-600"
+          className="font-bold text-base sm:text-lg text-brand-blue"
         >
           🎵 TeoLearn
         </Link>
@@ -49,7 +49,7 @@ export default function Navbar() {
       {/* LOGO */}
       <Link
         to="/"
-        className="font-bold text-base sm:text-lg text-blue-600 hover:text-blue-800"
+        className="font-bold text-base sm:text-lg text-brand-blue hover:text-brand-dark transition"
       >
         🎵 TeoLearn
       </Link>
@@ -139,7 +139,7 @@ export default function Navbar() {
                 className={`px-4 py-2 rounded ${
                   path === "/register"
                     ? "bg-blue-700"
-                    : "bg-blue-500"
+                    : "bg-brand-blue text-white font-bold px-8 py-4 rounded-full hover:bg-opacity-90 transition flex items-center gap-2 justify-center"
                 } text-white`}
                 onClick={() =>
                   setIsMenuOpen(false)

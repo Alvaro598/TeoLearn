@@ -1,8 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
 import {
-  Lock,
-  CheckCircle,
   PlayCircle,
 } from "lucide-react";
 
@@ -15,51 +13,22 @@ export default function LeccionCard({
 
   const handleClick = () => {
 
-    if (
-      leccion.status !== "locked"
-    ) {
-
-      navigate(
-        `/unidad/${unidadId}/leccion/${leccion.id}`
-      );
-    }
-  };
-
-  const getStatusIcon = () => {
-
-    switch (leccion.status) {
-
-      case "completed":
-        return (
-          <CheckCircle className="text-green-500" />
-        );
-
-      case "current":
-        return (
-          <PlayCircle className="text-yellow-500" />
-        );
-
-      case "locked":
-        return (
-          <Lock className="text-gray-400" />
-        );
-    }
+    navigate(
+      `/unidad/${unidadId}/leccion/${leccion.id}`
+    );
   };
 
   return (
 
     <div
       onClick={handleClick}
-      className={`rounded-xl overflow-hidden shadow-md cursor-pointer transition transform hover:-translate-y-2 ${
-        leccion.status === "locked" &&
-        "opacity-60 cursor-not-allowed"
-      }`}
+      className="rounded-xl overflow-hidden shadow-md cursor-pointer transition transform hover:-translate-y-2 bg-white"
     >
 
       {/* IMAGEN */}
       <img
-        src={leccion.image}
-        alt={leccion.title}
+        src="https://images.unsplash.com/photo-1511379938547-c1f69419868d"
+        alt={leccion.titulo}
         className="h-40 w-full object-cover"
       />
 
@@ -69,28 +38,21 @@ export default function LeccionCard({
         <div className="flex justify-between items-center mb-2">
 
           <h2 className="font-semibold text-lg">
-            {leccion.title}
+            {leccion.titulo}
           </h2>
 
-          {getStatusIcon()}
+          <PlayCircle className="text-brand-pink" />
 
         </div>
 
         <p className="text-sm text-gray-600 mb-3">
-          {leccion.description}
+          {leccion.descripcion}
         </p>
 
-        {/* ESTADO */}
         <span
-          className={`text-xs font-medium px-2 py-1 rounded ${
-            leccion.status === "completed"
-              ? "bg-green-100 text-green-600"
-              : leccion.status === "current"
-              ? "bg-yellow-100 text-yellow-600"
-              : "bg-gray-200 text-gray-500"
-          }`}
+          className="text-xs font-medium px-2 py-1 rounded bg-yellow-100 text-yellow-600"
         >
-          {leccion.status}
+          Disponible
         </span>
 
       </div>

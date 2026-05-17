@@ -38,7 +38,7 @@ export default function ModuloCard({ id, title, description, image, progress }) 
 
         <div className="w-full bg-gray-200 rounded-full h-2 mb-5">
           <div
-            className="bg-blue-500 h-2 rounded-full transition-all"
+            className="bg-brand-blue h-2 rounded-full transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -46,7 +46,7 @@ export default function ModuloCard({ id, title, description, image, progress }) 
         <Link
           to={`/modulos/${id}/unidades`} 
 
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg mt-auto text-center block"
+          className="w-full bg-brand-blue hover:bg-blue-800 text-white py-2 rounded-lg mt-auto text-center block"
         >
           Ver Lecciones
         </Link>

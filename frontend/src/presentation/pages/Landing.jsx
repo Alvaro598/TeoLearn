@@ -1,7 +1,17 @@
 import { Link } from "react-router-dom";
+
+import {
+  Brain,
+  Music,
+  Piano,
+  Sparkles,
+  Headphones,
+  AudioLines
+} from "lucide-react";
+
 import Navbar from "../components/ui/Navbar";
 
-const TICKER = ["TONALIDAD","INTERVALO","OCTAVA","RITMO","MELODÍA","ARMONÍA","ACORDE","ESCALA","COMPÁS","PULSO"];
+const TICKER = ["TONALIDAD", "INTERVALO", "OCTAVA", "RITMO", "MELODÍA", "ARMONÍA", "ACORDE", "ESCALA", "COMPÁS", "PULSO"];
 
 export default function Landing() {
   return (
@@ -9,13 +19,13 @@ export default function Landing() {
       <Navbar />
 
       {/* HERO */}
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-10 flex flex-col lg:flex-row items-center gap-12">
-        <div className="flex-1 text-center lg:text-left">
+      <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 flex flex-col lg:flex-row items-center gap-12">
+        <div className="flex-1 text-center lg:text-left pb-20">
           <span className="inline-flex items-center gap-2 bg-brand-yellow/20 text-brand-dark text-xs font-semibold px-4 py-1.5 rounded-full mb-6">
             🎵 APRENDIZAJE CON IA
           </span>
 
-          <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight mb-6" style={{fontFamily:'Syne,sans-serif'}}>
+          <h1 className="text-5xl lg:text-4xl font-extrabold leading-tight mb-6" style={{ fontFamily: 'Syne,sans-serif' }}>
             Domina la{" "}
             <span className="text-brand-pink">teoría</span>{" "}
             <span className="text-brand-pink">musical</span>{" "}
@@ -28,7 +38,7 @@ export default function Landing() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <Link to="/register" className="bg-brand-pink text-white font-bold px-8 py-4 rounded-full hover:bg-opacity-90 transition flex items-center gap-2 justify-center">
+            <Link to="/register" className="bg-brand-blue text-white font-bold px-8 py-4 rounded-full hover:bg-opacity-90 transition flex items-center gap-2 justify-center">
               Empezar gratis →
             </Link>
             <Link to="/login" className="border-2 border-gray-200 text-gray-700 font-semibold px-8 py-4 rounded-full hover:border-gray-400 transition text-center">
@@ -59,51 +69,136 @@ export default function Landing() {
             </div>
             <div className="flex justify-between items-center mt-3 text-xs text-gray-500">
               <span className="text-brand-yellow font-bold">+20 XP</span>
-              <span>Tutor IA · Claude</span>
+              <span>Tutor IA · Teo</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* TICKER */}
-      <div className="bg-brand-pink py-4 overflow-hidden my-10">
-        <div className="ticker-inner text-white font-bold text-sm tracking-widest">
-          {[...TICKER,...TICKER,...TICKER].map((t,i)=>(
-            <span key={i} className="mx-8">{t} ★</span>
-          ))}
+  
+      {/* VIDEO INTRODUCTORIO */}
+      <section className="max-w-5xl mx-auto px-6 pb-20">
+
+        <div className="text-center mb-10">
+
+          <p className="text-xs font-bold text-gray-400 tracking-widest mb-3">
+            DESCUBRE TEOLEARN
+          </p>
+
+          <h2
+            className="text-4xl font-extrabold mb-4"
+            style={{ fontFamily: "Syne,sans-serif" }}
+          >
+            Aprende teoría musical de forma interactiva
+          </h2>
+
+          <p className="text-gray-500 max-w-2xl mx-auto">
+            Explora cómo TeoLearn combina inteligencia artificial,
+            ejercicios interactivos y aprendizaje progresivo para
+            ayudarte a dominar la teoría musical desde cero.
+          </p>
+
         </div>
-      </div>
+
+        <div className="relative rounded-2xl overflow-hidden shadow-1xl border border-gray-100">
+
+          <iframe
+            className="w-full aspect-video"
+            src="https://www.youtube.com/embed/ABC123XYZ"
+            title="Video introductorio TeoLearn"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+
+        </div>
+
+      </section>
 
       {/* FEATURES */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
-        <p className="text-center text-xs font-bold text-gray-400 tracking-widest mb-3">POR QUÉ TEOLEARN</p>
-        <h2 className="text-4xl font-extrabold text-center mb-12" style={{fontFamily:'Syne,sans-serif'}}>Aprende como nunca antes</h2>
+
+        <p className="text-center text-xs font-bold text-gray-400 tracking-widest mb-3">
+          POR QUÉ TEOLEARN
+        </p>
+
+        <h2
+          className="text-4xl font-extrabold text-center mb-12"
+          style={{ fontFamily: "Syne,sans-serif" }}
+        >
+          Aprende como nunca antes
+        </h2>
+
         <div className="grid md:grid-cols-3 gap-6">
+
           {[
-            { icon:"🧠", color:"bg-brand-pink",   title:"IA pedagógica",      desc:"Retroalimentación inmediata en cada ejercicio." },
-            { icon:"⚡", color:"bg-brand-blue",   title:"Aprendizaje activo", desc:"Ejercicios interactivos de ritmo, melodía y armonía." },
-            { icon:"🏆", color:"bg-brand-yellow", title:"Gamificación",        desc:"Gana XP, sube de nivel y desbloquea insignias." },
-          ].map(f=>(
-            <div key={f.title} className="bg-white border border-gray-100 rounded-3xl p-8 shadow-card hover:shadow-card-hover transition">
-              <div className={`${f.color} w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-5`}>{f.icon}</div>
-              <h3 className="font-bold text-lg mb-2" style={{fontFamily:'Syne,sans-serif'}}>{f.title}</h3>
-              <p className="text-gray-500 text-sm">{f.desc}</p>
-            </div>
-          ))}
+            {
+              icon: Brain,
+              color: "bg-brand-pink",
+              title: "IA pedagógica",
+              desc: "Retroalimentación inmediata en cada ejercicio."
+            },
+
+            {
+              icon: Music,
+              color: "bg-brand-blue",
+              title: "Aprendizaje activo",
+              desc: "Sumérgete en las escalas, los acordes, la armonía y el ritmo con módulos interactivos y fáciles de seguir."
+            },
+
+            {
+              icon: Piano,
+              color: "bg-brand-yellow",
+              title: "Ejercicios prácticos interactivos",
+              desc: "Consolida tus conocimientos con ejercicios atractivos, cuestionarios y comentarios en tiempo real."
+            },
+
+          ].map((f) => {
+
+            const Icon = f.icon;
+
+            return (
+
+              <div
+                key={f.title}
+                className="bg-white border border-gray-100 rounded-3xl p-8 shadow-card hover:shadow-card-hover transition"
+              >
+
+                <div
+                  className={`${f.color} w-14 h-14 rounded-2xl flex items-center justify-center mb-5 text-white`}
+                >
+                  <Icon size={28} />
+                </div>
+
+                <h3
+                  className="font-bold text-lg mb-2"
+                  style={{ fontFamily: "Syne,sans-serif" }}
+                >
+                  {f.title}
+                </h3>
+
+                <p className="text-gray-500 text-sm">
+                  {f.desc}
+                </p>
+
+              </div>
+            );
+          })}
+
         </div>
+
       </section>
 
       {/* MÓDULOS */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            { color:"bg-ritmo",   icon:"⚡", title:"Ritmo",   sub:"Pulso, compás y figuras" },
-            { color:"bg-melodia", icon:"♪",  title:"Melodía", sub:"Notas, escalas e intervalos" },
-            { color:"bg-armonia", icon:"🎹", title:"Armonía", sub:"Acordes y progresiones" },
-          ].map(m=>(
+            { color: "bg-ritmo", icon: "⚡", title: "Ritmo", sub: "Pulso, compás y figuras" },
+            { color: "bg-melodia", icon: "♪", title: "Melodía", sub: "Notas, escalas e intervalos" },
+            { color: "bg-armonia", icon: "🎹", title: "Armonía", sub: "Acordes y progresiones" },
+          ].map(m => (
             <div key={m.title} className={`${m.color} rounded-3xl p-8 text-white`}>
               <div className="text-3xl mb-3">{m.icon}</div>
-              <h3 className="font-extrabold text-xl" style={{fontFamily:'Syne,sans-serif'}}>{m.title}</h3>
+              <h3 className="font-extrabold text-xl" style={{ fontFamily: 'Syne,sans-serif' }}>{m.title}</h3>
               <p className="text-sm opacity-80 mt-1">{m.sub}</p>
             </div>
           ))}
@@ -112,7 +207,7 @@ export default function Landing() {
 
       {/* CTA */}
       <section className="bg-brand-dark text-white rounded-3xl max-w-5xl mx-auto mb-20 mx-6 p-16 text-center">
-        <h2 className="text-4xl font-extrabold mb-4" style={{fontFamily:'Syne,sans-serif'}}>¿Listo para componer tu futuro?</h2>
+        <h2 className="text-4xl font-extrabold mb-4" style={{ fontFamily: 'Syne,sans-serif' }}>¿Listo para componer tu futuro?</h2>
         <p className="text-gray-400 mb-8">Únete a quienes ya están dominando la teoría musical con IA.</p>
         <Link to="/register" className="bg-brand-yellow text-brand-dark font-bold px-10 py-4 rounded-full hover:bg-opacity-90 transition inline-flex items-center gap-2">
           Crear cuenta →
