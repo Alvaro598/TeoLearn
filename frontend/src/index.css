@@ -5,10 +5,68 @@
 
 html { scroll-behavior: smooth; }
 
+html[data-theme="oscuro"] {
+  color-scheme: dark;
+  background: #000000;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background: #f9fafb;
   color: #111827;
+}
+
+html[data-theme="oscuro"] body {
+  background: #000000;
+  color: #f8fafc;
+}
+
+html[data-theme="oscuro"] .bg-gray-50,
+html[data-theme="oscuro"] .bg-gray-100 {
+  background-color: #000000;
+}
+
+html[data-theme="oscuro"] .bg-white {
+  background-color: #000000;
+}
+
+html[data-theme="oscuro"] .border-gray-200,
+html[data-theme="oscuro"] .border-gray-300 {
+  border-color: #222222;
+}
+
+html[data-theme="oscuro"] .text-gray-950,
+html[data-theme="oscuro"] .text-gray-900,
+html[data-theme="oscuro"] .text-gray-800,
+html[data-theme="oscuro"] .text-gray-700 {
+  color: #f3f4f6;
+}
+
+html[data-theme="oscuro"] .text-gray-600,
+html[data-theme="oscuro"] .text-gray-500,
+html[data-theme="oscuro"] .text-gray-400 {
+  color: #cbd5e1;
+}
+
+html[data-theme="oscuro"] .bg-gray-200,
+html[data-theme="oscuro"] .bg-gray-100 {
+  background-color: #050505;
+}
+
+html[data-theme="oscuro"] input,
+html[data-theme="oscuro"] select,
+html[data-theme="oscuro"] textarea {
+  background-color: #000000;
+  color: #f8fafc;
+  border-color: #222222;
+}
+
+html[data-theme="oscuro"] .shadow-sm,
+html[data-theme="oscuro"] .shadow-card,
+html[data-theme="oscuro"] .shadow-card-hover,
+html[data-theme="oscuro"] .shadow-xl,
+html[data-theme="oscuro"] .shadow-2xl {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 h1, h2, h3 { font-family: 'Syne', sans-serif; }

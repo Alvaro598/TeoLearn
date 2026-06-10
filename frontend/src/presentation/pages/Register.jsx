@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Mail, Lock } from "lucide-react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+    browserSessionPersistence,
+    createUserWithEmailAndPassword,
+    setPersistence
+} from "firebase/auth";
 import { auth } from "../../infrastructure/config/firebase";
 import {
   GoogleAuthProvider,
   signInWithPopup
 } from "firebase/auth";
+import { getFirebaseAuthMessage } from "../../application/services/authErrors";
 
 
 export default function Register() {
@@ -29,6 +34,8 @@ export default function Register() {
         try {
             setLoading(true);
 
+            await setPersistence(auth, browserSessionPersistence);
+
             await createUserWithEmailAndPassword(
                 auth,
                 form.email,
@@ -36,24 +43,14 @@ export default function Register() {
             );
 
             setSuccess("Registro exitoso, Bienvenido");
-            setLoading(false);
 
             setTimeout(() => {
                 navigate("/login");
             }, 2000);
         } catch (err) {
-            console.error(err);
+            setError(getFirebaseAuthMessage(err, "No pudimos crear tu cuenta. Revisa los datos e inténtalo otra vez."));
+        } finally {
             setLoading(false);
-
-            if (err.code === "auth/email-already-in-use") {
-                setError("Este correo ya está registrado");
-            } else if (err.code === "auth/invalid-email") {
-                setError("Correo inválido");
-            } else if (err.code === "auth/weak-password") {
-                setError("La contraseña debe tener al menos 6 caracteres");
-            } else {
-                setError(err.message);
-            }
         }
     };
 
@@ -66,6 +63,8 @@ export default function Register() {
 
         setLoading(true);
 
+        await setPersistence(auth, browserSessionPersistence);
+
         const result =
           await signInWithPopup(
             auth,
@@ -75,7 +74,7 @@ export default function Register() {
         const token =
           await result.user.getIdToken();
 
-        localStorage.setItem(
+        sessionStorage.setItem(
           "token",
           token
         );
@@ -90,11 +89,9 @@ export default function Register() {
 
       } catch (error) {
 
-        console.error(error);
-
-        setError(
-          "Error iniciando con Google"
-        );
+                setError(
+                    getFirebaseAuthMessage(error, "No pudimos registrar con Google. Intenta de nuevo.")
+                );
       } finally {
 
         setLoading(false);

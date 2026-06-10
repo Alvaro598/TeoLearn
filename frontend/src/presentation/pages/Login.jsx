@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  browserSessionPersistence,
+  setPersistence,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { auth } from "../../infrastructure/config/firebase";
 import {
   GoogleAuthProvider,
   signInWithPopup
 } from "firebase/auth";
+import { getFirebaseAuthMessage } from "../../application/services/authErrors";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -19,13 +24,22 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    if (Date.now() < cooldownUntil) {
+      setError("Demasiados intentos. Espera un momento antes de volver a intentar.");
+      return;
+    }
+
     try {
       setLoading(true);
+
+      await setPersistence(auth, browserSessionPersistence);
 
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -36,22 +50,25 @@ export default function Login() {
 
 
       const token = await userCredential.user.getIdToken();
-      localStorage.setItem("token", token);
+      sessionStorage.setItem("token", token);
 
+      setFailedAttempts(0);
       setSuccess("Hola de nuevo");
-      setLoading(false);
 
       setTimeout(() => {
         navigate("/dashboard");
       }, 1500);
     } catch (err) {
-      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
-        setError("Correo o contraseña incorrectos");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Credenciales incorrectas");
-      } else {
-        setError(err.message);
+      setError(getFirebaseAuthMessage(err, "No pudimos iniciar sesión. Revisa tu correo y contraseña."));
+
+      const nextFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(nextFailedAttempts);
+
+      if (nextFailedAttempts >= 5) {
+        setCooldownUntil(Date.now() + 60000);
+        setError("Demasiados intentos fallidos. Espera 1 minuto antes de reintentar.");
       }
+    } finally {
       setLoading(false);
     }
   };
@@ -65,6 +82,8 @@ export default function Login() {
 
         setLoading(true);
 
+        await setPersistence(auth, browserSessionPersistence);
+
         const result =
           await signInWithPopup(
             auth,
@@ -74,7 +93,7 @@ export default function Login() {
         const token =
           await result.user.getIdToken();
 
-        localStorage.setItem(
+        sessionStorage.setItem(
           "token",
           token
         );
@@ -89,10 +108,8 @@ export default function Login() {
 
       } catch (error) {
 
-        console.error(error);
-
         setError(
-          "Error iniciando con Google"
+          getFirebaseAuthMessage(error, "No pudimos iniciar con Google. Intenta de nuevo.")
         );
       } finally {
 

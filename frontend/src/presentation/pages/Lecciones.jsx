@@ -7,6 +7,7 @@ export default function Lecciones() {
   const { unidadId } = useParams();
   const navigate = useNavigate();
 
+  const [unidad, setUnidad] = useState(null);
   const [lecciones, setLecciones] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,12 +20,13 @@ export default function Lecciones() {
     try {
 
       const response = await fetch(
-        `http://localhost:3000/api/lecciones/unidad/${unidadId}`
+        `http://localhost:3000/api/unidades/${unidadId}/lecciones`
       );
 
       const data = await response.json();
 
-      setLecciones(data);
+      setUnidad(data);
+      setLecciones(data.lecciones || []);
 
     } catch (error) {
 
@@ -51,7 +53,7 @@ export default function Lecciones() {
       <div className="max-w-5xl mx-auto px-6 py-10">
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(unidad?.modulo_slug ? `/modulos/${unidad.modulo_slug}/unidades` : '/modulos')}
           className="mb-8 text-gray-500"
         >
           ← Volver

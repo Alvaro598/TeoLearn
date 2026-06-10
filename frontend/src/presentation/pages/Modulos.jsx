@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../application/context/AuthContext";
+import { obtenerDashboard } from "../../application/services/progress";
 import ModuloCard from "../components/ui/ModuloCard";
 
 export default function Modulos() {
+
+  const { usuarioDB } = useAuth();
 
   const [modulos, setModulos] = useState([]);
   useEffect(() => {
@@ -10,11 +14,32 @@ export default function Modulos() {
 
       try {
 
-        const response = await fetch("http://localhost:3000/api/modulos");
+        const [response, dashboardData] = await Promise.all([
+          fetch("http://localhost:3000/api/modulos"),
+          usuarioDB?.id
+            ? obtenerDashboard(usuarioDB.id).catch(() => null)
+            : Promise.resolve(null),
+        ]);
 
         const data = await response.json();
+        const progresoPorSlug = new Map(
+          (dashboardData?.modulos || []).map((modulo) => [modulo.slug, modulo])
+        );
 
-        setModulos(data);
+        setModulos(
+          data.map((modulo) => {
+            const progreso = progresoPorSlug.get(modulo.slug);
+            const porcentaje = progreso
+              ? progreso.total_lecciones > 0
+                ? Math.round(
+                    (progreso.lecciones_completadas / progreso.total_lecciones) * 100
+                  )
+                : 0
+              : 0;
+
+            return { ...modulo, progress: porcentaje };
+          })
+        );
 
       } catch (error) {
 
@@ -26,7 +51,7 @@ export default function Modulos() {
 
     obtenerModulos();
 
-  }, []);
+  }, [usuarioDB?.id]);
 
   return (
     <>
@@ -44,6 +69,7 @@ export default function Modulos() {
               title={mod.titulo}
               description={mod.descripcion}
               image={mod.imagen}
+              progress={mod.progress}
             />
           ))}
         </div>

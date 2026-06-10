@@ -80,9 +80,12 @@ router.get("/:unidadId/lecciones", async (req, res) => {
 
     const unidadQuery = await pool.query(
       `
-      SELECT *
+      SELECT
+        unidades.*,
+        modulos.slug AS modulo_slug
       FROM unidades
-      WHERE id = $1
+      INNER JOIN modulos ON modulos.id = unidades.modulo_id
+      WHERE unidades.id = $1
       `,
       [unidadId]
     );

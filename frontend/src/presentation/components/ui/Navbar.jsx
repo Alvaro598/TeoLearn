@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "../../../application/context/AuthContext";
+import { getQuizFinalProgress } from "../../../application/services/progress";
+import UserAvatar from "./UserAvatar";
 
 export default function Navbar() {
 
@@ -12,6 +14,7 @@ export default function Navbar() {
 
   const [isMenuOpen, setIsMenuOpen] =
     useState(false);
+  const [quizUnlocked, setQuizUnlocked] = useState(false);
 
   const {
     isAuthenticated,
@@ -23,6 +26,31 @@ export default function Navbar() {
     path === "/" ||
     path === "/login" ||
     path === "/register";
+
+  useEffect(() => {
+    let active = true;
+
+    if (!isAuthenticated) {
+      setQuizUnlocked(false);
+      return () => {};
+    }
+
+    getQuizFinalProgress()
+      .then((state) => {
+        if (active) {
+          setQuizUnlocked(state.unlocked);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setQuizUnlocked(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, path]);
 
   if (loading) {
     return (
@@ -48,7 +76,6 @@ export default function Navbar() {
 
       {/* LOGO */}
       <Link
-        to="/"
         className="font-bold text-base sm:text-lg text-brand-blue hover:text-brand-dark transition"
       >
         🎵 TeoLearn
@@ -68,9 +95,8 @@ export default function Navbar() {
 
       {/* MENÚ */}
       <div
-        className={`${
-          isMenuOpen ? "flex" : "hidden"
-        } lg:flex flex-col lg:flex-row gap-4 lg:gap-6 items-center absolute lg:static top-16 left-0 right-0 bg-white lg:bg-transparent p-4 lg:p-0 shadow-lg lg:shadow-none`}
+        className={`${isMenuOpen ? "flex" : "hidden"
+          } lg:flex flex-col lg:flex-row gap-4 lg:gap-6 items-center absolute lg:static top-16 left-0 right-0 bg-white lg:bg-transparent p-4 lg:p-0 shadow-lg lg:shadow-none`}
       >
 
         {/* USUARIO LOGUEADO */}
@@ -104,6 +130,51 @@ export default function Navbar() {
               Módulos
             </Link>
 
+            <Link
+              to="/generalidades"
+              onClick={() =>
+                setIsMenuOpen(false)
+              }
+              className={
+                path === "/generalidades"
+                  ? "text-gray-800 font-bold"
+                  : ""
+              }
+            >
+              Contenido de apoyo
+            </Link>
+
+            <Link
+              to="/chat"
+              onClick={() =>
+                setIsMenuOpen(false)
+              }
+              className={
+                path === "/chat"
+                  ? "text-gray-800 font-bold"
+                  : ""
+              }
+            >
+              Tutor IA
+            </Link>
+
+            {quizUnlocked && (
+              <Link
+                to="/quiz-final"
+                onClick={() =>
+                  setIsMenuOpen(false)
+                }
+                className={
+                  path === "/quiz-final"
+                    ? "text-gray-800 font-bold"
+                    : ""
+                }
+              >
+                Quiz final
+              </Link>
+            )}
+
+
             <button
               onClick={() => {
                 logout();
@@ -113,6 +184,18 @@ export default function Navbar() {
             >
               Cerrar sesión
             </button>
+
+            <Link
+              to="/perfil"
+              onClick={() =>
+                setIsMenuOpen(false)
+              }
+              className="inline-flex items-center gap-2"
+              aria-label="Perfil"
+            >
+              <UserAvatar />
+            </Link>
+
           </>
         )}
 
@@ -136,11 +219,10 @@ export default function Navbar() {
 
               <Link
                 to="/register"
-                className={`px-4 py-2 rounded ${
-                  path === "/register"
+                className={`px-4 py-2 rounded ${path === "/register"
                     ? "bg-blue-700"
                     : "bg-brand-blue text-white font-bold px-8 py-4 rounded-full hover:bg-opacity-90 transition flex items-center gap-2 justify-center"
-                } text-white`}
+                  } text-white`}
                 onClick={() =>
                   setIsMenuOpen(false)
                 }

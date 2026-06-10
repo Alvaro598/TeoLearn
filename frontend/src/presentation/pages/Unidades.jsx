@@ -7,8 +7,21 @@ import {
   useEffect,
   useState
 } from "react";
+import {
+  getCompletedLessonIds,
+  getCompletedUnitIds,
+  markModuleCompleted,
+  markUnitCompleted,
+} from "../../application/services/progress";
 
 const MOD_CONFIG = {
+
+  generalidades: {
+    color: 'bg-brand-blue',
+    label: 'Generalidades',
+    sub: 'Sonido, notas, pentagrama y uso de la plataforma',
+    icon: '🎵'
+  },
 
   ritmo: {
     color: 'bg-ritmo',
@@ -56,6 +69,9 @@ export default function Unidades() {
   const [unidades, setUnidades] =
     useState([]);
 
+  const [savingUnitId, setSavingUnitId] =
+    useState(null);
+
   /*
     Estado de carga
   */
@@ -91,7 +107,30 @@ export default function Unidades() {
       const data =
         await respuesta.json();
 
-      setUnidades(data);
+      const completedLessons = new Set(getCompletedLessonIds());
+      const completedUnits = new Set(getCompletedUnitIds());
+
+      const unidadesConProgreso = await Promise.all(
+        data.map(async (unidad) => {
+          const detalleResponse = await fetch(
+            `http://localhost:3000/api/unidades/${unidad.id}/lecciones`
+          );
+          const detalle = await detalleResponse.json();
+          const lecciones = detalle.lecciones || [];
+          const leccionesCompletadas = lecciones.filter((leccion) =>
+            completedLessons.has(String(leccion.id))
+          ).length;
+
+          return {
+            ...unidad,
+            totalLecciones: lecciones.length,
+            leccionesCompletadas,
+            finalizada: completedUnits.has(String(unidad.id)),
+          };
+        })
+      );
+
+      setUnidades(unidadesConProgreso);
 
     } catch (error) {
 
@@ -106,6 +145,39 @@ export default function Unidades() {
 
     }
 
+  };
+
+  const finalizarUnidad = (unidad) => {
+    if (unidad.finalizada) {
+      return;
+    }
+
+    if (unidad.totalLecciones === 0 || unidad.leccionesCompletadas < unidad.totalLecciones) {
+      return;
+    }
+
+    setSavingUnitId(unidad.id);
+
+    markUnitCompleted(unidad.id, moduloId);
+
+    setUnidades((current) => {
+      const updated = current.map((item) =>
+        item.id === unidad.id
+          ? { ...item, finalizada: true }
+          : item
+      );
+
+      if (
+        updated.length > 0 &&
+        updated.every((item) => item.finalizada || item.leccionesCompletadas >= item.totalLecciones)
+      ) {
+        markModuleCompleted(moduloId);
+      }
+
+      return updated;
+    });
+
+    setSavingUnitId(null);
   };
 
   /*
@@ -242,23 +314,46 @@ export default function Unidades() {
                   <span>·</span>
 
                   <span>
-                    Próximamente
+                    {unidad.leccionesCompletadas}/{unidad.totalLecciones} lecciones completadas
                   </span>
 
                 </div>
 
+                {unidad.finalizada && (
+                  <div className="inline-flex self-start mb-4 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+                    Unidad finalizada
+                  </div>
+                )}
+
                 {/* BOTÓN */}
 
-                <button
-                  onClick={() =>
-                    navigate(
-                      `/unidad/${unidad.id}/lecciones`
-                    )
-                  }
-                  className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition`}
-                >
-                  Empezar →
-                </button>
+                <div className="space-y-3 mt-auto">
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/unidad/${unidad.id}/lecciones`
+                      )
+                    }
+                    className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition`}
+                  >
+                    Empezar →
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => finalizarUnidad(unidad)}
+                    disabled={unidad.finalizada || unidad.leccionesCompletadas < unidad.totalLecciones || savingUnitId === unidad.id}
+                    className="w-full border-2 border-gray-950 text-gray-950 py-3 rounded-xl font-semibold text-sm hover:bg-gray-100 transition disabled:opacity-50 disabled:hover:bg-transparent"
+                  >
+                    {unidad.finalizada
+                      ? "Unidad finalizada"
+                      : savingUnitId === unidad.id
+                        ? "Guardando..."
+                        : unidad.leccionesCompletadas < unidad.totalLecciones
+                          ? "Completa las lecciones para finalizar"
+                          : "Finalizar unidad"}
+                  </button>
+                </div>
 
               </div>
 

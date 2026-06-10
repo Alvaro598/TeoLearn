@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-export default function ModuloCard({ id, title, description, image, progress }) {
+export default function ModuloCard({ id, title, description, image, progress = 0 }) {
 
   return (
     <div
