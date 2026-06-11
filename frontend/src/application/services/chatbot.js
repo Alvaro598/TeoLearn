@@ -1,9 +1,11 @@
+import { apiUrl } from "../config/apiBase";
+
 export const preguntarIA = async (
   pregunta
 ) => {
 
   const response = await fetch(
-    "http://localhost:3000/api/chat",
+    apiUrl("/chat"),
     {
       method: "POST",
 

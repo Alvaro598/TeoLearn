@@ -1,6 +1,7 @@
 import { ArrowLeft, Headphones, Play, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiUrl } from "../../application/config/apiBase";
 import { useAuth } from "../../application/context/AuthContext";
 import { usePreferences } from "../../application/context/PreferencesContext";
 import { markLessonCompleted } from "../../application/services/progress";
@@ -43,7 +44,7 @@ export default function DetalleLeccion() {
 
   const obtenerLeccion = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/lecciones/${leccionId}`);
+      const response = await fetch(apiUrl(`/lecciones/${leccionId}`));
       const data = await response.json();
       setLeccion(data);
     } catch (error) {
@@ -147,21 +148,7 @@ export default function DetalleLeccion() {
           })}
         </div>
 
-        <div className="mt-10 bg-white border-2 border-gray-950 rounded-xl p-5 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between shadow-[6px_6px_0_#111827]">
-          <button
-            onClick={() => playSequence(["C4", "D4", "E4", "G4", "C5"], 0.26)}
-            className="inline-flex items-center justify-center gap-3 bg-brand-blue text-white px-5 py-3 rounded-xl font-extrabold"
-          >
-            <Play size={18} fill="currentColor" />
-            Reproducir ejemplo
-          </button>
-
-          <div className="inline-flex items-center gap-3 text-gray-600 font-bold">
-            <Headphones size={22} />
-            Ejemplo auditivo integrado
-          </div>
-        </div>
-
+        
         {leccion.video_url && (
           <a
             href={leccion.video_url}
@@ -174,24 +161,7 @@ export default function DetalleLeccion() {
           </a>
         )}
 
-        <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-          <div>
-            <p className="font-extrabold text-gray-950">Finalizar esta lección</p>
-            <p className="text-sm text-gray-600">
-              Guarda el progreso de esta lección y vuelve al listado de lecciones.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={finalizarLeccion}
-            disabled={finalizada}
-            className="inline-flex items-center justify-center bg-brand-blue text-white px-5 py-3 rounded-xl font-extrabold disabled:bg-gray-400"
-          >
-            {finalizada ? "Lección finalizada" : "Finalizar lección"}
-          </button>
-        </div>
-
+        
         <button
           onClick={() => navigate(`/ejercicio/${leccion.id}`)}
           className="mt-4 w-full bg-brand-pink text-white font-extrabold py-4 rounded-xl hover:opacity-90 transition"

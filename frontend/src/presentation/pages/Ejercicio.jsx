@@ -1,6 +1,7 @@
 import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiUrl } from "../../application/config/apiBase";
 import { useAuth } from "../../application/context/AuthContext";
 import { usePreferences } from "../../application/context/PreferencesContext";
 import { solicitarFeedbackIA } from "../../application/services/feedbackIA";
@@ -11,6 +12,7 @@ import {
   markExerciseCompletedLocal,
   guardarIntento,
   guardarLeccionCompletada,
+  registerLessonAttemptLocal,
 } from "../../application/services/progress";
 import EntrenamientoAuditivo from "../components/ui/exercises/EntrenamientoAuditivo";
 import EjercicioMidi from "../components/ui/exercises/EjercicioMidi";
@@ -42,13 +44,13 @@ export default function Ejercicio() {
   const obtenerDatos = async () => {
     try {
       const leccionResponse = await fetch(
-        `http://localhost:3000/api/lecciones/${leccionId}`
+        apiUrl(`/lecciones/${leccionId}`)
       );
       const leccionData = await leccionResponse.json();
       setLeccion(leccionData);
 
       const ejerciciosResponse = await fetch(
-        `http://localhost:3000/api/ejercicios/leccion/${leccionId}`
+        apiUrl(`/ejercicios/leccion/${leccionId}`)
       );
       const ejerciciosData = await ejerciciosResponse.json();
       setEjercicios(ejerciciosData);
@@ -98,6 +100,8 @@ export default function Ejercicio() {
         console.error("No se pudo guardar el intento en la BD:", err);
       }
     }
+
+    registerLessonAttemptLocal(leccionId, payload.correcta, payload.puntuacion);
 
     try {
       const feedback = await solicitarFeedbackIA({
@@ -299,17 +303,16 @@ export default function Ejercicio() {
 
               {resultadoActual && (
                 <div
-                  className={`mt-5 rounded-xl p-4 ${
-                    resultadoActual.correcta
+                  className={`mt-5 rounded-xl p-4 ${resultadoActual.correcta
                       ? "bg-green-50 text-green-800"
                       : "bg-red-50 text-red-800"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-extrabold">
                       {resultadoActual.correcta
-                        ? `Correcto +${resultadoActual.puntuacion} XP. Pasas al siguiente ejercicio.`
-                        : "Respuesta por mejorar. Vuelve a intentarlo."}
+                        ? `Correcto +${resultadoActual.puntuacion} XP. Puedes continuar cuando estés listo.`
+                        : "Respuesta incorrecta. Revisa la retroalimentación y vuelve a intentarlo."}
                     </p>
 
                     <button
@@ -330,17 +333,31 @@ export default function Ejercicio() {
                     {resultadoActual.feedback}
                   </p>
 
-                  {resultadoActual.correcta && (
-                    <button
-                      type="button"
-                      onClick={irAlSiguienteEjercicio}
-                      className="mt-4 bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-bold"
-                    >
-                      {activeIndex >= ejercicios.length - 1
-                        ? "Finalizar ejercicio"
-                        : "Siguiente ejercicio"}
-                    </button>
-                  )}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {resultadoActual.correcta ? (
+                      <button
+                        type="button"
+                        onClick={irAlSiguienteEjercicio}
+                        className="bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-bold"
+                      >
+                        {activeIndex >= ejercicios.length - 1
+                          ? "Finalizar ejercicio"
+                          : "Siguiente ejercicio"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          stopSpeech();
+                          setIsFeedbackSpeaking(false);
+                          setResultadoActual(null);
+                        }}
+                        className="bg-brand-pink text-white px-4 py-2 rounded-lg text-sm font-bold"
+                      >
+                        Intentar nuevamente
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </article>

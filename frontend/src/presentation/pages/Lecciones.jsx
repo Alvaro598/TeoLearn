@@ -1,29 +1,39 @@
 ﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../application/config/apiBase";
+import { useAuth } from "../../application/context/AuthContext";
+import { obtenerDashboard } from "../../application/services/progress";
 import LeccionCard from "../components/ui/LeccionCard";
 
 export default function Lecciones() {
 
   const { unidadId } = useParams();
   const navigate = useNavigate();
+  const { usuarioDB } = useAuth();
 
   const [unidad, setUnidad] = useState(null);
   const [lecciones, setLecciones] = useState([]);
+  const [completedLessonIds, setCompletedLessonIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     obtenerLecciones();
-  }, []);
+  }, [unidadId, usuarioDB?.id]);
 
   async function obtenerLecciones() {
 
     try {
-
-      const response = await fetch(
-        `http://localhost:3000/api/unidades/${unidadId}/lecciones`
-      );
+      const [response, dashboardData] = await Promise.all([
+        fetch(apiUrl(`/unidades/${unidadId}/lecciones`)),
+        usuarioDB?.id
+          ? obtenerDashboard(usuarioDB.id).catch(() => null)
+          : Promise.resolve(null),
+      ]);
 
       const data = await response.json();
+      setCompletedLessonIds(
+        new Set(dashboardData?.lecciones_completadas_ids || [])
+      );
 
       setUnidad(data);
       setLecciones(data.lecciones || []);
@@ -71,6 +81,7 @@ export default function Lecciones() {
               key={leccion.id}
               leccion={leccion}
               unidadId={unidadId}
+              completada={completedLessonIds.has(String(leccion.id))}
             />
 
           ))}

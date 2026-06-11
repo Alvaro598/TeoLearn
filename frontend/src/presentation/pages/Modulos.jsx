@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../application/context/AuthContext";
+import { apiUrl } from "../../application/config/apiBase";
 import { obtenerDashboard } from "../../application/services/progress";
 import ModuloCard from "../components/ui/ModuloCard";
 
@@ -15,7 +16,7 @@ export default function Modulos() {
       try {
 
         const [response, dashboardData] = await Promise.all([
-          fetch("http://localhost:3000/api/modulos"),
+          fetch(apiUrl("/modulos")),
           usuarioDB?.id
             ? obtenerDashboard(usuarioDB.id).catch(() => null)
             : Promise.resolve(null),

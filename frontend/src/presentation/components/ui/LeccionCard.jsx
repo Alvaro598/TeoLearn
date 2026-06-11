@@ -7,11 +7,15 @@ import {
 export default function LeccionCard({
   leccion,
   unidadId,
+  completada = false,
 }) {
 
   const navigate = useNavigate();
 
   const handleClick = () => {
+    if (completada) {
+      return;
+    }
 
     navigate(
       `/unidad/${unidadId}/leccion/${leccion.id}`
@@ -22,7 +26,7 @@ export default function LeccionCard({
 
     <div
       onClick={handleClick}
-      className="rounded-xl overflow-hidden shadow-md cursor-pointer transition transform hover:-translate-y-2 bg-white"
+      className={`rounded-xl overflow-hidden shadow-md transition transform bg-white ${completada ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:-translate-y-2"}`}
     >
 
       {/* IMAGEN */}
@@ -41,7 +45,7 @@ export default function LeccionCard({
             {leccion.titulo}
           </h2>
 
-          <PlayCircle className="text-brand-pink" />
+          <PlayCircle className={completada ? "text-gray-400" : "text-brand-pink"} />
 
         </div>
 
@@ -50,9 +54,9 @@ export default function LeccionCard({
         </p>
 
         <span
-          className="text-xs font-medium px-2 py-1 rounded bg-yellow-100 text-yellow-600"
+          className={`text-xs font-medium px-2 py-1 rounded ${completada ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-600"}`}
         >
-          Disponible
+          {completada ? "Completada" : "Disponible"}
         </span>
 
       </div>

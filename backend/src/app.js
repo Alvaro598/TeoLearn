@@ -9,6 +9,8 @@ import ejercicioRoutes from "./routes/ejercicio.routes.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
 import usuarioRoutes from "./routes/usuario.routes.js";
 import progresoRoutes from "./routes/progreso.routes.js";
+import pool from "./database/db.js";
+import { seedLearningPath } from "./database/seedLearningPath.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 
 dotenv.config();
@@ -31,7 +33,27 @@ app.get("/", (req, res) => {
   res.send("API funcionando 🚀");
 });
 
+async function ensureLearningPathSeeded() {
+  const result = await pool.query("SELECT COUNT(*)::int AS count FROM modulos");
+
+  if ((result.rows[0]?.count ?? 0) === 0) {
+    await seedLearningPath({ closePool: false });
+  }
+}
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+
+async function bootstrap() {
+  try {
+    await ensureLearningPathSeeded();
+
+    app.listen(PORT, () => {
+      console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("No se pudo iniciar el servidor:", error);
+    process.exitCode = 1;
+  }
+}
+
+bootstrap();

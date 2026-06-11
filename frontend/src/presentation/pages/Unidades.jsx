@@ -7,11 +7,10 @@ import {
   useEffect,
   useState
 } from "react";
+import { apiUrl } from "../../application/config/apiBase";
+import { useAuth } from "../../application/context/AuthContext";
 import {
-  getCompletedLessonIds,
-  getCompletedUnitIds,
-  markModuleCompleted,
-  markUnitCompleted,
+  obtenerDashboard,
 } from "../../application/services/progress";
 
 const MOD_CONFIG = {
@@ -51,6 +50,7 @@ export default function Unidades() {
   const { moduloId } = useParams();
 
   const navigate = useNavigate();
+  const { usuarioDB } = useAuth();
 
   const cfg =
     MOD_CONFIG[moduloId] || {
@@ -89,7 +89,7 @@ export default function Unidades() {
 
     obtenerUnidades();
 
-  }, []);
+  }, [moduloId, usuarioDB?.id]);
 
   /*
     Consulta al backend
@@ -99,33 +99,36 @@ export default function Unidades() {
 
     try {
 
-      const respuesta =
-        await fetch(
-          `http://localhost:3000/api/unidades/modulo/${moduloId}`
-        );
+      const [respuesta, dashboardData] = await Promise.all([
+        fetch(apiUrl(`/unidades/modulo/${moduloId}`)),
+        usuarioDB?.id
+          ? obtenerDashboard(usuarioDB.id).catch(() => null)
+          : Promise.resolve(null),
+      ]);
 
-      const data =
-        await respuesta.json();
-
-      const completedLessons = new Set(getCompletedLessonIds());
-      const completedUnits = new Set(getCompletedUnitIds());
+      const data = await respuesta.json();
+      const completedLessons = new Set(
+        dashboardData?.lecciones_completadas_ids || []
+      );
 
       const unidadesConProgreso = await Promise.all(
         data.map(async (unidad) => {
           const detalleResponse = await fetch(
-            `http://localhost:3000/api/unidades/${unidad.id}/lecciones`
+            apiUrl(`/unidades/${unidad.id}/lecciones`)
           );
           const detalle = await detalleResponse.json();
           const lecciones = detalle.lecciones || [];
           const leccionesCompletadas = lecciones.filter((leccion) =>
             completedLessons.has(String(leccion.id))
           ).length;
+          const finalizada =
+            lecciones.length > 0 && leccionesCompletadas === lecciones.length;
 
           return {
             ...unidad,
             totalLecciones: lecciones.length,
             leccionesCompletadas,
-            finalizada: completedUnits.has(String(unidad.id)),
+            finalizada,
           };
         })
       );
@@ -158,24 +161,11 @@ export default function Unidades() {
 
     setSavingUnitId(unidad.id);
 
-    markUnitCompleted(unidad.id, moduloId);
-
-    setUnidades((current) => {
-      const updated = current.map((item) =>
-        item.id === unidad.id
-          ? { ...item, finalizada: true }
-          : item
-      );
-
-      if (
-        updated.length > 0 &&
-        updated.every((item) => item.finalizada || item.leccionesCompletadas >= item.totalLecciones)
-      ) {
-        markModuleCompleted(moduloId);
-      }
-
-      return updated;
-    });
+    setUnidades((current) =>
+      current.map((item) =>
+        item.id === unidad.id ? { ...item, finalizada: true } : item
+      )
+    );
 
     setSavingUnitId(null);
   };
@@ -334,9 +324,10 @@ export default function Unidades() {
                         `/unidad/${unidad.id}/lecciones`
                       )
                     }
-                    className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition`}
+                    disabled={unidad.finalizada}
+                    className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    Empezar →
+                    {unidad.finalizada ? "Unidad completada" : "Empezar →"}
                   </button>
 
                   <button

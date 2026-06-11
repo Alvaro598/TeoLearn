@@ -22,23 +22,7 @@ const MODULO_CONFIG = {
   },
 };
 
-const INSIGNIAS = [
-  {
-    label: "Primera lección",
-    icon: "⭐",
-    color: "bg-brand-yellow/20 text-yellow-700",
-  },
-  {
-    label: "Trío musical",
-    icon: "🎵",
-    color: "bg-brand-pink/10 text-brand-pink",
-  },
-  {
-    label: "Compositor en formación",
-    icon: "🎓",
-    color: "bg-brand-blue/10 text-brand-blue",
-  },
-];
+
 
 export default function Dashboard() {
   const { usuario, usuarioDB } = useAuth();
@@ -214,43 +198,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Continuar + Insignias */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-card p-6">
-            <p className="text-xs font-bold text-gray-400 uppercase mb-2">
-              CONTINUAR APRENDIENDO
-            </p>
-            <h2
-              className="text-xl font-bold mb-1"
-              style={{ fontFamily: "Syne,sans-serif" }}
-            >
-              Silencios musicales
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">El arte de no tocar nada</p>
-            <Link
-              to="/modulos/ritmo/unidades"
-              className="inline-flex items-center gap-2 bg-brand-pink text-white font-semibold px-5 py-2.5 rounded-full hover:bg-opacity-90 transition text-sm"
-            >
-              Continuar lección →
-            </Link>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-card p-6">
-            <p className="text-xs font-bold text-gray-400 uppercase mb-3">
-              INSIGNIAS
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {INSIGNIAS.map((i) => (
-                <span
-                  key={i.label}
-                  className={`${i.color} text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5`}
-                >
-                  {i.icon} {i.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        
 
         {/* Categorías con progreso real */}
         <p

@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onIdTokenChanged, signOut } from "firebase/auth";
 import { auth } from "../../infrastructure/config/firebase";
-
-const API_BASE = "http://localhost:3000/api";
+import { apiUrl } from "../config/apiBase";
 
 const AuthContext = createContext();
 
@@ -24,7 +23,7 @@ export function AuthProvider({ children }) {
 
         // 2. Sincronizar con la BD (obtener o crear el registro)
         try {
-          const response = await fetch(`${API_BASE}/usuarios/sync`, {
+          const response = await fetch(apiUrl("/usuarios/sync"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -64,7 +63,7 @@ export function AuthProvider({ children }) {
 
     try {
       const response = await fetch(
-        `${API_BASE}/usuarios/firebase/${firebaseUser.uid}`
+        apiUrl(`/usuarios/firebase/${firebaseUser.uid}`)
       );
 
       if (response.ok) {

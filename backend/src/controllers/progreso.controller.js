@@ -183,6 +183,16 @@ export const obtenerDashboard = async (req, res) => {
       [usuarioId]
     );
 
+    const completedLessonsResult = await pool.query(
+      `
+      SELECT leccion_id
+      FROM progreso_usuario
+      WHERE usuario_id = $1 AND completada = true
+      ORDER BY leccion_id ASC
+      `,
+      [usuarioId]
+    );
+
     const { total_lecciones, lecciones_completadas } = globalResult.rows[0];
 
     // Porcentaje por módulo
@@ -225,6 +235,9 @@ export const obtenerDashboard = async (req, res) => {
       xp_nivel: parseInt(xp, 10) % 200,
       lecciones_completadas: parseInt(lecciones_completadas, 10),
       total_lecciones: parseInt(total_lecciones, 10),
+      lecciones_completadas_ids: completedLessonsResult.rows.map((row) =>
+        String(row.leccion_id)
+      ),
       modulos,
     });
   } catch (error) {

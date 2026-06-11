@@ -1,6 +1,7 @@
 import { Eraser, Play } from "lucide-react";
 import { useMemo, useState } from "react";
 import { playSequence } from "../../../../application/services/sound";
+import Metronomo from "../Metronomo";
 
 const noteRows = ["C5", "B4", "A4", "G4", "F4", "E4", "D4", "C4"];
 
@@ -62,6 +63,7 @@ export default function EjercicioMidi({ exercise, onEvaluate, disabled }) {
           Selecciona las notas objetivo en cualquier columna. Usa reproducir para escuchar tu respuesta.
         </p>
       </div>
+      <Metronomo />
 
       <div className="bg-white border-2 border-gray-950 rounded-xl p-4 overflow-x-auto">
         <div className="flex items-center justify-between gap-3 mb-4">

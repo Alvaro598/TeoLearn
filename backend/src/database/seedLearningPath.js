@@ -1,5 +1,6 @@
 import pool from "./db.js";
 import { learningPath } from "./learningPathData.js";
+import { pathToFileURL } from "url";
 
 async function ensureSchema() {
   await pool.query(`
@@ -178,7 +179,7 @@ async function upsertEjercicio(client, leccionId, ejercicio) {
   );
 }
 
-async function seedLearningPath() {
+export async function seedLearningPath({ closePool = true } = {}) {
   await ensureSchema();
 
   const client = await pool.connect();
@@ -215,8 +216,16 @@ async function seedLearningPath() {
     process.exitCode = 1;
   } finally {
     client.release();
-    await pool.end();
+
+    if (closePool) {
+      await pool.end();
+    }
   }
 }
 
-seedLearningPath();
+const isExecutedDirectly =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isExecutedDirectly) {
+  seedLearningPath();
+}

@@ -10,9 +10,10 @@
  * La escritura persistente siempre va a la BD.
  */
 
+import { apiUrl } from "../config/apiBase";
+
 const STORAGE_KEY = "teolearn-progress";
-const API_BASE = "http://localhost:3000/api";
-const PROGRESO_BASE = `${API_BASE}/progreso`;
+const PROGRESO_BASE = apiUrl("/progreso");
 
 export const REQUIRED_QUIZ_MODULES = ["ritmo", "melodia", "armonia"];
 
@@ -43,6 +44,11 @@ function getLessonProgress(progress, lessonId) {
       exercises: [],
       completed: false,
       moduleSlug: "",
+      result: {
+        aciertos: 0,
+        errores: 0,
+        puntuacion: 0,
+      },
     }
   );
 }
@@ -100,6 +106,42 @@ export function markLessonCompletedLocal(lessonId, moduleSlug = "") {
 // Alias mantenido para retrocompatibilidad
 export const markLessonCompleted = markLessonCompletedLocal;
 
+export function getLessonResultLocal(lessonId) {
+  const lesson = getLessonProgress(readProgress(), lessonId);
+
+  return lesson.result || {
+    aciertos: 0,
+    errores: 0,
+    puntuacion: 0,
+  };
+}
+
+export function registerLessonAttemptLocal(lessonId, correcta, puntuacion = 0) {
+  const progress = readProgress();
+  const lessonKey = String(lessonId);
+  const currentLesson = getLessonProgress(progress, lessonKey);
+  const currentResult = currentLesson.result || {
+    aciertos: 0,
+    errores: 0,
+    puntuacion: 0,
+  };
+
+  const nextResult = {
+    aciertos: currentResult.aciertos + (correcta ? 1 : 0),
+    errores: currentResult.errores + (correcta ? 0 : 1),
+    puntuacion: currentResult.puntuacion + (puntuacion ?? 0),
+  };
+
+  progress.lessons[lessonKey] = {
+    ...currentLesson,
+    result: nextResult,
+  };
+
+  saveProgress(progress);
+
+  return nextResult;
+}
+
 export function getCompletedUnitIds() {
   return Object.entries(readProgress().units)
     .filter(([, unit]) => unit.completed)
@@ -148,7 +190,7 @@ export function isQuizFinalUnlocked() {
 // ─── helpers de fetch ──────────────────────────────────────────────────────
 
 async function fetchJson(path) {
-  const response = await fetch(`${API_BASE}${path}`);
+  const response = await fetch(apiUrl(path));
   if (!response.ok) throw new Error(`Request failed for ${path}`);
   return response.json();
 }
