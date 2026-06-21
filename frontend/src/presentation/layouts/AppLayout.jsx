@@ -8,6 +8,8 @@ export default function AppLayout() {
   const { pathname } = useLocation();
   const hideChatbot =
     pathname === "/chat" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
     pathname === "/quiz-final" ||
     pathname.startsWith("/ejercicio/");
 

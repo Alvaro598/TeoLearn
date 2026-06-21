@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../application/context/AuthContext";
 import { usePreferences } from "../../application/context/PreferencesContext";
 import { obtenerDashboard } from "../../application/services/progress";
+import OnboardingTutorial from "../components/ui/OnboardingTutorial";
 
 const MODULO_CONFIG = {
   ritmo: {
@@ -40,7 +41,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const cargarDashboard = async () => {
-      // Necesitamos el id de PostgreSQL para consultar la BD
+
       if (!usuarioDB?.id) {
         setLoadingDashboard(false);
         return;
@@ -59,7 +60,7 @@ export default function Dashboard() {
     cargarDashboard();
   }, [usuarioDB?.id]);
 
-  // Valores para la UI — si la BD aún no respondió se usan defaults seguros
+
   const xpTotal = dashboardData?.xp ?? usuarioDB?.xp ?? 0;
   const nivel = dashboardData?.nivel ?? usuarioDB?.nivel ?? 1;
   const xpNivel = dashboardData?.xp_nivel ?? xpTotal % 200;
@@ -69,46 +70,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {!preferences.onboardingDone && (
-        <div className="fixed inset-0 bg-gray-950/60 z-[60] flex items-center justify-center px-4">
-          <div className="bg-white max-w-2xl w-full rounded-xl p-6 shadow-2xl">
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-pink mb-2">
-              Mapa de navegación
-            </p>
-            <h2 className="text-3xl font-extrabold mb-4">
-              Empieza por este recorrido
-            </h2>
-            <div className="grid gap-3 text-gray-700">
-              <p>
-                <strong>1.</strong> Revisa Generalidades para conectar música,
-                cultura e instrumentos.
-              </p>
-              <p>
-                <strong>2.</strong> Estudia Ritmo para dominar pulso, compás y
-                figuras.
-              </p>
-              <p>
-                <strong>3.</strong> Avanza a Melodía para leer notas, intervalos
-                y escalas.
-              </p>
-              <p>
-                <strong>4.</strong> Cierra con Armonía para construir acordes y
-                progresiones.
-              </p>
-              <p>
-                <strong>5.</strong> Usa Tutor IA, ejercicios y Quiz final para
-                medir utilidad.
-              </p>
-            </div>
-            <button
-              onClick={() => updatePreferences({ onboardingDone: true })}
-              className="mt-6 w-full bg-brand-blue text-white py-3 rounded-xl font-extrabold"
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
+      <OnboardingTutorial />
 
       <div className="max-w-5xl mx-auto px-6 py-10 animate-fade-in">
         {/* Bienvenida */}
@@ -164,7 +126,7 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Racha (pendiente de implementar; se deja como placeholder) */}
+
           <div className="bg-brand-pink rounded-2xl p-5 shadow-card">
             <p className="text-xs font-bold uppercase mb-1 text-white opacity-70">
               RACHA
@@ -198,7 +160,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        
+
 
         {/* Categorías con progreso real */}
         <p
@@ -211,47 +173,49 @@ export default function Dashboard() {
         <div className="grid md:grid-cols-3 gap-5">
           {loadingDashboard
             ? // Skeleton mientras carga
-              [1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="bg-gray-200 rounded-3xl p-7 animate-pulse h-36"
-                />
-              ))
+            [1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="bg-gray-200 rounded-3xl p-7 animate-pulse h-36"
+              />
+            ))
             : modulosBD.map((modulo) => {
-                const config = MODULO_CONFIG[modulo.slug] || {
-                  path: `/modulos/${modulo.slug}/unidades`,
-                  icon: "🎵",
-                  color: "bg-gray-700",
-                };
+              const config = MODULO_CONFIG[modulo.slug] || {
+                path: `/modulos/${modulo.slug}/unidades`,
+                icon: "🎵",
+                color: "bg-gray-700",
+              };
 
-                return (
-                  <Link
-                    key={modulo.id}
-                    to={config.path}
-                    className={`${config.color} rounded-3xl p-7 text-white hover:opacity-95 transition block`}
+              return (
+                <Link
+                  id="modulos-dashboard"
+                  key={modulo.id}
+                  to={config.path}
+                  className={`${config.color}  rounded-3xl p-7 text-white hover:opacity-95 transition block`}
+                >
+                  <div className="text-3xl mb-3">{config.icon}</div>
+                  <h3
+                    className="font-extrabold text-xl"
+                    style={{ fontFamily: "Syne,sans-serif" }}
                   >
-                    <div className="text-3xl mb-3">{config.icon}</div>
-                    <h3
-                      className="font-extrabold text-xl"
-                      style={{ fontFamily: "Syne,sans-serif" }}
-                    >
-                      {modulo.titulo}
-                    </h3>
-                    <p className="text-sm opacity-70 mt-1">
-                      {modulo.lecciones_completadas} / {modulo.total_lecciones}{" "}
-                      completadas
-                    </p>
-                    {/* Barra de progreso del módulo */}
-                    <div className="w-full bg-white/30 rounded-full h-1.5 mt-3">
-                      <div
-                        className="bg-white h-1.5 rounded-full transition-all"
-                        style={{ width: `${modulo.porcentaje}%` }}
-                      />
-                    </div>
-                    <p className="text-xs opacity-60 mt-1">{modulo.porcentaje}%</p>
-                  </Link>
-                );
-              })}
+                    {modulo.titulo}
+                  </h3>
+                  <p className="text-sm opacity-70 mt-1">
+                    {modulo.lecciones_completadas} / {modulo.total_lecciones}{" "}
+                    completadas
+                  </p>
+                  {/* Barra de progreso del módulo */}
+                  <div className="w-full bg-white/30 rounded-full h-1.5 mt-3">
+                    <div
+                      id="progress-bar"
+                      className="bg-white h-1.5 rounded-full transition-all"
+                      style={{ width: `${modulo.porcentaje}%` }}
+                    />
+                  </div>
+                  <p className="text-xs opacity-60 mt-1">{modulo.porcentaje}%</p>
+                </Link>
+              );
+            })}
         </div>
       </div>
     </div>

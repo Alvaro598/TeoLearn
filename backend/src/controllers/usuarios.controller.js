@@ -72,24 +72,30 @@ export const obtenerOCrearUsuario = async (req, res) => {
       return res.status(400).json({ error: "firebase_uid y correo son requeridos" });
     }
 
-    // 1. Ya existe con este firebase_uid
+    // 1. Ya existe con este firebase_uid: actualizar nombre/correo por si
+    //    cambiaron en Firebase (ej. el usuario editó su displayName)
     const porUid = await pool.query(
       `SELECT * FROM usuarios WHERE firebase_uid = $1`,
       [firebase_uid]
     );
     if (porUid.rows.length > 0) {
-      return res.json({ usuario: porUid.rows[0], creado: false });
+      const actualizado = await pool.query(
+        `UPDATE usuarios SET nombre = $1, correo = $2 WHERE firebase_uid = $3 RETURNING *`,
+        [nombre || porUid.rows[0].nombre, correo, firebase_uid]
+      );
+      return res.json({ usuario: actualizado.rows[0], creado: false });
     }
 
-    // 2. Existe con este correo pero distinto firebase_uid (o sin uid)
+    // 2. Existe con este correo pero distinto firebase_uid (o sin uid):
+    //    actualizar firebase_uid y nombre con los datos actuales
     const porCorreo = await pool.query(
       `SELECT * FROM usuarios WHERE correo = $1`,
       [correo]
     );
     if (porCorreo.rows.length > 0) {
       const actualizado = await pool.query(
-        `UPDATE usuarios SET firebase_uid = $1 WHERE correo = $2 RETURNING *`,
-        [firebase_uid, correo]
+        `UPDATE usuarios SET firebase_uid = $1, nombre = $2 WHERE correo = $3 RETURNING *`,
+        [firebase_uid, nombre || porCorreo.rows[0].nombre, correo]
       );
       return res.json({ usuario: actualizado.rows[0], creado: false });
     }

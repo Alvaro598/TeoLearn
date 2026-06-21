@@ -3,75 +3,313 @@
 @tailwind components;
 @tailwind utilities;
 
-html { scroll-behavior: smooth; }
 
-html[data-theme="oscuro"] {
-  color-scheme: dark;
-  background: #000000;
+html {
+  scroll-behavior: smooth;
 }
 
+/* ── Modo clásico (base) ──────────────────────────────────────────────────── */
 body {
   font-family: 'Inter', sans-serif;
   background: #f9fafb;
   color: #111827;
 }
 
-html[data-theme="oscuro"] body {
-  background: #000000;
-  color: #f8fafc;
+h1,
+h2,
+h3 {
+  font-family: 'Syne', sans-serif;
 }
 
-html[data-theme="oscuro"] .bg-gray-50,
+
+
+html[data-theme="oscuro"] {
+  color-scheme: dark;
+}
+
+
+html[data-theme="oscuro"] body,
+html[data-theme="oscuro"] .min-h-screen {
+  background-color: #0a0a0a;
+  color: #f1f5f9;
+}
+
+html[data-theme="oscuro"] .bg-yellow-300 {
+  background-color: #64748b !important;
+}
+
+
+html[data-theme="oscuro"] .shadow-card {
+  background-color: #64748b !important;
+  color: #052e16 !important;
+}
+
+
+html[data-theme="oscuro"] .bg-gray-50 {
+  background-color: #0a0a0a !important;
+}
+
 html[data-theme="oscuro"] .bg-gray-100 {
-  background-color: #000000;
+  background-color: #1a1a1a !important;
+}
+
+html[data-theme="oscuro"] .bg-gray-200 {
+  background-color: #222222 !important;
 }
 
 html[data-theme="oscuro"] .bg-white {
-  background-color: #000000;
+  background-color: #1a1a1a !important;
 }
 
-html[data-theme="oscuro"] .border-gray-200,
-html[data-theme="oscuro"] .border-gray-300 {
-  border-color: #222222;
-}
-
+/* ── Texto ────────────────────────────────────────────────────────────────── */
 html[data-theme="oscuro"] .text-gray-950,
 html[data-theme="oscuro"] .text-gray-900,
-html[data-theme="oscuro"] .text-gray-800,
+html[data-theme="oscuro"] .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+
 html[data-theme="oscuro"] .text-gray-700 {
-  color: #f3f4f6;
+  color: #e2e8f0 !important;
 }
 
-html[data-theme="oscuro"] .text-gray-600,
-html[data-theme="oscuro"] .text-gray-500,
+html[data-theme="oscuro"] .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="oscuro"] .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
 html[data-theme="oscuro"] .text-gray-400 {
-  color: #cbd5e1;
+  color: #64748b !important;
 }
 
-html[data-theme="oscuro"] .bg-gray-200,
-html[data-theme="oscuro"] .bg-gray-100 {
-  background-color: #050505;
+html[data-theme="oscuro"] .text-yellow-800 {
+  color: #e2e8f0 !important;
 }
 
+html[data-theme="oscuro"] .text-brand-dark {
+  color: #e2e8f0 !important;
+}
+
+/* ── Bordes ───────────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] .border-gray-100,
+html[data-theme="oscuro"] .border-gray-200,
+html[data-theme="oscuro"] .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Bordes de énfasis (ej. editor MIDI, cards con border-2) */
+html[data-theme="oscuro"] .border-gray-950,
+html[data-theme="oscuro"] .border-gray-800 {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* ── Inputs, select, textarea ─────────────────────────────────────────────── */
 html[data-theme="oscuro"] input,
 html[data-theme="oscuro"] select,
 html[data-theme="oscuro"] textarea {
-  background-color: #000000;
-  color: #f8fafc;
-  border-color: #222222;
+  background-color: #222222 !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
+html[data-theme="oscuro"] input::placeholder,
+html[data-theme="oscuro"] textarea::placeholder {
+  color: #64748b !important;
+}
+
+html[data-theme="oscuro"] input:focus,
+html[data-theme="oscuro"] select:focus,
+html[data-theme="oscuro"] textarea:focus {
+  outline-color: #818cf8 !important;
+  /* indigo visible en oscuro */
+}
+
+/* ── Botones de opción quiz ───────────────────────────────────────────────── */
+html[data-theme="oscuro"] button.bg-gray-100 {
+  background-color: #222222 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="oscuro"] button.bg-gray-100:hover:not(:disabled) {
+  background-color: #2a2a2a !important;
+}
+
+/* ── Paneles de feedback correcto / incorrecto ────────────────────────────── */
+html[data-theme="oscuro"] .bg-green-50 {
+  background-color: #052e16 !important;
+}
+
+html[data-theme="oscuro"] .text-green-800 {
+  color: #86efac !important;
+}
+
+html[data-theme="oscuro"] .bg-green-100 {
+  background-color: #14532d !important;
+}
+
+html[data-theme="oscuro"] .text-green-700 {
+  color: #4ade80 !important;
+}
+
+html[data-theme="oscuro"] .bg-red-50 {
+  background-color: #3b0000 !important;
+}
+
+html[data-theme="oscuro"] .text-red-800 {
+  color: #fca5a5 !important;
+}
+
+/* Alerta de tiempo (cronómetro) */
+html[data-theme="oscuro"] .bg-red-50.border-red-200 {
+  background-color: #2d0000 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+html[data-theme="oscuro"] .text-red-600 {
+  color: #f87171 !important;
+}
+
+/* ── Badges / pills ───────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] .bg-blue-100 {
+  background-color: #1e3a5f !important;
+}
+
+html[data-theme="oscuro"] .text-blue-700 {
+  color: #93c5fd !important;
+}
+
+html[data-theme="oscuro"] .bg-purple-50 {
+  background-color: #2e1065 !important;
+}
+
+html[data-theme="oscuro"] .text-purple-700 {
+  color: #c4b5fd !important;
+}
+
+html[data-theme="oscuro"] .bg-orange-100 {
+  background-color: #431407 !important;
+}
+
+html[data-theme="oscuro"] .text-orange-700 {
+  color: #fdba74 !important;
+}
+
+/* ── Navbar / AppLayout ───────────────────────────────────────────────────── */
+html[data-theme="oscuro"] nav,
+html[data-theme="oscuro"] header {
+  background-color: #111111 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme="oscuro"] nav a,
+html[data-theme="oscuro"] header a {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="oscuro"] nav a:hover,
+html[data-theme="oscuro"] header a:hover {
+  color: #f1f5f9 !important;
+}
+
+/* ── Modales / overlays ───────────────────────────────────────────────────── */
+html[data-theme="oscuro"] .bg-white.rounded-xl,
+html[data-theme="oscuro"] .bg-white.rounded-2xl,
+html[data-theme="oscuro"] .bg-white.rounded-3xl {
+  background-color: #1a1a1a !important;
+  color: #f1f5f9 !important;
+}
+
+/* ── Skeleton loaders ─────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] .animate-pulse.bg-gray-200 {
+  background-color: #1e1e1e !important;
+}
+
+/* ── Sombras (las sombras de Tailwind son casi invisibles en oscuro) ───────── */
 html[data-theme="oscuro"] .shadow-sm,
 html[data-theme="oscuro"] .shadow-card,
 html[data-theme="oscuro"] .shadow-card-hover,
 html[data-theme="oscuro"] .shadow-xl,
 html[data-theme="oscuro"] .shadow-2xl {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 4px 16px rgba(0, 0, 0, 0.6) !important;
 }
 
-h1, h2, h3 { font-family: 'Syne', sans-serif; }
+/* ── Texto sobre botones oscuros (Finalizar, Continuar) ──────────────────── */
+html[data-theme="oscuro"] .bg-gray-950 {
+  background-color: #f1f5f9 !important;
+  color: #0a0a0a !important;
+}
 
-/* Ticker */
-.ticker-wrap { overflow: hidden; }
-.ticker-inner { display: flex; width: max-content; animation: ticker 22s linear infinite; }
-.ticker-inner:hover { animation-play-state: paused; }
+/* ── Botón "Volver" y links de texto gris ─────────────────────────────────── */
+html[data-theme="oscuro"] .hover\:text-gray-950:hover {
+  color: #f1f5f9 !important;
+}
+
+/* ── Editor MIDI ──────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] .bg-white.border-2 {
+  background-color: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+html[data-theme="oscuro"] .text-gray-950 {
+  color: #f1f5f9 !important;
+}
+
+/* ── Metrónomo ────────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] .bg-white.rounded-2xl {
+  background-color: #1a1a1a !important;
+}
+
+/* ── Tags / pills de módulo ───────────────────────────────────────────────── */
+html[data-theme="oscuro"] .bg-white\/20 {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html[data-theme="oscuro"] .bg-white\/30:hover {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* ── Progress bars ────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] #progress-bar{
+  background-color: #f1f5f9 !important;
+}
+
+/* ── Chatbot panel ────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] .bg-white.shadow-2xl {
+  background-color: #1a1a1a !important;
+}
+
+/* ── Tarjetas de módulos en el dashboard ────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] #modulos-dashboard {
+  background-color: #1a1a1a !important;
+}
+
+/* ── Header Unidades/Botones ────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] #header {
+  background-color: #1a1a1a !important;
+}
+
+html[data-theme="oscuro"] #header-card {
+  background-color: #64748b !important;
+}
+
+html[data-theme="oscuro"] #botones-unidades {
+  background-color: #64748b !important;
+}
+
+/* ── Botones de módulos ────────────────────────────────────────────────────────── */
+html[data-theme="oscuro"] #botones-modulos {
+  background-color: #64748b !important;
+}
+
+html[data-theme="oscuro"] #escuchar-ejemplo {
+  background-color: #64748b !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="oscuro"] #boton-chatbot {
+  background-color: #64748b !important;
+  color: #f1f5f9 !important;
+}

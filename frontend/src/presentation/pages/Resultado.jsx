@@ -1,11 +1,36 @@
+/**
+ * Resultado.jsx
+ * Ruta: frontend/src/presentation/pages/Resultado.jsx (reemplaza al anterior)
+ *
+ * CAMBIO PRINCIPAL: el `<Audio src="/sounds/success.mp3">` apuntaba a un
+ * archivo que NO existe en el proyecto (por eso nunca sonaba nada al
+ * llegar a esta pantalla). Se reemplaza por playResultScreen() de
+ * sound.js, 100% sintetizado, con 3 variantes según el desempeño real:
+ *   - "perfecto" → 0 errores: fanfarria completa
+ *   - "bien"     → con errores pero la mayoría correctas: acorde simple
+ *   - "mejorar"  → más errores que aciertos: tono cálido, no desalentador
+ *
+ * También respeta `preferences.soundEnabled`, igual que el resto de la app.
+ */
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
 import { getLessonResultLocal } from "../../application/services/progress";
+import { usePreferences } from "../../application/context/PreferencesContext";
+import { playResultScreen } from "../../application/services/sound";
+
+function calcularVariante(resultado) {
+  const { aciertos = 0, errores = 0 } = resultado || {};
+  if (errores === 0 && aciertos > 0) return "perfecto";
+  if (aciertos >= errores) return "bien";
+  return "mejorar";
+}
 
 export default function Resultado() {
   const { leccionId } = useParams();
   const navigate = useNavigate();
+  const { preferences } = usePreferences();
 
   const [leccion, setLeccion] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,13 +57,11 @@ export default function Resultado() {
   }, [leccionId]);
 
   useEffect(() => {
-    // 🔊 sonido de éxito (opcional)
-    const audio = new Audio("/sounds/success.mp3");
-    audio.volume = 0.4;
-    audio.play().catch(() => {
-      // algunos navegadores bloquean autoplay, no es crítico
-    });
-  }, []);
+    if (!resultado || !preferences.soundEnabled) return;
+    playResultScreen(calcularVariante(resultado));
+    // Solo debe sonar una vez al entrar a la pantalla con el resultado ya cargado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultado, preferences.soundEnabled]);
 
   const finalizarLeccion = async () => {
     try {
@@ -62,19 +85,24 @@ export default function Resultado() {
     );
   }
 
+  const variante = calcularVariante(resultado);
+
+  const mensajePorVariante = {
+    perfecto: "Perfecto. Dominaste esta lección 🎯",
+    bien: "Buen trabajo, puedes mejorar con un reintento 💪",
+    mejorar: "Vas en buen camino. Repasa y vuelve a intentarlo 🌱",
+  };
+
   return (
     <div className="p-10 text-center max-w-2xl mx-auto">
-
-      {/* 🎉 Título */}
       <h1 className="text-3xl font-extrabold mb-2">
-        🎉 ¡Lección completada!
+        {variante === "perfecto" ? "🏆 ¡Lección dominada!" : "🎉 ¡Lección completada!"}
       </h1>
 
       <p className="text-gray-600 mb-6">
         Has finalizado la lección {leccionId}
       </p>
 
-      {/* 📊 Resultado */}
       <div className="bg-white border rounded-xl p-6 shadow mb-6">
         <h2 className="text-lg font-bold mb-4">Resultados</h2>
 
@@ -95,16 +123,11 @@ export default function Resultado() {
         </div>
       </div>
 
-      {/* 💬 Mensaje motivacional */}
       <p className="text-sm text-gray-500 mb-6">
-        {resultado.errores === 0
-          ? "Perfecto. Dominaste esta lección 🎯"
-          : "Buen trabajo, puedes mejorar con un reintento 💪"}
+        {mensajePorVariante[variante]}
       </p>
 
-      {/* 🚀 Acciones */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-
         <button
           onClick={() =>
             navigate(`/unidad/${leccion?.unidad_id}/lecciones`, {

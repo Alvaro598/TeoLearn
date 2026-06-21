@@ -38,6 +38,8 @@ function GlobalChatbot() {
   const hideChatbot =
     pathname === "/" ||
     pathname === "/chat" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
     pathname === "/quiz-final" ||
     pathname.startsWith("/ejercicio/");
 

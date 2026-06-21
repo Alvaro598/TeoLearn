@@ -39,7 +39,8 @@ async (req, res) => {
 
 };
 
-/* UNA LECCIÓN */
+/* UNA LECCIÓN — incluye el slug del módulo padre (modulo_slug) para que el
+   frontend sepa qué set de componentes de ejercicio usar (ritmo/melodia/armonia) */
 export const obtenerLeccion =
 async (req, res) => {
 
@@ -50,9 +51,13 @@ async (req, res) => {
     const resultado =
     await pool.query(
       `
-      SELECT *
+      SELECT
+        lecciones.*,
+        modulos.slug AS modulo_slug
       FROM lecciones
-      WHERE id = $1
+      JOIN unidades ON unidades.id = lecciones.unidad_id
+      JOIN modulos  ON modulos.id  = unidades.modulo_id
+      WHERE lecciones.id = $1
       `,
       [id]
     );

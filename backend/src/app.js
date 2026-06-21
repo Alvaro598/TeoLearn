@@ -13,6 +13,7 @@ import pool from "./database/db.js";
 import { seedLearningPath } from "./database/seedLearningPath.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 
+
 dotenv.config();
 
 const app = express();

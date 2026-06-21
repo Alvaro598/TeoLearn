@@ -18,6 +18,7 @@ export default function EntrenamientoAuditivo({ exercise, onEvaluate, disabled }
   return (
     <div className="space-y-4">
       <button
+      id="escuchar-ejemplo"
         type="button"
         onClick={() => playNote(target)}
         className="inline-flex items-center gap-3 bg-brand-blue text-white px-5 py-3 rounded-xl font-extrabold"

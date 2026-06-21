@@ -1,3 +1,4 @@
+
 import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -5,7 +6,7 @@ import { apiUrl } from "../../application/config/apiBase";
 import { useAuth } from "../../application/context/AuthContext";
 import { usePreferences } from "../../application/context/PreferencesContext";
 import { solicitarFeedbackIA } from "../../application/services/feedbackIA";
-import { playError, playSuccess } from "../../application/services/sound";
+import { playError, playSuccess, playPerfectStreak } from "../../application/services/sound";
 import { speakText, stopSpeech } from "../../application/services/speech";
 import {
   getCompletedExerciseIds,
@@ -14,15 +15,12 @@ import {
   guardarLeccionCompletada,
   registerLessonAttemptLocal,
 } from "../../application/services/progress";
-import EntrenamientoAuditivo from "../components/ui/exercises/EntrenamientoAuditivo";
-import EjercicioMidi from "../components/ui/exercises/EjercicioMidi";
+import EjercicioRenderer from "../components/ui/exercises/EjercicioRenderer";
 
 export default function Ejercicio() {
   const { leccionId } = useParams();
   const navigate = useNavigate();
   const { preferences } = usePreferences();
-
-  // usuarioDB contiene el id de PostgreSQL; firebaseUser para fallback de nombre
   const { usuarioDB, refrescarUsuarioDB } = useAuth();
 
   const [leccion, setLeccion] = useState(null);
@@ -32,37 +30,27 @@ export default function Ejercicio() {
   const [resultadoActual, setResultadoActual] = useState(null);
   const [avanzando, setAvanzando] = useState(false);
   const [isFeedbackSpeaking, setIsFeedbackSpeaking] = useState(false);
+  const [rachaAciertos, setRachaAciertos] = useState(0);
 
-  useEffect(() => {
-    return () => stopSpeech();
-  }, []);
-
-  useEffect(() => {
-    obtenerDatos();
-  }, []);
+  useEffect(() => () => stopSpeech(), []);
+  useEffect(() => { obtenerDatos(); }, []);
 
   const obtenerDatos = async () => {
     try {
-      const leccionResponse = await fetch(
-        apiUrl(`/lecciones/${leccionId}`)
-      );
+      const leccionResponse = await fetch(apiUrl(`/lecciones/${leccionId}`));
       const leccionData = await leccionResponse.json();
       setLeccion(leccionData);
 
-      const ejerciciosResponse = await fetch(
-        apiUrl(`/ejercicios/leccion/${leccionId}`)
-      );
+      const ejerciciosResponse = await fetch(apiUrl(`/ejercicios/leccion/${leccionId}`));
       const ejerciciosData = await ejerciciosResponse.json();
       setEjercicios(ejerciciosData);
 
-      // Determinar desde qué ejercicio continuar usando caché local
       const completados = new Set(getCompletedExerciseIds(leccionId));
       const siguientePendiente = ejerciciosData.findIndex(
-        (exercise) => !completados.has(String(exercise.id))
+        (ex) => !completados.has(String(ex.id))
       );
 
       if (siguientePendiente === -1 && ejerciciosData.length > 0) {
-        // Todos los ejercicios ya completados → ir directo al resultado
         navigate(`/resultado/${leccionId}`);
         return;
       }
@@ -77,16 +65,25 @@ export default function Ejercicio() {
 
   const evaluar = async (exercise, payload) => {
     setAvanzando(true);
-    setResultadoActual({
-      ...payload,
-      feedback: "Generando retroalimentación...",
-    });
+    setResultadoActual({ ...payload, feedback: "Generando retroalimentación..." });
 
     if (preferences.soundEnabled) {
-      payload.correcta ? playSuccess() : playError();
+      if (payload.correcta) {
+        setRachaAciertos((racha) => {
+          const nuevaRacha = racha + 1;
+          if (nuevaRacha >= 3) {
+            playPerfectStreak();
+          } else {
+            playSuccess();
+          }
+          return nuevaRacha;
+        });
+      } else {
+        setRachaAciertos(0);
+        playError();
+      }
     }
 
-    // Guardar intento en la BD (no bloquea si falla)
     if (usuarioDB?.id) {
       try {
         await guardarIntento({
@@ -111,7 +108,7 @@ export default function Ejercicio() {
         puntuacion: payload.puntuacion,
       });
 
-      setResultadoActual((current) => ({ ...current, feedback }));
+      setResultadoActual((cur) => ({ ...cur, feedback }));
 
       if (preferences.ttsEnabled) {
         speakText(feedback, {
@@ -121,49 +118,26 @@ export default function Ejercicio() {
         });
       }
 
-      if (payload.correcta) {
-        // Marcar ejercicio completado en caché local
-        markExerciseCompletedLocal(leccionId, exercise.id);
-      }
-
+      if (payload.correcta) markExerciseCompletedLocal(leccionId, exercise.id);
       setAvanzando(false);
     } catch (error) {
       console.error("Error generando feedback:", error);
-
       const fallback = payload.correcta
         ? "Correcto. Repite el ejercicio para consolidar el aprendizaje."
         : "Respuesta por mejorar. Revisa el concepto y vuelve a intentarlo con calma.";
-
-      setResultadoActual((current) => ({ ...current, feedback: fallback }));
-
-      if (payload.correcta) {
-        markExerciseCompletedLocal(leccionId, exercise.id);
-      }
-
+      setResultadoActual((cur) => ({ ...cur, feedback: fallback }));
+      if (payload.correcta) markExerciseCompletedLocal(leccionId, exercise.id);
       setAvanzando(false);
     }
   };
 
-  const responderQuiz = (exercise, option) => {
-    const answer = exercise.respuesta_correcta?.respuesta;
-    const correct = option === answer;
-
-    evaluar(exercise, {
-      respuesta: { respuesta: option },
-      correcta: correct,
-      puntuacion: correct ? exercise.puntos : 0,
-    });
-  };
-
   const toggleFeedbackSpeech = () => {
     if (!resultadoActual?.feedback) return;
-
     if (isFeedbackSpeaking) {
       stopSpeech();
       setIsFeedbackSpeaking(false);
       return;
     }
-
     speakText(resultadoActual.feedback, {
       onStart: () => setIsFeedbackSpeaking(true),
       onEnd: () => setIsFeedbackSpeaking(false),
@@ -175,27 +149,17 @@ export default function Ejercicio() {
     stopSpeech();
     setIsFeedbackSpeaking(false);
 
-    const esUltimoEjercicio = activeIndex >= ejercicios.length - 1;
+    const esUltimo = activeIndex >= ejercicios.length - 1;
 
-    if (esUltimoEjercicio) {
-      // Calcular puntuación total de los ejercicios completados en esta sesión
-      const puntuacionTotal = ejercicios.reduce(
-        (sum, ex) => sum + (ex.puntos || 0),
-        0
-      );
+    if (esUltimo) {
+      const puntuacionTotal = ejercicios.reduce((s, ex) => s + (ex.puntos || 0), 0);
 
-      // Persistir lección completada en PostgreSQL
       if (usuarioDB?.id) {
         try {
-          await guardarLeccionCompletada(
-            usuarioDB.id,
-            Number(leccionId),
-            puntuacionTotal
-          );
-          // Refrescar XP/nivel en el contexto global
+          await guardarLeccionCompletada(usuarioDB.id, Number(leccionId), puntuacionTotal);
           await refrescarUsuarioDB();
         } catch (err) {
-          console.error("No se pudo guardar la lección completada en la BD:", err);
+          console.error("No se pudo guardar la lección completada:", err);
         }
       }
 
@@ -204,7 +168,7 @@ export default function Ejercicio() {
     }
 
     setResultadoActual(null);
-    setActiveIndex((current) => current + 1);
+    setActiveIndex((cur) => cur + 1);
   };
 
   const currentExercise = ejercicios[activeIndex];
@@ -257,12 +221,9 @@ export default function Ejercicio() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-2">
-                    Ejercicio {activeIndex + 1} de {ejercicios.length} -{" "}
-                    {currentExercise.tipo}
+                    Ejercicio {activeIndex + 1} de {ejercicios.length} — {currentExercise.tipo}
                   </p>
-                  <h2 className="text-2xl font-extrabold">
-                    {currentExercise.pregunta}
-                  </h2>
+                  <h2 className="text-2xl font-extrabold">{currentExercise.pregunta}</h2>
                 </div>
 
                 <span className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-bold self-start">
@@ -270,42 +231,17 @@ export default function Ejercicio() {
                 </span>
               </div>
 
-              {currentExercise.tipo === "quiz" && (
-                <div className="grid gap-3">
-                  {(currentExercise.contenido?.opciones || []).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => responderQuiz(currentExercise, option)}
-                      disabled={avanzando}
-                      className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 transition p-4 rounded-xl text-left font-bold"
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {currentExercise.tipo === "auditivo" && (
-                <EntrenamientoAuditivo
-                  exercise={currentExercise}
-                  disabled={avanzando}
-                  onEvaluate={(payload) => evaluar(currentExercise, payload)}
-                />
-              )}
-
-              {currentExercise.tipo === "midi" && (
-                <EjercicioMidi
-                  exercise={currentExercise}
-                  disabled={avanzando}
-                  onEvaluate={(payload) => evaluar(currentExercise, payload)}
-                />
-              )}
+              {/* Toda la lógica de "qué tipo de ejercicio renderizar" vive aquí ahora */}
+              <EjercicioRenderer
+                exercise={currentExercise}
+                disabled={avanzando || !!resultadoActual}
+                moduloSlug={leccion.modulo_slug}
+                onEvaluate={(payload) => evaluar(currentExercise, payload)}
+              />
 
               {resultadoActual && (
                 <div
-                  className={`mt-5 rounded-xl p-4 ${resultadoActual.correcta
-                      ? "bg-green-50 text-green-800"
-                      : "bg-red-50 text-red-800"
+                  className={`mt-5 rounded-xl p-4 ${resultadoActual.correcta ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
                     }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -318,13 +254,9 @@ export default function Ejercicio() {
                     <button
                       type="button"
                       onClick={toggleFeedbackSpeech}
-                      className="inline-flex items-center gap-1 text-xs font-bold"
+                      className="inline-flex items-center gap-1 text-xs font-bold shrink-0"
                     >
-                      {isFeedbackSpeaking ? (
-                        <VolumeX size={14} />
-                      ) : (
-                        <Volume2 size={14} />
-                      )}
+                      {isFeedbackSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
                       {isFeedbackSpeaking ? "Detener" : "Escuchar"}
                     </button>
                   </div>
@@ -340,9 +272,7 @@ export default function Ejercicio() {
                         onClick={irAlSiguienteEjercicio}
                         className="bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-bold"
                       >
-                        {activeIndex >= ejercicios.length - 1
-                          ? "Finalizar ejercicio"
-                          : "Siguiente ejercicio"}
+                        {activeIndex >= ejercicios.length - 1 ? "Finalizar ejercicio" : "Siguiente ejercicio"}
                       </button>
                     ) : (
                       <button

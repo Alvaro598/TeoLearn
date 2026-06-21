@@ -207,7 +207,7 @@ export default function Unidades() {
 
         {/* HEADER */}
 
-        <div className={`${cfg.color} rounded-3xl p-8 text-white mb-10`}>
+        <div id="header" className={`${cfg.color} rounded-3xl p-8 text-white mb-10`}>
 
           <p className="text-sm font-bold uppercase opacity-70 mb-1">
             Unidad
@@ -228,24 +228,6 @@ export default function Unidades() {
 
           {/* TAGS */}
 
-          <div className="flex gap-2 mt-5 flex-wrap">
-
-            <span className="bg-white text-brand-dark text-xs font-bold px-4 py-1.5 rounded-full">
-              Todas
-            </span>
-
-            {unidades.map((u) => (
-
-              <span
-                key={u.id}
-                className="bg-white/20 text-white text-xs font-semibold px-4 py-1.5 rounded-full hover:bg-white/30 cursor-pointer transition"
-              >
-                {u.titulo}
-              </span>
-
-            ))}
-
-          </div>
 
         </div>
 
@@ -264,9 +246,9 @@ export default function Unidades() {
 
                 {/* HEADER CARD */}
 
-                <div className="flex items-start justify-between mb-4">
+                <div  className="flex items-start justify-between mb-4">
 
-                  <div
+                  <div id="header-card"
                     className={`${cfg.color} w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold`}
                   >
                     {cfg.icon}
@@ -317,8 +299,9 @@ export default function Unidades() {
 
                 {/* BOTÓN */}
 
-                <div className="space-y-3 mt-auto">
+                <div  className="space-y-3 mt-auto">
                   <button
+                  id="botones-unidades"
                     onClick={() =>
                       navigate(
                         `/unidad/${unidad.id}/lecciones`
@@ -330,7 +313,7 @@ export default function Unidades() {
                     {unidad.finalizada ? "Unidad completada" : "Empezar →"}
                   </button>
 
-                  <button
+                  <button 
                     type="button"
                     onClick={() => finalizarUnidad(unidad)}
                     disabled={unidad.finalizada || unidad.leccionesCompletadas < unidad.totalLecciones || savingUnitId === unidad.id}
