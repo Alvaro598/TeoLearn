@@ -1,6 +1,31 @@
+/**
+ * Ejercicio.jsx
+ * Ruta: frontend/src/presentation/pages/Ejercicio.jsx
+ *
+ * CAMBIO: integración del temporizador de ejercicio.
+ *
+ * Los archivos del timer YA EXISTÍAN en el proyecto pero nunca
+ * se importaron aquí. Este archivo los conecta:
+ *
+ *   useEjercicioTimer  →  frontend/src/application/services/useEjercicioTimer.js
+ *   CronometroEjercicio → frontend/src/presentation/components/ui/exercises/CronometroEjercicio.jsx
+ *
+ * NOTA sobre la copia duplicada:
+ *   Existe también frontend/src/presentation/components/ui/CronometroEjercicio.jsx
+ *   (sin la subcarpeta exercises/). Ese archivo es idéntico y puede borrarse.
+ *   Este import apunta a la ubicación canónica: .../exercises/CronometroEjercicio.jsx
+ *
+ * LÓGICA DEL TIMER:
+ *   - Corre solo mientras el ejercicio está activo (no hay resultado y no avanza).
+ *   - Al llegar a 0 dispara evaluar() con respuesta "__tiempo_agotado__" y correcta:false.
+ *   - Se reinicia automáticamente al cambiar de ejercicio (activeIndex).
+ *   - Si el usuario responde antes de que se acabe, el timer se detiene (activo=false).
+ *   - El botón "Intentar nuevamente" reinicia el timer explícitamente con reiniciar().
+ *   - Los tiempos por tipo: quiz=20s, auditivo=25s, midi=50s (ver TIMER_CONFIG en el hook).
+ */
 
 import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
 import { useAuth } from "../../application/context/AuthContext";
@@ -8,6 +33,7 @@ import { usePreferences } from "../../application/context/PreferencesContext";
 import { solicitarFeedbackIA } from "../../application/services/feedbackIA";
 import { playError, playSuccess, playPerfectStreak } from "../../application/services/sound";
 import { speakText, stopSpeech } from "../../application/services/speech";
+import { useEjercicioTimer } from "../../application/services/useEjercicioTimer";
 import {
   getCompletedExerciseIds,
   markExerciseCompletedLocal,
@@ -16,42 +42,76 @@ import {
   registerLessonAttemptLocal,
 } from "../../application/services/progress";
 import EjercicioRenderer from "../components/ui/exercises/EjercicioRenderer";
+import CronometroEjercicio from "../components/ui/exercises/CronometroEjercicio";
 
 export default function Ejercicio() {
   const { leccionId } = useParams();
-  const navigate = useNavigate();
-  const { preferences } = usePreferences();
+  const navigate      = useNavigate();
+  const { preferences }                  = usePreferences();
   const { usuarioDB, refrescarUsuarioDB } = useAuth();
 
-  const [leccion, setLeccion] = useState(null);
-  const [ejercicios, setEjercicios] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [resultadoActual, setResultadoActual] = useState(null);
-  const [avanzando, setAvanzando] = useState(false);
+  const [leccion, setLeccion]                       = useState(null);
+  const [ejercicios, setEjercicios]                 = useState([]);
+  const [loading, setLoading]                       = useState(true);
+  const [activeIndex, setActiveIndex]               = useState(0);
+  const [resultadoActual, setResultadoActual]       = useState(null);
+  const [avanzando, setAvanzando]                   = useState(false);
   const [isFeedbackSpeaking, setIsFeedbackSpeaking] = useState(false);
-  const [rachaAciertos, setRachaAciertos] = useState(0);
+  const [rachaAciertos, setRachaAciertos]           = useState(0);
+
+  const currentExercise = ejercicios[activeIndex];
+
+  // ── TIMER ─────────────────────────────────────────────────────────────────
+  // Activo = hay ejercicio, no hay resultado visible y no estamos avanzando.
+  const timerActivo = Boolean(currentExercise && !resultadoActual && !avanzando);
+
+  // Callback estable: se memo-iza con useCallback para que el hook no se
+  // reinicie por referencia nueva en cada render.
+  const onAgotado = useCallback(() => {
+    if (!currentExercise) return;
+    evaluar(currentExercise, {
+      respuesta:  { respuesta: "__tiempo_agotado__" },
+      correcta:   false,
+      puntuacion: 0,
+    });
+    // evaluar se define abajo con useRef para evitar la dependencia circular
+    // (evaluar necesita currentExercise, el timer necesita evaluar).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentExercise?.id]);
+
+  const { segundosRestantes, porcentaje, enAlerta, reiniciar } = useEjercicioTimer(
+    currentExercise?.tipo || "quiz",
+    timerActivo,
+    onAgotado,
+  );
+
+  // Reiniciar el timer cada vez que avanza al siguiente ejercicio.
+  // Se ejecuta DESPUÉS de que setActiveIndex actualiza el índice.
+  useEffect(() => {
+    reiniciar();
+  }, [activeIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => () => stopSpeech(), []);
-  useEffect(() => { obtenerDatos(); }, []);
+  useEffect(() => { obtenerDatos(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const obtenerDatos = async () => {
     try {
-      const leccionResponse = await fetch(apiUrl(`/lecciones/${leccionId}`));
-      const leccionData = await leccionResponse.json();
+      const leccionResponse  = await fetch(apiUrl(`/lecciones/${leccionId}`));
+      const leccionData      = await leccionResponse.json();
       setLeccion(leccionData);
 
       const ejerciciosResponse = await fetch(apiUrl(`/ejercicios/leccion/${leccionId}`));
-      const ejerciciosData = await ejerciciosResponse.json();
+      const ejerciciosData     = await ejerciciosResponse.json();
       setEjercicios(ejerciciosData);
 
-      const completados = new Set(getCompletedExerciseIds(leccionId));
+      const completados        = new Set(getCompletedExerciseIds(leccionId));
       const siguientePendiente = ejerciciosData.findIndex(
         (ex) => !completados.has(String(ex.id))
       );
 
       if (siguientePendiente === -1 && ejerciciosData.length > 0) {
-        navigate(`/resultado/${leccionId}`);
+        navigate(`/resultado/${leccionId}`, { replace: true });
         return;
       }
 
@@ -63,6 +123,10 @@ export default function Ejercicio() {
     }
   };
 
+  // Usamos ref para que onAgotado pueda llamar a evaluar sin crear
+  // una dependencia circular en useCallback.
+  const evaluarRef = useRef(null);
+
   const evaluar = async (exercise, payload) => {
     setAvanzando(true);
     setResultadoActual({ ...payload, feedback: "Generando retroalimentación..." });
@@ -71,11 +135,7 @@ export default function Ejercicio() {
       if (payload.correcta) {
         setRachaAciertos((racha) => {
           const nuevaRacha = racha + 1;
-          if (nuevaRacha >= 3) {
-            playPerfectStreak();
-          } else {
-            playSuccess();
-          }
+          nuevaRacha >= 3 ? playPerfectStreak() : playSuccess();
           return nuevaRacha;
         });
       } else {
@@ -87,11 +147,11 @@ export default function Ejercicio() {
     if (usuarioDB?.id) {
       try {
         await guardarIntento({
-          usuarioId: usuarioDB.id,
-          ejercicioId: exercise.id,
+          usuarioId:        usuarioDB.id,
+          ejercicioId:      exercise.id,
           respuestaUsuario: payload.respuesta,
-          correcta: payload.correcta,
-          puntuacion: payload.puntuacion,
+          correcta:         payload.correcta,
+          puntuacion:       payload.puntuacion,
         });
       } catch (err) {
         console.error("No se pudo guardar el intento en la BD:", err);
@@ -102,10 +162,10 @@ export default function Ejercicio() {
 
     try {
       const feedback = await solicitarFeedbackIA({
-        ejercicio: exercise,
+        ejercicio:        exercise,
         respuestaUsuario: payload.respuesta,
-        correcta: payload.correcta,
-        puntuacion: payload.puntuacion,
+        correcta:         payload.correcta,
+        puntuacion:       payload.puntuacion,
       });
 
       setResultadoActual((cur) => ({ ...cur, feedback }));
@@ -113,7 +173,7 @@ export default function Ejercicio() {
       if (preferences.ttsEnabled) {
         speakText(feedback, {
           onStart: () => setIsFeedbackSpeaking(true),
-          onEnd: () => setIsFeedbackSpeaking(false),
+          onEnd:   () => setIsFeedbackSpeaking(false),
           onError: () => setIsFeedbackSpeaking(false),
         });
       }
@@ -131,6 +191,10 @@ export default function Ejercicio() {
     }
   };
 
+  // Mantener la ref sincronizada para que onAgotado siempre llame a la
+  // versión más reciente de evaluar.
+  evaluarRef.current = evaluar;
+
   const toggleFeedbackSpeech = () => {
     if (!resultadoActual?.feedback) return;
     if (isFeedbackSpeaking) {
@@ -140,7 +204,7 @@ export default function Ejercicio() {
     }
     speakText(resultadoActual.feedback, {
       onStart: () => setIsFeedbackSpeaking(true),
-      onEnd: () => setIsFeedbackSpeaking(false),
+      onEnd:   () => setIsFeedbackSpeaking(false),
       onError: () => setIsFeedbackSpeaking(false),
     });
   };
@@ -163,16 +227,16 @@ export default function Ejercicio() {
         }
       }
 
-      navigate(`/resultado/${leccionId}`);
+      navigate(`/resultado/${leccionId}`, { replace: true });
       return;
     }
 
     setResultadoActual(null);
     setActiveIndex((cur) => cur + 1);
+    // reiniciar() se llama en el useEffect [activeIndex] de arriba.
   };
 
-  const currentExercise = ejercicios[activeIndex];
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -218,7 +282,8 @@ export default function Ejercicio() {
               key={currentExercise.id}
               className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
             >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+              {/* Cabecera: contador de ejercicio + XP */}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-2">
                     Ejercicio {activeIndex + 1} de {ejercicios.length} — {currentExercise.tipo}
@@ -231,7 +296,18 @@ export default function Ejercicio() {
                 </span>
               </div>
 
-              {/* Toda la lógica de "qué tipo de ejercicio renderizar" vive aquí ahora */}
+              {/* ── CRONÓMETRO ─────────────────────────────────────────── */}
+              {/* Solo visible mientras el ejercicio está activo (sin resultado aún). */}
+              {!resultadoActual && (
+                <CronometroEjercicio
+                  segundosRestantes={segundosRestantes}
+                  porcentaje={porcentaje}
+                  enAlerta={enAlerta}
+                  tipo={currentExercise.tipo}
+                />
+              )}
+
+              {/* ── ÁREA DE RESPUESTAS ────────────────────────────────── */}
               <EjercicioRenderer
                 exercise={currentExercise}
                 disabled={avanzando || !!resultadoActual}
@@ -239,15 +315,21 @@ export default function Ejercicio() {
                 onEvaluate={(payload) => evaluar(currentExercise, payload)}
               />
 
+              {/* ── PANEL DE RESULTADO ────────────────────────────────── */}
               {resultadoActual && (
                 <div
-                  className={`mt-5 rounded-xl p-4 ${resultadoActual.correcta ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
-                    }`}
+                  className={`mt-5 rounded-xl p-4 ${
+                    resultadoActual.correcta
+                      ? "bg-green-50 text-green-800"
+                      : "bg-red-50 text-red-800"
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-extrabold">
                       {resultadoActual.correcta
                         ? `Correcto +${resultadoActual.puntuacion} XP. Puedes continuar cuando estés listo.`
+                        : resultadoActual.respuesta?.respuesta === "__tiempo_agotado__"
+                        ? "⏱ Tiempo agotado. Revisa el concepto e inténtalo de nuevo."
                         : "Respuesta incorrecta. Revisa la retroalimentación y vuelve a intentarlo."}
                     </p>
 
@@ -272,7 +354,9 @@ export default function Ejercicio() {
                         onClick={irAlSiguienteEjercicio}
                         className="bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-bold"
                       >
-                        {activeIndex >= ejercicios.length - 1 ? "Finalizar ejercicio" : "Siguiente ejercicio"}
+                        {activeIndex >= ejercicios.length - 1
+                          ? "Finalizar ejercicio"
+                          : "Siguiente ejercicio"}
                       </button>
                     ) : (
                       <button
@@ -281,6 +365,7 @@ export default function Ejercicio() {
                           stopSpeech();
                           setIsFeedbackSpeaking(false);
                           setResultadoActual(null);
+                          reiniciar(); // ← reinicia el timer al volver a intentar
                         }}
                         className="bg-brand-pink text-white px-4 py-2 rounded-lg text-sm font-bold"
                       >

@@ -1,19 +1,3 @@
-/**
- * MEJORA 4: Currículo rediseñado
- * ================================
- * Ruta: backend/src/database/learningPathData.js   (reemplaza al original)
- *
- * Estructura: 3 módulos × 4 unidades × 3 lecciones = 36 lecciones
- * Ejercicios por lección: 3 quiz + 2 auditivos + 2 MIDI = 7 ejercicios
- * Total mínimo: 36 × 7 = 252 ejercicios ✓
- *
- * Principios pedagógicos aplicados:
- *  - Taxonomía de Bloom: recordar → comprender → aplicar → crear
- *  - Recuperación activa: cada lección cierra con pregunta de síntesis
- *  - Espaciado: las unidades de "aplicación" revisan conceptos previos
- *  - Carga cognitiva reducida: un concepto central por lección
- *  - Conexión teoría-práctica: los MIDI replican exactamente el ejemplo teórico
- */
 
 const moduleImages = {
   ritmo:    "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80",
@@ -297,35 +281,36 @@ function audio(order, def, categoria = "melodia", variante = 0, points = 15) {
  */
 function midi(order, def, categoria = "melodia", variante = 0, points = 20) {
   if (categoria === "ritmo") {
-    const notasUnicas = [...new Set(def.notas)];
-    const kickNota  = notasUnicas[0] || "C3";
-    const snareNota = notasUnicas[1] || notasUnicas[0] || "D3";
+    // def.tiempos       = { kick: [1,3], snare: [2,4], hihat?: [...] }
+    // def.compas        = 4 | 8 (número de pasos/tiempos del compás)
+    // def.figura        = "negra" | "corchea"
+    // def.tiemposFuertes = [1] | [1,3] etc.
+    // def.instrucciones = texto pedagógico SIN notas musicales
+    const compas          = def.compas || 4;
+    const figuraBase      = def.figura || "negra";
+    const tiemposPatron   = def.tiempos || { kick: [1, 3], snare: [2, 4] };
+    const tiemposFuertes  = def.tiemposFuertes || [1];
 
-    const kickTiempos  = [];
-    const snareTiempos = [];
-    def.notas.forEach((n, i) => {
-      const tiempo = i + 1;
-      if (n === kickNota) kickTiempos.push(tiempo);
-      else snareTiempos.push(tiempo);
-    });
+    const instrumentos = [
+      { id: "kick",  nota: "C3",   label: "Bombo (Kick)" },
+      { id: "snare", nota: "D3",   label: "Caja (Snare)" },
+    ];
+    if (tiemposPatron.hihat !== undefined) {
+      instrumentos.push({ id: "hihat", nota: "F#3", label: "Hi-Hat" });
+    }
 
     return {
       tipo: "midi",
-      pregunta: def.pregunta,
+      pregunta: def.instrucciones,
       contenido: {
         categoria: "ritmo",
-        compas: def.notas.length,
-        figuraBase: "negra",
-        instrumentos: [
-          { id: "kick",  nota: kickNota,  label: "Bombo (Kick)" },
-          { id: "snare", nota: snareNota, label: "Caja (Snare)" },
-        ],
-        tiemposFuertes: [1],
-        instrucciones: def.pregunta,
+        compas,
+        figuraBase,
+        instrumentos,
+        tiemposFuertes,
+        instrucciones: def.instrucciones,
       },
-      respuesta_correcta: {
-        patron: { kick: kickTiempos, snare: snareTiempos },
-      },
+      respuesta_correcta: { patron: tiemposPatron },
       puntos: points,
       orden: order,
     };
@@ -468,8 +453,8 @@ const ritmo_u1 = [
       q2: { pregunta: "¿Qué nombre recibe la velocidad del pulso?", opciones: ["Tempo", "Timbre", "Compás", "Dinámica"], respuesta: "Tempo" },
       a1: { pregunta: "Escucha y selecciona la nota del pulso.", nota: "C4", opciones: ["C4","D4","E4","G4"] },
       a2: { pregunta: "¿Cuál de estas notas suena más grave?", nota: "C4", opciones: ["C4","C5","E4","G4"] },
-      m1: { pregunta: "Coloca cuatro pulsos iguales en el editor (C4).", notas: ["C4","C4","C4","C4"] },
-      m2: { pregunta: "Alterna dos notas para simular pulso y contrapulso.", notas: ["C4","G4","C4","G4"] },
+      m1: { instrucciones: "Coloca un golpe de bombo en cada uno de los 4 tiempos del compás.", compas: 4, figura: "negra", tiempos: { kick: [1,2,3,4], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Coloca bombo en los tiempos 1 y 3 (tiempos fuertes) y caja en 2 y 4 (contratiempos).", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [2,4] }, tiemposFuertes: [1,3] },
       q3: { pregunta: "Un músico que 'pierde el pulso' significa que:", opciones: ["Acelera o frena sin control", "Toca muy suave", "Cambia de instrumento", "Añade más notas"], respuesta: "Acelera o frena sin control" },
     },
   },
@@ -493,8 +478,8 @@ const ritmo_u1 = [
       q2: { pregunta: "¿Qué término describe un tempo muy lento (40-60 BPM)?", opciones: ["Largo", "Allegro", "Presto", "Vivace"], respuesta: "Largo" },
       a1: { pregunta: "Escucha: ¿qué nota suena durante el pulso lento?", nota: "E4", opciones: ["C4","E4","G4","A4"] },
       a2: { pregunta: "Identifica la nota del pulso rápido.", nota: "G4", opciones: ["C4","E4","G4","B4"] },
-      m1: { pregunta: "Construye 4 pulsos a tempo moderado (E4).", notas: ["E4","E4","E4","E4"] },
-      m2: { pregunta: "Alterna un pulso lento y uno rápido con estas notas.", notas: ["C4","C4","E4","E4"] },
+      m1: { instrucciones: "Coloca un golpe de bombo en cada tiempo del compás de 4/4 a tempo moderado (80 BPM).", compas: 4, figura: "negra", tiempos: { kick: [1,2,3,4], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Coloca bombo en tiempos 1 y 2, luego caja en tiempos 3 y 4. Siente la diferencia de densidad rítmica.", compas: 4, figura: "negra", tiempos: { kick: [1,2], snare: [3,4] }, tiemposFuertes: [1] },
       q3: { pregunta: "Al estudiar, ¿qué estrategia de tempo es más efectiva?", opciones: ["Comenzar lento y subir gradualmente", "Siempre al máximo para acostumbrarse", "Cambiar el tempo cada compás", "Ignorar el metrónomo"], respuesta: "Comenzar lento y subir gradualmente" },
     },
   },
@@ -518,8 +503,8 @@ const ritmo_u1 = [
       q2: { pregunta: "¿Qué debe hacer el músico cuando el click del metrónomo y su nota no coinciden?", opciones: ["Ajustarse al metrónomo", "Apagar el metrónomo", "Acelerar para adelantarse", "Ignorar el problema"], respuesta: "Ajustarse al metrónomo" },
       a1: { pregunta: "Escucha el pulso del metrónomo: ¿qué nota lo acompaña?", nota: "D4", opciones: ["C4","D4","E4","F4"] },
       a2: { pregunta: "Identifica la nota que suena a contratiempo.", nota: "A4", opciones: ["C4","D4","G4","A4"] },
-      m1: { pregunta: "Coloca D4 en cada pulso del compás.", notas: ["D4","D4","D4","D4"] },
-      m2: { pregunta: "Construye un patrón que alterne pulso y contratiempo.", notas: ["D4","A4","D4","A4"] },
+      m1: { instrucciones: "Sincroniza con el metrónomo: coloca un golpe de bombo en cada pulso del compás de 4 tiempos.", compas: 4, figura: "negra", tiempos: { kick: [1,2,3,4], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Alterna bombo en tiempos fuertes (1,3) y caja en contratiempos (2,4). Mantén el pulso con el metrónomo.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [2,4] }, tiemposFuertes: [1,3] },
       q3: { pregunta: "Un músico que 'corre' adelante del click debería:", opciones: ["Reducir el tempo y practicar más lento", "Apagar el metrónomo", "Tocar más rápido para adaptarse", "Cambiar de instrumento"], respuesta: "Reducir el tempo y practicar más lento" },
     },
   },
@@ -546,8 +531,8 @@ const ritmo_u2 = [
       q2: { pregunta: "¿Qué compás tiene sensación de vals?", opciones: ["3/4","4/4","2/4","6/8"], respuesta: "3/4" },
       a1: { pregunta: "Escucha el acento fuerte: ¿qué nota lo marca?", nota: "C4", opciones: ["C4","E4","G4","A4"] },
       a2: { pregunta: "¿Qué nota suena en el tiempo 3 (débil)?", nota: "E4", opciones: ["C4","D4","E4","G4"] },
-      m1: { pregunta: "Construye un compás de 4/4: nota fuerte en 1, pausa en 2-3-4.", notas: ["C4","E4","G4","E4"] },
-      m2: { pregunta: "Construye un compás de 3/4: C4-E4-G4.", notas: ["C4","E4","G4"] },
+      m1: { instrucciones: "Compás de 4/4: coloca bombo solo en el tiempo 1 (tiempo fuerte). Los tiempos 2, 3 y 4 quedan en silencio.", compas: 4, figura: "negra", tiempos: { kick: [1], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Compás de 3/4 (vals): coloca bombo en el tiempo 1 (acento) y caja en 2 y 3 (tiempos débiles).", compas: 3, figura: "negra", tiempos: { kick: [1], snare: [2,3] }, tiemposFuertes: [1] },
       q3: { pregunta: "Un numerador de 3 en la indicación de compás significa:", opciones: ["3 tiempos por compás", "La negra vale 3", "Hay 3 compases", "Tempo = 3"], respuesta: "3 tiempos por compás" },
     },
   },
@@ -571,8 +556,8 @@ const ritmo_u2 = [
       q2: { pregunta: "Tocar en los tiempos 2 y 4 (débiles) en 4/4 se llama:", opciones: ["Contrapulso","Síncopa","Compás","Armonía"], respuesta: "Contrapulso" },
       a1: { pregunta: "Escucha: ¿en qué nota cae el acento fuerte?", nota: "C4", opciones: ["C4","E4","G4","B4"] },
       a2: { pregunta: "¿Qué nota suena desplazada (síncopa)?", nota: "D4", opciones: ["C4","D4","E4","G4"] },
-      m1: { pregunta: "Coloca acento en tiempo 1 (C5) y nota normal en 3 (G4).", notas: ["C5","G4","C5","G4"] },
-      m2: { pregunta: "Crea una síncopa: anticipa el acento antes del tiempo 3.", notas: ["C4","E4","G4","E4"] },
+      m1: { instrucciones: "Marca el acento natural del 4/4: bombo fuerte en tiempo 1, golpe suave de caja en tiempo 3.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Crea una síncopa: coloca la caja en el segundo tiempo (contratiempo) en vez del tercero para generar tensión rítmica.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [2] }, tiemposFuertes: [1] },
       q3: { pregunta: "Una síncopa genera en el oyente:", opciones: ["Tensión y sorpresa","Reposo total","Mayor volumen","Menor velocidad"], respuesta: "Tensión y sorpresa" },
     },
   },
@@ -596,8 +581,8 @@ const ritmo_u2 = [
       q2: { pregunta: "El símbolo |: :| indica:", opciones: ["Repetir la sección","Fin de la obra","Cambio de compás","Silencio total"], respuesta: "Repetir la sección" },
       a1: { pregunta: "Escucha el primer tiempo del compás: ¿qué nota es?", nota: "C4", opciones: ["C4","D4","E4","F4"] },
       a2: { pregunta: "¿Qué nota marca el inicio del segundo compás?", nota: "G4", opciones: ["C4","E4","G4","A4"] },
-      m1: { pregunta: "Construye dos compases de 2 notas cada uno.", notas: ["C4","E4","G4","E4"] },
-      m2: { pregunta: "Replica el patrón que se repetiría: C4-E4-G4.", notas: ["C4","E4","G4"] },
+      m1: { instrucciones: "Construye 2 compases de 2/4: bombo en tiempo 1 y caja en tiempo 2 de cada compás.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [2,4] }, tiemposFuertes: [1,3] },
+      m2: { instrucciones: "Patrón de repetición: coloca bombo en tiempos 1 y 3, añade hi-hat en tiempo 2 para completar la célula que se repetiría.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [], hihat: [2,4] }, tiemposFuertes: [1] },
       q3: { pregunta: "Si un compás de 4/4 tiene tres negras, ¿qué figura completa el compás?", opciones: ["Una negra más","Una blanca","Dos corcheas","Una redonda"], respuesta: "Una negra más" },
     },
   },
@@ -624,8 +609,8 @@ const ritmo_u3 = [
       q2: { pregunta: "¿Qué diferencia visual tiene la blanca respecto a la negra?", opciones: ["Oval abierta vs oval rellena","Sin plica vs con plica","Con punto vs sin punto","Línea doble vs línea simple"], respuesta: "Oval abierta vs oval rellena" },
       a1: { pregunta: "Escucha la nota larga: ¿cuál es?", nota: "C4", opciones: ["C4","D4","E4","G4"] },
       a2: { pregunta: "¿Qué nota se repite cuatro veces (negras)?", nota: "E4", opciones: ["C4","D4","E4","F4"] },
-      m1: { pregunta: "Coloca cuatro negras (C4) en el editor.", notas: ["C4","C4","C4","C4"] },
-      m2: { pregunta: "Construye: blanca (E4) + dos negras (G4).", notas: ["E4","E4","G4","G4"] },
+      m1: { instrucciones: "Coloca cuatro golpes de bombo en negra (♩): uno en cada tiempo del compás de 4/4.", compas: 4, figura: "negra", tiempos: { kick: [1,2,3,4], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Coloca bombo en tiempo 1 (durará 2 tiempos, como una blanca) y caja en tiempos 3 y 4 (negras). Observa la diferencia de duración.", compas: 4, figura: "negra", tiempos: { kick: [1], snare: [3,4] }, tiemposFuertes: [1] },
       q3: { pregunta: "¿Cuántas blancas caben en un compás de 4/4?", opciones: ["2","4","1","3"], respuesta: "2" },
     },
   },
@@ -649,8 +634,8 @@ const ritmo_u3 = [
       q2: { pregunta: "¿Cuántas semicorcheas equivalen a una blanca?", opciones: ["8","4","2","16"], respuesta: "8" },
       a1: { pregunta: "Escucha el par de corcheas: ¿qué nota son?", nota: "D4", opciones: ["C4","D4","E4","G4"] },
       a2: { pregunta: "¿Cuál nota suena como grupo de semicorcheas?", nota: "G4", opciones: ["C4","E4","G4","B4"] },
-      m1: { pregunta: "Construye dos grupos de dos corcheas (D4-D4-D4-D4).", notas: ["D4","D4","D4","D4"] },
-      m2: { pregunta: "Alterna una negra y dos corcheas: C4-E4-G4.", notas: ["C4","E4","G4"] },
+      m1: { instrucciones: "Divide el compás en corcheas (♪): coloca hi-hat en cada corchea (8 golpes en 4 tiempos) para sentir la subdivisión.", compas: 8, figura: "corchea", tiempos: { kick: [1,5], snare: [3,7], hihat: [1,2,3,4,5,6,7,8] }, tiemposFuertes: [1,5] },
+      m2: { instrucciones: "Patrón mixto: bombo en tiempo 1 (negra), luego dos golpes de caja en corcheas en el tiempo 2 (subdividido en 2). Siente cómo el tiempo se divide.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [2,4] }, tiemposFuertes: [1] },
       q3: { pregunta: "Al leer corcheas agrupadas con viga, ¿qué indica la viga?", opciones: ["Que pertenecen al mismo grupo rítmico","Que son más fuertes","Que duran más","Que son silencios"], respuesta: "Que pertenecen al mismo grupo rítmico" },
     },
   },
@@ -674,8 +659,8 @@ const ritmo_u3 = [
       q2: { pregunta: "¿Por qué los silencios son importantes en la música?", opciones: ["Dan forma al fraseo y tensión expresiva","Son errores que se deben evitar","Solo aparecen al final","Indican repetición"], respuesta: "Dan forma al fraseo y tensión expresiva" },
       a1: { pregunta: "Escucha: ¿qué nota viene DESPUÉS del silencio?", nota: "C4", opciones: ["C4","D4","E4","G4"] },
       a2: { pregunta: "Identifica la nota que suena tras la pausa larga.", nota: "G4", opciones: ["C4","E4","G4","A4"] },
-      m1: { pregunta: "Coloca el patrón: C4 en tiempos 1 y 3 (deja vacíos 2 y 4).", notas: ["C4","C4"] },
-      m2: { pregunta: "Crea: nota-silencio-nota-nota. Usa E4.", notas: ["E4","E4","E4"] },
+      m1: { instrucciones: "Patrón con silencios: coloca bombo en tiempos 1 y 3. Los tiempos 2 y 4 son SILENCIO. El silencio forma parte del ritmo.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Patrón nota-silencio-nota-nota: bombo en tiempo 1, silencio en 2, caja en 3 y 4. El silencio en el tiempo 2 crea tensión.", compas: 4, figura: "negra", tiempos: { kick: [1], snare: [3,4] }, tiemposFuertes: [1] },
       q3: { pregunta: "Un silencio de negra dentro de un compás de 4/4 ocupa:", opciones: ["1 tiempo","2 tiempos","Todo el compás","Medio tiempo"], respuesta: "1 tiempo" },
     },
   },
@@ -702,8 +687,8 @@ const ritmo_u4 = [
       q2: { pregunta: "Antes de tocar a primera vista, ¿qué se debe hacer?", opciones: ["Escanear el ritmo completo","Tocar inmediatamente","Ignorar el compás","Subir el tempo"], respuesta: "Escanear el ritmo completo" },
       a1: { pregunta: "Escucha el patrón 'ta ti-ti': ¿qué nota es la negra?", nota: "C4", opciones: ["C4","D4","E4","G4"] },
       a2: { pregunta: "¿Qué nota forman las corcheas del patrón?", nota: "E4", opciones: ["C4","D4","E4","G4"] },
-      m1: { pregunta: "Construye: ta ti-ti ta ta (C4 para negras, E4-G4 para corcheas).", notas: ["C4","E4","G4","C4","C4"] },
-      m2: { pregunta: "Escribe: ta-a ta-a (dos blancas en D4).", notas: ["D4","D4","D4","D4"] },
+      m1: { instrucciones: "Construye el patrón 'ta ti-ti ta ta': bombo en tiempo 1 (negra), dos golpes de caja rápidos en tiempo 2 (corcheas), bombo en 3 y 4.", compas: 4, figura: "negra", tiempos: { kick: [1,3,4], snare: [2] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Patrón de blancas 'ta-a ta-a': bombo en tiempo 1 (ocupa 2 tiempos) y caja en tiempo 3 (ocupa 2 tiempos). Solo 2 golpes en todo el compás.", compas: 4, figura: "negra", tiempos: { kick: [1], snare: [3] }, tiemposFuertes: [1] },
       q3: { pregunta: "La subdivisión '1-y-2-y' indica:", opciones: ["Dividir cada tiempo en dos corcheas","Solo corcheas sin pulso","Aumentar el tempo","Cambiar de compás"], respuesta: "Dividir cada tiempo en dos corcheas" },
     },
   },
@@ -727,8 +712,8 @@ const ritmo_u4 = [
       q2: { pregunta: "¿Para qué sirve identificar el acento fuerte al dictar?", opciones: ["Marca el inicio de cada compás","Indica el fin de la obra","Señala las notas más agudas","Define el tempo"], respuesta: "Marca el inicio de cada compás" },
       a1: { pregunta: "Escucha y reconoce la primera nota del dictado.", nota: "C4", opciones: ["C4","E4","G4","A4"] },
       a2: { pregunta: "¿Cuál nota cierra el patrón del dictado?", nota: "G4", opciones: ["C4","D4","G4","B4"] },
-      m1: { pregunta: "Reconstruye el patrón escuchado: C4-E4-E4-G4.", notas: ["C4","E4","E4","G4"] },
-      m2: { pregunta: "Escribe el dictado: dos negras y una blanca en F4.", notas: ["F4","F4","F4","F4"] },
+      m1: { instrucciones: "Transcribe el dictado rítmico: bombo en tiempo 1, caja en 2 y 3, bombo en 4. Ubica cada golpe en su tiempo correcto.", compas: 4, figura: "negra", tiempos: { kick: [1,4], snare: [2,3] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Dictado rítmico: dos golpes de bombo en negra (tiempos 1 y 2) seguidos de un golpe largo de caja en blanca (tiempo 3, dura hasta el 4).", compas: 4, figura: "negra", tiempos: { kick: [1,2], snare: [3] }, tiemposFuertes: [1] },
       q3: { pregunta: "Para mejorar en dictado rítmico, ¿qué se recomienda?", opciones: ["Practicar con patrones graduales de menor a mayor complejidad","Comenzar directamente con ritmos complejos","Escuchar solo una vez y escribir","Ignorar el compás"], respuesta: "Practicar con patrones graduales de menor a mayor complejidad" },
     },
   },
@@ -752,8 +737,8 @@ const ritmo_u4 = [
       q2: { pregunta: "¿Cómo se crea variación en un patrón rítmico?", opciones: ["Cambiando una figura o añadiendo un silencio","Repitiendo exactamente igual siempre","Aumentando el volumen","Cambiando de instrumento"], respuesta: "Cambiando una figura o añadiendo un silencio" },
       a1: { pregunta: "Escucha el motivo rítmico: ¿qué nota lo compone?", nota: "C4", opciones: ["C4","E4","G4","A4"] },
       a2: { pregunta: "¿Qué nota introduce el contraste en el patrón?", nota: "A4", opciones: ["C4","D4","G4","A4"] },
-      m1: { pregunta: "Crea un motivo: C4-E4-G4 y repítelo.", notas: ["C4","E4","G4","C4","E4","G4"] },
-      m2: { pregunta: "Varía el motivo: C4-E4 (silencio) C4-G4.", notas: ["C4","E4","C4","G4"] },
+      m1: { instrucciones: "Crea un motivo rítmico de 2 tiempos y repítelo: bombo en tiempo 1, caja en tiempo 2. Repite el mismo patrón en los tiempos 3 y 4.", compas: 4, figura: "negra", tiempos: { kick: [1,3], snare: [2,4] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Varía el motivo: bombo en tiempo 1, caja en 2, SILENCIO en 3, hi-hat en 4. El silencio en el tiempo 3 crea contraste con la primera repetición.", compas: 4, figura: "negra", tiempos: { kick: [1], snare: [2], hihat: [4] }, tiemposFuertes: [1] },
       q3: { pregunta: "El contraste en un patrón rítmico (denso vs. ligero) sirve para:", opciones: ["Dar forma y dirección musical","Evitar el pulso","Reemplazar el compás","Eliminar silencios"], respuesta: "Dar forma y dirección musical" },
     },
   },

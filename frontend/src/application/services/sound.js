@@ -273,7 +273,11 @@ export function playResultScreen(tipo = "bien") {
 }
 
 /* ═══════════════════════════════════════════════════════
-   METRÓNOMO
+   METRÓNOMO — STUBS DE RETROCOMPATIBILIDAD
+   El metrónomo real ahora vive en useMetronomo.js (hook) que usa
+   AudioContext scheduling en vez de setInterval, eliminando el drift.
+   Estas funciones se mantienen por si algún módulo las importa
+   directamente, pero el componente Metronomo.jsx ya usa solo el hook.
 ═══════════════════════════════════════════════════════ */
 export function getMetronomeBpm() {
   const stored = Number(localStorage.getItem(METRONOME_STORAGE_KEY));
@@ -283,32 +287,19 @@ export function getMetronomeBpm() {
 export function setMetronomeBpm(bpm) {
   const value = Math.min(200, Math.max(40, Number(bpm)));
   localStorage.setItem(METRONOME_STORAGE_KEY, value.toString());
-  if (metronomeEnabled) { stopMetronome(); startMetronome(); }
 }
 
-function playMetronomeClick(accent = false) {
-  playTone(accent ? 1200 : 800, 0.05, "square", accent ? 0.12 : 0.08);
-}
-
+// startMetronome / stopMetronome se dejan como no-ops: el hook
+// gestiona su propio AudioContext y no debe compartir estado global.
 export function startMetronome() {
-  if (metronomeInterval) return;
-  const interval = (60 / getMetronomeBpm()) * 1000;
-  metronomeEnabled = true;
-  metronomeBeat    = 0;
-  playMetronomeClick(true);
-  metronomeInterval = setInterval(() => {
-    metronomeBeat++;
-    playMetronomeClick(metronomeBeat % 4 === 0);
-  }, interval);
+  console.warn("[TeoLearn] startMetronome() está deprecado. Usa el hook useMetronomo().");
 }
 
 export function stopMetronome() {
-  metronomeEnabled = false;
-  metronomeBeat    = 0;
-  if (metronomeInterval) { clearInterval(metronomeInterval); metronomeInterval = null; }
+  console.warn("[TeoLearn] stopMetronome() está deprecado. Usa el hook useMetronomo().");
 }
 
-export function isMetronomeRunning() { return metronomeEnabled; }
+export function isMetronomeRunning() { return false; }
 
 /* ═══════════════════════════════════════════════════════
    MÚSICA DE FONDO — 4 PISTAS PRECARGADAS SELECCIONABLES
