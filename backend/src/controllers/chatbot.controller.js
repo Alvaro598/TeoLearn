@@ -6,7 +6,15 @@ export const preguntarChatbot =
 
     try {
 
-      const { pregunta } = req.body;
+      const pregunta = String(req.body?.pregunta || "").trim();
+
+      if (!pregunta) {
+        return res.status(400).json({ error: "La pregunta no puede estar vacía." });
+      }
+
+      if (pregunta.length > 1000) {
+        return res.status(400).json({ error: "La pregunta supera el máximo permitido de 1000 caracteres." });
+      }
 
      const completion =
   await openai.chat.completions.create({

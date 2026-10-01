@@ -13,7 +13,7 @@ async (req, res) => {
     await pool.query(
       `
       SELECT *
-      FROM ejercicios
+      FROM ejercicio
       WHERE leccion_id = $1
       ORDER BY orden ASC
       `,

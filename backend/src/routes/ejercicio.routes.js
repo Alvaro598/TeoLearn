@@ -12,7 +12,7 @@ router.get("/leccion/:leccionId", async (req, res) => {
     const resultado = await pool.query(
       `
       SELECT *
-      FROM ejercicios
+      FROM ejercicio
       WHERE leccion_id = $1
       ORDER BY orden ASC
       `,

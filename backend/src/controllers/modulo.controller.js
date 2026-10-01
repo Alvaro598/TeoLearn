@@ -9,7 +9,7 @@ async (req, res) => {
     await pool.query(`
 
       SELECT *
-      FROM modulos
+      FROM modulo
       ORDER BY orden ASC
 
     `);

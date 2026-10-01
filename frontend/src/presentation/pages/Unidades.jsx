@@ -12,6 +12,7 @@ import { useAuth } from "../../application/context/AuthContext";
 import {
   obtenerDashboard,
 } from "../../application/services/progress";
+import { TutorialContextual } from "../components/ui/OnboardingTutorial";
 
 const MOD_CONFIG = {
 
@@ -233,7 +234,7 @@ export default function Unidades() {
 
         {/* GRID */}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div id="unidades-grid" className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
 
           {unidades.map((unidad, idx) => {
 
@@ -307,10 +308,9 @@ export default function Unidades() {
                         `/unidad/${unidad.id}/lecciones`
                       )
                     }
-                    disabled={unidad.finalizada}
-                    className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition`}
                   >
-                    {unidad.finalizada ? "Unidad completada" : "Empezar →"}
+                    {unidad.finalizada ? "Revisar →" : "Empezar →"}
                   </button>
 
                   <button 
@@ -339,6 +339,7 @@ export default function Unidades() {
 
       </div>
 
+      <TutorialContextual pagina="unidades" />
     </div>
 
   );

@@ -1,13 +1,37 @@
-import { ArrowLeft, Headphones, Play, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
-import { useAuth } from "../../application/context/AuthContext";
 import { usePreferences } from "../../application/context/PreferencesContext";
-import { markLessonCompleted } from "../../application/services/progress";
-import { guardarLeccionCompletada } from "../../application/services/progress";
-import { playSequence } from "../../application/services/sound";
 import { speakText, stopSpeech } from "../../application/services/speech";
+
+function getVideoEmbedUrl(videoUrl) {
+  if (!videoUrl) return null;
+
+  const driveFileId = videoUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/i)?.[1]
+    || videoUrl.match(/id=([^&]+)/i)?.[1]
+    || videoUrl.match(/google\.com\/uc\?export=download&id=([^&]+)/i)?.[1];
+
+  if (driveFileId) {
+    return `https://drive.google.com/file/d/${driveFileId}/preview`;
+  }
+
+  if (videoUrl.includes("youtube.com/watch")) {
+    const youtubeId = videoUrl.match(/[?&]v=([^&]+)/i)?.[1];
+    return youtubeId ? `https://www.youtube.com/embed/${youtubeId}` : videoUrl;
+  }
+
+  if (videoUrl.includes("youtu.be/")) {
+    const youtubeId = videoUrl.match(/youtu\.be\/([^?&]+)/i)?.[1];
+    return youtubeId ? `https://www.youtube.com/embed/${youtubeId}` : videoUrl;
+  }
+
+  if (videoUrl.includes("youtube.com/embed/")) {
+    return videoUrl;
+  }
+
+  return videoUrl;
+}
 
 function parseContent(text = "") {
   const lines = text.split("\n");
@@ -31,28 +55,26 @@ export default function DetalleLeccion() {
   const { leccionId } = useParams();
   const navigate = useNavigate();
   const { preferences } = usePreferences();
-  const { usuarioDB, refrescarUsuarioDB } = useAuth();
   const [leccion, setLeccion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [speaking, setSpeaking] = useState(false);
-  const [finalizada, setFinalizada] = useState(false);
 
   useEffect(() => {
+    const obtenerLeccion = async () => {
+      try {
+        const response = await fetch(apiUrl(`/lecciones/${leccionId}`));
+        const data = await response.json();
+        setLeccion(data);
+      } catch (error) {
+        console.error("Error obteniendo leccion:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     obtenerLeccion();
     return () => stopSpeech();
-  }, []);
-
-  const obtenerLeccion = async () => {
-    try {
-      const response = await fetch(apiUrl(`/lecciones/${leccionId}`));
-      const data = await response.json();
-      setLeccion(data);
-    } catch (error) {
-      console.error("Error obteniendo leccion:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [leccionId]);
 
   const blocks = useMemo(() => parseContent(leccion?.contenido), [leccion]);
 
@@ -65,23 +87,6 @@ export default function DetalleLeccion() {
 
     speakText(`${leccion.titulo}. ${leccion.descripcion}. ${leccion.contenido}`);
     setSpeaking(true);
-  };
-
-  const finalizarLeccion = async () => {
-    if (finalizada) return;
-
-    setFinalizada(true);
-
-    if (usuarioDB?.id) {
-      try {
-        await guardarLeccionCompletada(usuarioDB.id, Number(leccion.id), 0);
-        await refrescarUsuarioDB();
-      } catch (error) {
-        console.error("No se pudo guardar la lección completada en la BD:", error);
-      }
-    }
-
-    markLessonCompleted(leccion.id);
   };
 
   if (loading) {
@@ -111,7 +116,9 @@ export default function DetalleLeccion() {
           {leccion.titulo}
         </h1>
 
+       
         <p className="text-gray-700 text-xl mb-6">{leccion.descripcion}</p>
+        
 
         {preferences.ttsEnabled && (
           <button
@@ -121,6 +128,20 @@ export default function DetalleLeccion() {
             {speaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
             {speaking ? "Detener" : "Escuchar leccion"}
           </button>
+        )}
+
+         {leccion.video_url && (
+          <div className="mb-6 overflow-hidden rounded-3xl border-4 border-gray-950 shadow-[8px_8px_0_#111827] bg-white">
+            <div className="relative aspect-video">
+              <iframe
+                src={getVideoEmbedUrl(leccion.video_url)}
+                title={`Video de apoyo: ${leccion.titulo}`}
+                className="absolute inset-0 h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
         )}
 
         <div className="space-y-8">
@@ -148,20 +169,6 @@ export default function DetalleLeccion() {
           })}
         </div>
 
-        
-        {leccion.video_url && (
-          <a
-            href={leccion.video_url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 inline-flex items-center gap-2 text-brand-blue font-bold hover:underline"
-          >
-            <Play size={16} fill="currentColor" />
-            Ver video corto de apoyo
-          </a>
-        )}
-
-        
         <button
           onClick={() => navigate(`/ejercicio/${leccion.id}`)}
           className="mt-4 w-full bg-brand-pink text-white font-extrabold py-4 rounded-xl hover:opacity-90 transition"
@@ -169,15 +176,6 @@ export default function DetalleLeccion() {
           Ir a ejercicios
         </button>
 
-        {finalizada && (
-          <button
-            type="button"
-            onClick={() => navigate(`/unidad/${leccion.unidad_id}/lecciones`)}
-            className="mt-4 w-full border-2 border-gray-950 text-gray-950 font-extrabold py-4 rounded-xl hover:bg-gray-100 transition"
-          >
-            Volver al listado de lecciones
-          </button>
-        )}
       </div>
     </div>
   );

@@ -1,36 +1,26 @@
-/**
- * EjercicioMidiArmonico.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EjercicioMidiArmonico.jsx
- *
- * Editor MIDI para ejercicios ARMÓNICOS: el alumno construye un STACK de
- * acordes (varias notas verticales por columna) siguiendo una progresión
- * dada en grados romanos, ej. "I - IV - V - I" o "III - VII - V - I".
- *
- * Contrato del ejercicio esperado en la BD (contenido):
- * {
- *   tonalidad: "C4",                       // tónica de referencia
- *   progresion: ["I","IV","V","I"],        // grados a construir, una columna por grado
- *   notasDisponibles: ["C4","D4","E4","F4","G4","A4","B4","C5","D5","E5"],
- *   instrucciones: "Construye la progresión I-IV-V-I en C mayor."
- * }
- * respuesta_correcta: {
- *   stack: [["C4","E4","G4"], ["F4","A4","C5"], ["G4","B4","D5"], ["C4","E4","G4"]]
- * }
- * (el stack también puede derivarse en el backend con construirProgresionDesdeGrados)
- */
+
 
 import { useMemo, useState } from "react";
 import { Play, Eraser } from "lucide-react";
 import { playProgression } from "../../../../application/services/sound";
 
 const NOTAS_DEFECTO = [
-  "E5", "D5", "C5", "B4", "A4", "G4", "F4", "E4", "D4", "C4",
+  "C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5", "E5",
 ];
+
+const alturaNota = (nota) => {
+  const match = nota.match(/^([A-G]#?)(\d)$/);
+  if (!match) return 0;
+  const cromatica = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  return Number(match[2]) * 12 + cromatica.indexOf(match[1]);
+};
 
 export default function EjercicioMidiArmonico({ exercise, onEvaluate, disabled }) {
   const contenido    = exercise.contenido || {};
   const progresion    = contenido.progresion || ["I", "IV", "V", "I"];
-  const noteRows       = contenido.notasDisponibles?.slice().reverse() || NOTAS_DEFECTO;
+  const noteRows       = (contenido.notasDisponibles || NOTAS_DEFECTO)
+    .slice()
+    .sort((a, b) => alturaNota(b) - alturaNota(a));
   const columnas        = progresion.length;
   const stackObjetivo   = exercise.respuesta_correcta?.stack || [];
 

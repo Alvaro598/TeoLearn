@@ -40,12 +40,32 @@ export function useEjercicioTimer(tipo, activo, onAgotado) {
   const [restante, setRestante] = useState(total);
   const agotadoRef  = useRef(false);   // evita disparar onAgotado más de una vez
   const intervalRef = useRef(null);
+  const activoRef = useRef(Boolean(activo));
+  const onAgotadoRef = useRef(onAgotado);
 
   /** Reinicia el estado a los segundos del tipo actual */
   const reiniciar = useCallback(() => {
     clearInterval(intervalRef.current);
     agotadoRef.current = false;
     setRestante(total);
+
+    // Si el timer está activo en este momento, iniciar el intervalo
+    // inmediatamente para que la cuenta vuelva a correr tras reiniciar().
+    if (activoRef.current) {
+      intervalRef.current = setInterval(() => {
+        setRestante((prev) => {
+          if (prev <= 1) {
+            clearInterval(intervalRef.current);
+            if (!agotadoRef.current) {
+              agotadoRef.current = true;
+              setTimeout(() => onAgotadoRef.current?.(), 0);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1_000);
+    }
   }, [total]);
 
   // Reiniciar automáticamente cuando cambia el tipo
@@ -57,8 +77,11 @@ export function useEjercicioTimer(tipo, activo, onAgotado) {
   useEffect(() => {
     if (!activo) {
       clearInterval(intervalRef.current);
+      activoRef.current = false;
       return;
     }
+    activoRef.current = true;
+    onAgotadoRef.current = onAgotado;
 
     intervalRef.current = setInterval(() => {
       setRestante((prev) => {
@@ -67,7 +90,7 @@ export function useEjercicioTimer(tipo, activo, onAgotado) {
           if (!agotadoRef.current) {
             agotadoRef.current = true;
             // Llamar fuera del setState para no causar efectos secundarios en render
-            setTimeout(() => onAgotado?.(), 0);
+            setTimeout(() => onAgotadoRef.current?.(), 0);
           }
           return 0;
         }

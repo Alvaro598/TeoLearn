@@ -18,7 +18,7 @@ router.get(
 
           `
           SELECT id
-          FROM modulos
+          FROM modulo
           WHERE slug = $1
           `,
 
@@ -44,7 +44,7 @@ router.get(
 
           `
           SELECT *
-          FROM unidades
+          FROM unidad
           WHERE modulo_id = $1
           ORDER BY orden
           `,
@@ -81,11 +81,11 @@ router.get("/:unidadId/lecciones", async (req, res) => {
     const unidadQuery = await pool.query(
       `
       SELECT
-        unidades.*,
-        modulos.slug AS modulo_slug
-      FROM unidades
-      INNER JOIN modulos ON modulos.id = unidades.modulo_id
-      WHERE unidades.id = $1
+        unidad.*,
+        modulo.slug AS modulo_slug
+      FROM unidad
+      INNER JOIN modulo ON modulo.id = unidad.modulo_id
+      WHERE unidad.id = $1
       `,
       [unidadId]
     );
@@ -93,7 +93,7 @@ router.get("/:unidadId/lecciones", async (req, res) => {
     const leccionesQuery = await pool.query(
       `
       SELECT *
-      FROM lecciones
+      FROM leccion
       WHERE unidad_id = $1
       ORDER BY orden
       `,

@@ -1,31 +1,18 @@
-/**
- * EntrenamientoAuditivoRitmico.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EntrenamientoAuditivoRitmico.jsx
- *
- * Ejercicio auditivo de RITMO. Soporta tres sub-tipos vía contenido.subtipo:
- *
- *  1. "identificar-figura"   → escucha un golpe y elige qué figura sonó
- *                              (redonda/blanca/negra/corchea).
- *  2. "tiempo-fuerte"        → escucha un compás con acentos y señala en
- *                              qué tiempo cayó el acento (tiempo fuerte).
- *  3. "reloj-interno"        → suena un click guía un compás, luego se
- *                              detiene; el alumno debe indicar tocando
- *                              "tap" en el momento en que debería sonar
- *                              el siguiente pulso (prueba de sincronización).
- *
- * Contrato de contenido:
- * {
- *   subtipo: "identificar-figura" | "tiempo-fuerte" | "reloj-interno",
- *   patron: [{ figura: "negra", nota: "C4" }, ...],   // para reproducir
- *   bpm: 80,
- *   opciones: ["Negra","Corchea","Blanca"]            // según subtipo
- * }
- * respuesta_correcta: { respuesta: "Negra" } | { respuesta: 3 } | { toleranciaMs: 150 }
- */
-
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Timer as TimerIcon, Hand } from "lucide-react";
 import { playRhythm, playTone } from "../../../../application/services/sound";
+
+function shuffleOptions(options = []) {
+  if (!Array.isArray(options) || options.length < 2) return options;
+
+  const next = [...options];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
 
 export default function EntrenamientoAuditivoRitmico({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
@@ -38,7 +25,10 @@ export default function EntrenamientoAuditivoRitmico({ exercise, onEvaluate, dis
   }
 
   // ── identificar-figura / tiempo-fuerte comparten la misma UI base ──────────
-  const opciones  = contenido.opciones || [];
+  const opciones  = useMemo(
+    () => shuffleOptions(contenido.opciones || []),
+    [exercise.id, contenido.opciones]
+  );
   const respuesta = exercise.respuesta_correcta?.respuesta;
   const [reproducido, setReproducido] = useState(false);
 

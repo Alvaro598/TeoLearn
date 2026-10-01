@@ -1,11 +1,3 @@
-/**
- * MEJORA 2 — Archivo B
- * Ruta: frontend/src/presentation/components/ui/exercises/CronometroEjercicio.jsx
- *
- * Barra visual de tiempo con arco SVG y número central.
- * Se coloca ENCIMA del área de respuestas en Ejercicio.jsx.
- */
-
 import { Timer } from "lucide-react";
 
 const RADIO  = 22;

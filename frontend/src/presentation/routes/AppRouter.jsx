@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
 } from "react-router-dom";
+import { lazy, Suspense } from "react";
 
 import { AuthProvider }
 from "../../application/context/AuthContext";
@@ -17,21 +18,24 @@ import AppLayout
 from "../layouts/AppLayout";
 import Chatbot from "../components/ui/chatbot/chatbot";
 
-/* PÁGINAS */
-import Landing from "../pages/Landing";
-import Login from "../pages/Login";
-import Register from "../pages/Register";
-import Dashboard from "../pages/Dashboard";
-import Modulos from "../pages/Modulos";
-import Unidades from "../pages/Unidades";
-import Lecciones from "../pages/Lecciones";
-import DetalleLeccion from "../pages/DetalleLeccion";
-import Ejercicio from "../pages/Ejercicio";
-import Resultado from "../pages/Resultado";
-import Generalidades from "../pages/Generalidades";
-import ChatTutor from "../pages/ChatTutor";
-import Perfil from "../pages/Perfil";
-import QuizFinal from "../pages/QuizFinal";
+/* PÁGINAS: cada ruta carga su código solo cuando se visita. */
+const Landing = lazy(() => import("../pages/Landing"));
+const Login = lazy(() => import("../pages/Login"));
+const Register = lazy(() => import("../pages/Register"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const Modulos = lazy(() => import("../pages/Modulos"));
+const Unidades = lazy(() => import("../pages/Unidades"));
+const Lecciones = lazy(() => import("../pages/Lecciones"));
+const DetalleLeccion = lazy(() => import("../pages/DetalleLeccion"));
+const Ejercicio = lazy(() => import("../pages/Ejercicio"));
+const Resultado = lazy(() => import("../pages/Resultado"));
+const Generalidades = lazy(() => import("../pages/Generalidades"));
+const ChatTutor = lazy(() => import("../pages/ChatTutor"));
+const Perfil = lazy(() => import("../pages/Perfil"));
+const ConfirmarCerrarSesion = lazy(() => import("../pages/ConfirmarCerrarSesion"));
+const ResultadoQuiz = lazy(() => import("../pages/ResultadoQuiz"));
+const QuizFinal = lazy(() => import("../pages/QuizFinal"));
+const QuizModulo = QuizFinal;
 
 function GlobalChatbot() {
   const { pathname } = useLocation();
@@ -57,7 +61,14 @@ export default function AppRouter() {
 
         <GlobalChatbot />
 
-        <Routes>
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">
+              Cargando...
+            </div>
+          }
+        >
+          <Routes>
 
           {/* PÚBLICAS */}
           <Route
@@ -128,10 +139,38 @@ export default function AppRouter() {
             />
 
             <Route
+              path="/cerrar-sesion"
+              element={
+                <PrivateRoute>
+                  <ConfirmarCerrarSesion />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
               path="/quiz-final"
               element={
                 <PrivateRoute>
                   <QuizFinal />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/resultado-quiz"
+              element={
+                <PrivateRoute>
+                  <ResultadoQuiz />
+                </PrivateRoute>
+              }
+            />
+
+            {/* QUIZ POR MÓDULO */}
+            <Route
+              path="/quiz-modulo/:moduloSlug"
+              element={
+                <PrivateRoute>
+                  <QuizModulo />
                 </PrivateRoute>
               }
             />
@@ -188,7 +227,8 @@ export default function AppRouter() {
 
           </Route>
 
-        </Routes>
+          </Routes>
+        </Suspense>
 
       </BrowserRouter>
       </PreferencesProvider>

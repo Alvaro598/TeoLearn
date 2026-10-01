@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
 
     const result = await pool.query(`
       SELECT *
-      FROM modulos
+      FROM modulo
       ORDER BY orden ASC
     `);
 

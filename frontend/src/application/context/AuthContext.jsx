@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onIdTokenChanged, signOut } from "firebase/auth";
 import { auth } from "../../infrastructure/config/firebase";
 import { apiUrl } from "../config/apiBase";
+import { authFetch, getAuthHeaders } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -19,15 +20,21 @@ export function AuthProvider({ children }) {
       if (user) {
         // 1. Guardar token de Firebase en sesión
         const token = await user.getIdToken();
-        sessionStorage.setItem("token", token);
+        localStorage.setItem("token", token);  // LOCAL: sobrevive recarga y cierre de pestaña
+        localStorage.setItem("teolearn-firebase-uid", user.uid);
+        if (user.email) {
+          localStorage.setItem("teolearn-user-email", user.email);
+        }
 
         // 2. Sincronizar con la BD (obtener o crear el registro)
         try {
           const response = await fetch(apiUrl("/usuarios/sync"), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(getAuthHeaders() || {}),
+            },
             body: JSON.stringify({
-              firebase_uid: user.uid,
               nombre: user.displayName || user.email?.split("@")[0] || "Estudiante",
               correo: user.email,
             }),
@@ -36,6 +43,11 @@ export function AuthProvider({ children }) {
           if (response.ok) {
             const data = await response.json();
             setUsuarioDB(data.usuario);
+            if (data.usuario?.id) {
+              localStorage.setItem("teolearn-user-id", String(data.usuario.id));
+            } else {
+              localStorage.removeItem("teolearn-user-id");
+            }
           } else {
             // Si el sync falla no bloqueamos el login; usuarioDB queda null.
             console.error("No se pudo sincronizar el usuario con la BD");
@@ -46,8 +58,10 @@ export function AuthProvider({ children }) {
           setUsuarioDB(null);
         }
       } else {
-        sessionStorage.removeItem("token");
         localStorage.removeItem("token");
+        localStorage.removeItem("teolearn-firebase-uid");
+        localStorage.removeItem("teolearn-user-email");
+        localStorage.removeItem("teolearn-user-id");
         setUsuarioDB(null);
       }
 
@@ -62,7 +76,7 @@ export function AuthProvider({ children }) {
     if (!firebaseUser) return;
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         apiUrl(`/usuarios/firebase/${firebaseUser.uid}`)
       );
 
@@ -76,8 +90,10 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    sessionStorage.removeItem("token");
     localStorage.removeItem("token");
+    localStorage.removeItem("teolearn-firebase-uid");
+    localStorage.removeItem("teolearn-user-email");
+    localStorage.removeItem("teolearn-user-id");
     setUsuarioDB(null);
     await signOut(auth);
   };

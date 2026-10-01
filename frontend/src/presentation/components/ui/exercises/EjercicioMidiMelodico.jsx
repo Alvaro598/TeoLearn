@@ -1,25 +1,4 @@
-/**
- * EjercicioMidiMelodico.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EjercicioMidiMelodico.jsx
- *
- * Editor MIDI para ejercicios MELÓDICOS: pregunta-respuesta, motivo-variación,
- * arpegios, punto focal y técnicas de articulación (legato, staccato,
- * pizzicato, glissando, tenuto).
- *
- * Contrato del ejercicio esperado en la BD (contenido):
- * {
- *   tecnica: "pregunta-respuesta" | "motivo-variacion" | "arpegio" | "punto-focal" | "articulacion",
- *   articulacion: "legato" | "staccato" | "pizzicato" | "glissando" | "tenuto" | null,
- *   notasDisponibles: ["C4","D4","E4","F4","G4","A4","B4","C5"],
- *   columnas: 8,
- *   pista: [   // opcional: motivo o pregunta ya dada que el alumno debe completar/variar
- *     { note: "C4", step: 1 },
- *     { note: "E4", step: 2 },
- *   ],
- *   instrucciones: "Completa la 'respuesta' a esta 'pregunta' melódica."
- * }
- * respuesta_correcta: { notas: ["G4","E4","C4"] }  // o { notas: [...], stepwise: true } según el ejercicio
- */
+
 
 import { useMemo, useState } from "react";
 import { Play, Eraser, Info } from "lucide-react";
@@ -27,7 +6,14 @@ import { playSequence } from "../../../../application/services/sound";
 import { TECNICA_LABEL } from "../../../../application/services/musicTheoryHelpers";
 import Metronomo from "../Metronomo";
 
-const NOTAS_DEFECTO = ["C5", "B4", "A4", "G4", "F4", "E4", "D4", "C4"];
+const NOTAS_DEFECTO = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+
+const alturaNota = (nota) => {
+  const match = nota.match(/^([A-G]#?)(\d)$/);
+  if (!match) return 0;
+  const cromatica = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  return Number(match[2]) * 12 + cromatica.indexOf(match[1]);
+};
 
 const TECNICA_TITULOS = {
   "pregunta-respuesta": "Pregunta y respuesta",
@@ -39,7 +25,9 @@ const TECNICA_TITULOS = {
 
 export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }) {
   const contenido    = exercise.contenido || {};
-  const noteRows      = contenido.notasDisponibles?.slice().reverse() || NOTAS_DEFECTO;
+  const noteRows      = (contenido.notasDisponibles || NOTAS_DEFECTO)
+    .slice()
+    .sort((a, b) => alturaNota(b) - alturaNota(a));
   const columns        = contenido.columnas || 8;
   const tecnica         = contenido.tecnica || "motivo-variacion";
   const articulacion    = contenido.articulacion;

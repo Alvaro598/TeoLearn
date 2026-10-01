@@ -31,6 +31,12 @@ export default function Register() {
         e.preventDefault();
         setError("");
 
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{10,}$/;
+        if (!passwordRegex.test(form.password)) {
+            setError("La contraseña debe tener mínimo 10 caracteres, al menos una letra y un número.");
+            return;
+        }
+
         try {
             setLoading(true);
 

@@ -1,8 +1,24 @@
+import { useMemo } from "react";
 import { Play } from "lucide-react";
 import { playNote } from "../../../../application/services/sound";
 
+function shuffleOptions(options = []) {
+  if (!Array.isArray(options) || options.length < 2) return options;
+
+  const next = [...options];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
+
 export default function EntrenamientoAuditivo({ exercise, onEvaluate, disabled }) {
-  const options = exercise.contenido?.opciones || ["C4", "D4", "E4", "G4"];
+  const options = useMemo(
+    () => shuffleOptions(exercise.contenido?.opciones || ["C4", "D4", "E4", "G4"]),
+    [exercise.id, exercise.contenido?.opciones]
+  );
   const target = exercise.respuesta_correcta?.respuesta || exercise.contenido?.nota;
 
   const answer = (option) => {

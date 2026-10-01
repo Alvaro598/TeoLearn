@@ -1,4 +1,4 @@
-import { Music, Palette, Volume2, PlayCircle } from "lucide-react";
+import { Music, Palette, Volume2, PlayCircle, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../application/context/AuthContext";
 import { usePreferences } from "../../application/context/PreferencesContext";
@@ -59,6 +59,22 @@ export default function Perfil() {
         </section>
 
         <section className="grid md:grid-cols-3 gap-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 md:col-span-3">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="font-extrabold text-xl mb-1">Tutorial inicial</h2>
+                <p className="text-sm text-gray-500">Reinicia la guía de bienvenida para verla otra vez.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => updatePreferences({ onboardingDone: false, onboardingStep: 0 })}
+                className="inline-flex items-center gap-2 bg-brand-blue text-white px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90"
+              >
+                <RotateCcw size={16} />
+                Reiniciar tutorial
+              </button>
+            </div>
+          </div>
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <Palette className="text-brand-blue mb-3" />
             <h2 className="font-extrabold text-xl mb-3">Modo visual</h2>
@@ -87,7 +103,7 @@ export default function Perfil() {
             </label>
 
             {preferences.ttsEnabled && (
-              <div className="mt-2 grid gap-2">
+              <div className="mt-2 grid gap-2 px-2 py-3 border border-gray-200 rounded-xl">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Voz del Tutor IA
                 </span>
@@ -97,11 +113,11 @@ export default function Perfil() {
                     Cargando voces disponibles del navegador...
                   </p>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 w-full">
                     <select
                       value={preferences.ttsVoiceURI}
                       onChange={(event) => updatePreferences({ ttsVoiceURI: event.target.value })}
-                      className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm"
+                      className="w-full min-w-0 border border-gray-300 rounded-xl px-3 py-2 text-sm overflow-hidden text-ellipsis whitespace-nowrap"
                     >
                       <option value="">Automática (mejor voz en español)</option>
                       {vocesEspanol.length > 0 && (

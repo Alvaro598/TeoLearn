@@ -27,6 +27,14 @@ Instrucciones:
 
 export async function generarFeedbackEjercicio(req, res) {
   try {
+    const payloadSize = Buffer.byteLength(JSON.stringify(req.body || {}), "utf8");
+
+    if (payloadSize > 25000) {
+      return res.status(413).json({
+        error: "El payload enviado al feedback es demasiado grande."
+      });
+    }
+
     const { ejercicio, respuestaUsuario, correcta, puntuacion } = req.body;
 
     if (!ejercicio || !respuestaUsuario) {

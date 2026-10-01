@@ -1,20 +1,3 @@
-/**
- * EjercicioRenderer.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EjercicioRenderer.jsx
- *
- * Componente "despachador": decide qué componente de ejercicio renderizar
- * según `tipo` (quiz | auditivo | midi) y, dentro de auditivo/midi, según
- * el MÓDULO de la lección (ritmo | melodia | armonia) o, si está presente,
- * según `exercise.contenido.categoria`.
- *
- * Esto saca toda la lógica de "qué componente usar" fuera de Ejercicio.jsx,
- * que ahora solo necesita renderizar <EjercicioRenderer ... /> una vez.
- *
- * Cómo se determina la categoría:
- *   1. exercise.contenido.categoria  ("ritmo" | "melodia" | "armonia") si existe
- *   2. moduloSlug prop pasado explícitamente desde la página (recomendado)
- *   3. fallback: "melodia" (componentes genéricos más simples)
- */
 
 import EjercicioQuiz                    from "./EjercicioQuiz";
 import EntrenamientoAuditivoRitmico      from "./EntrenamientoAuditivoRitmico";

@@ -19,7 +19,7 @@ async (req, res) => {
     await pool.query(
       `
       SELECT *
-      FROM ejercicios
+      FROM ejercicio
       WHERE id = $1
       `,
       [ejercicio_id]
@@ -68,7 +68,7 @@ async (req, res) => {
     /* GUARDAR INTENTO */
     await pool.query(
       `
-      INSERT INTO intentos_ejercicio (
+      INSERT INTO intento_ejercicio (
 
         usuario_id,
         ejercicio_id,

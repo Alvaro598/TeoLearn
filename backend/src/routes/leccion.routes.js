@@ -17,7 +17,7 @@ router.get("/unidad/:unidadId", async (req, res) => {
     const resultado = await pool.query(
       `
       SELECT *
-      FROM lecciones
+      FROM leccion
       WHERE unidad_id = $1
       ORDER BY orden ASC
       `,
@@ -50,7 +50,7 @@ router.get("/:id", async (req, res) => {
     const resultado = await pool.query(
       `
       SELECT *
-      FROM lecciones
+      FROM leccion
       WHERE id = $1
       `,
       [id]

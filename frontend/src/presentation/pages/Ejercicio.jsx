@@ -43,6 +43,7 @@ import {
 } from "../../application/services/progress";
 import EjercicioRenderer from "../components/ui/exercises/EjercicioRenderer";
 import CronometroEjercicio from "../components/ui/exercises/CronometroEjercicio";
+import { TutorialContextual } from "../components/ui/OnboardingTutorial";
 
 export default function Ejercicio() {
   const { leccionId } = useParams();
@@ -58,6 +59,7 @@ export default function Ejercicio() {
   const [avanzando, setAvanzando]                   = useState(false);
   const [isFeedbackSpeaking, setIsFeedbackSpeaking] = useState(false);
   const [rachaAciertos, setRachaAciertos]           = useState(0);
+  const feedbackRequestIdRef                        = useRef(0);
 
   const currentExercise = ejercicios[activeIndex];
 
@@ -110,11 +112,8 @@ export default function Ejercicio() {
         (ex) => !completados.has(String(ex.id))
       );
 
-      if (siguientePendiente === -1 && ejerciciosData.length > 0) {
-        navigate(`/resultado/${leccionId}`, { replace: true });
-        return;
-      }
-
+      // Si la lección ya estaba completada, permitir repasar desde el inicio
+      // en vez de redirigir automáticamente y bloquear los ejercicios.
       setActiveIndex(siguientePendiente === -1 ? 0 : siguientePendiente);
     } catch (error) {
       console.error("Error obteniendo ejercicios:", error);
@@ -128,8 +127,14 @@ export default function Ejercicio() {
   const evaluarRef = useRef(null);
 
   const evaluar = async (exercise, payload) => {
+    const feedbackRequestId = ++feedbackRequestIdRef.current;
+
     setAvanzando(true);
-    setResultadoActual({ ...payload, feedback: "Generando retroalimentación..." });
+    setResultadoActual({
+      ...payload,
+      feedback: "Generando retroalimentación...",
+      feedbackRequestId,
+    });
 
     if (preferences.soundEnabled) {
       if (payload.correcta) {
@@ -160,6 +165,12 @@ export default function Ejercicio() {
 
     registerLessonAttemptLocal(leccionId, payload.correcta, payload.puntuacion);
 
+    if (payload.correcta) {
+      markExerciseCompletedLocal(leccionId, exercise.id);
+    }
+
+    setAvanzando(false);
+
     try {
       const feedback = await solicitarFeedbackIA({
         ejercicio:        exercise,
@@ -168,26 +179,20 @@ export default function Ejercicio() {
         puntuacion:       payload.puntuacion,
       });
 
-      setResultadoActual((cur) => ({ ...cur, feedback }));
-
-      if (preferences.ttsEnabled) {
-        speakText(feedback, {
-          onStart: () => setIsFeedbackSpeaking(true),
-          onEnd:   () => setIsFeedbackSpeaking(false),
-          onError: () => setIsFeedbackSpeaking(false),
-        });
-      }
-
-      if (payload.correcta) markExerciseCompletedLocal(leccionId, exercise.id);
-      setAvanzando(false);
+      setResultadoActual((cur) => {
+        if (!cur || cur.feedbackRequestId !== feedbackRequestId) return cur;
+        return { ...cur, feedback };
+      });
     } catch (error) {
       console.error("Error generando feedback:", error);
       const fallback = payload.correcta
         ? "Correcto. Repite el ejercicio para consolidar el aprendizaje."
         : "Respuesta por mejorar. Revisa el concepto y vuelve a intentarlo con calma.";
-      setResultadoActual((cur) => ({ ...cur, feedback: fallback }));
-      if (payload.correcta) markExerciseCompletedLocal(leccionId, exercise.id);
-      setAvanzando(false);
+
+      setResultadoActual((cur) => {
+        if (!cur || cur.feedbackRequestId !== feedbackRequestId) return cur;
+        return { ...cur, feedback: fallback };
+      });
     }
   };
 
@@ -196,7 +201,7 @@ export default function Ejercicio() {
   evaluarRef.current = evaluar;
 
   const toggleFeedbackSpeech = () => {
-    if (!resultadoActual?.feedback) return;
+    if (!resultadoActual?.feedback || !preferences.ttsEnabled) return;
     if (isFeedbackSpeaking) {
       stopSpeech();
       setIsFeedbackSpeaking(false);
@@ -209,7 +214,7 @@ export default function Ejercicio() {
     });
   };
 
-  const irAlSiguienteEjercicio = async () => {
+  const saltarEjercicio = async () => {
     stopSpeech();
     setIsFeedbackSpeaking(false);
 
@@ -234,6 +239,10 @@ export default function Ejercicio() {
     setResultadoActual(null);
     setActiveIndex((cur) => cur + 1);
     // reiniciar() se llama en el useEffect [activeIndex] de arriba.
+  };
+
+  const irAlSiguienteEjercicio = async () => {
+    await saltarEjercicio();
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -264,7 +273,7 @@ export default function Ejercicio() {
           Volver a la lección
         </button>
 
-        <div className="mb-10">
+        <div id="ejercicio-header" className="mb-10">
           <p className="text-xs font-bold tracking-[0.35em] uppercase mb-2 text-brand-pink">
             Ejercicios
           </p>
@@ -291,9 +300,18 @@ export default function Ejercicio() {
                   <h2 className="text-2xl font-extrabold">{currentExercise.pregunta}</h2>
                 </div>
 
-                <span className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-bold self-start">
-                  +{currentExercise.puntos} XP
-                </span>
+                <div className="flex items-center gap-2 self-start">
+                  <span className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full font-bold">
+                    +{currentExercise.puntos} XP
+                  </span>
+                  <button
+                    type="button"
+                    onClick={saltarEjercicio}
+                    className="border border-gray-300 text-gray-700 px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-100"
+                  >
+                    Saltar ejercicio
+                  </button>
+                </div>
               </div>
 
               {/* ── CRONÓMETRO ─────────────────────────────────────────── */}
@@ -308,12 +326,14 @@ export default function Ejercicio() {
               )}
 
               {/* ── ÁREA DE RESPUESTAS ────────────────────────────────── */}
-              <EjercicioRenderer
-                exercise={currentExercise}
-                disabled={avanzando || !!resultadoActual}
-                moduloSlug={leccion.modulo_slug}
-                onEvaluate={(payload) => evaluar(currentExercise, payload)}
-              />
+              <div id="exercise-options">
+                <EjercicioRenderer
+                  exercise={currentExercise}
+                  disabled={avanzando || !!resultadoActual}
+                  moduloSlug={leccion.modulo_slug}
+                  onEvaluate={(payload) => evaluar(currentExercise, payload)}
+                />
+              </div>
 
               {/* ── PANEL DE RESULTADO ────────────────────────────────── */}
               {resultadoActual && (
@@ -336,10 +356,11 @@ export default function Ejercicio() {
                     <button
                       type="button"
                       onClick={toggleFeedbackSpeech}
-                      className="inline-flex items-center gap-1 text-xs font-bold shrink-0"
+                      disabled={!preferences.ttsEnabled}
+                      className="inline-flex items-center gap-1 text-xs font-bold shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isFeedbackSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                      {isFeedbackSpeaking ? "Detener" : "Escuchar"}
+                      {isFeedbackSpeaking ? "Detener" : preferences.ttsEnabled ? "Escuchar" : "Texto a voz desactivado"}
                     </button>
                   </div>
 
@@ -349,28 +370,46 @@ export default function Ejercicio() {
 
                   <div className="mt-4 flex flex-wrap gap-3">
                     {resultadoActual.correcta ? (
-                      <button
-                        type="button"
-                        onClick={irAlSiguienteEjercicio}
-                        className="bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-bold"
-                      >
-                        {activeIndex >= ejercicios.length - 1
-                          ? "Finalizar ejercicio"
-                          : "Siguiente ejercicio"}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={irAlSiguienteEjercicio}
+                          className="bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-bold"
+                        >
+                          {activeIndex >= ejercicios.length - 1
+                            ? "Finalizar ejercicio"
+                            : "Siguiente ejercicio"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={saltarEjercicio}
+                          className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold"
+                        >
+                          Saltar ejercicio
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          stopSpeech();
-                          setIsFeedbackSpeaking(false);
-                          setResultadoActual(null);
-                          reiniciar(); // ← reinicia el timer al volver a intentar
-                        }}
-                        className="bg-brand-pink text-white px-4 py-2 rounded-lg text-sm font-bold"
-                      >
-                        Intentar nuevamente
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            stopSpeech();
+                            setIsFeedbackSpeaking(false);
+                            setResultadoActual(null);
+                            reiniciar(); // ← reinicia el timer al volver a intentar
+                          }}
+                          className="bg-brand-pink text-white px-4 py-2 rounded-lg text-sm font-bold"
+                        >
+                          Intentar nuevamente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={saltarEjercicio}
+                          className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold"
+                        >
+                          Saltar ejercicio
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -379,6 +418,7 @@ export default function Ejercicio() {
           ) : null}
         </div>
       </div>
+      <TutorialContextual pagina="ejercicio" />
     </div>
   );
 }

@@ -2,47 +2,64 @@ import pool from "./db.js";
 import { learningPath } from "./learningPathData.js";
 import { pathToFileURL } from "url";
 
-async function ensureSchema() {
+export async function ensureLearningPathSchema() {
+
   await pool.query(`
-    ALTER TABLE modulos
+    ALTER TABLE modulo
     ADD COLUMN IF NOT EXISTS slug VARCHAR(80) UNIQUE
   `);
 
+
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_unidades_modulo_orden
-    ON unidades (modulo_id, orden)
+    ALTER TABLE leccion
+    ADD COLUMN IF NOT EXISTS imagen_url TEXT
+  `);
+
+  
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_unidad_modulo_orden
+    ON unidad (modulo_id, orden)
   `);
 
   await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS uq_unidades_modulo_orden
-    ON unidades (modulo_id, orden)
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_unidad_modulo_orden
+    ON unidad (modulo_id, orden)
+  `);
+
+ 
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_leccion_unidad_orden
+    ON leccion (unidad_id, orden)
   `);
 
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_lecciones_unidad_orden
-    ON lecciones (unidad_id, orden)
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_leccion_unidad_orden
+    ON leccion (unidad_id, orden)
+  `);
+
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_ejercicio_leccion_orden
+    ON ejercicio (leccion_id, orden)
   `);
 
   await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS uq_lecciones_unidad_orden
-    ON lecciones (unidad_id, orden)
-  `);
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_ejercicios_leccion_orden
-    ON ejercicios (leccion_id, orden)
-  `);
-
-  await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS uq_ejercicios_leccion_orden
-    ON ejercicios (leccion_id, orden)
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_ejercicio_leccion_orden
+    ON ejercicio (leccion_id, orden)
   `);
 }
+
 
 async function upsertModulo(client, modulo) {
   const result = await client.query(
     `
-    INSERT INTO modulos (slug, titulo, descripcion, imagen, orden)
+    INSERT INTO modulo (
+      slug,
+      titulo,
+      descripcion,
+      imagen,
+      orden
+    )
     VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (slug)
     DO UPDATE SET
@@ -52,45 +69,80 @@ async function upsertModulo(client, modulo) {
       orden = EXCLUDED.orden
     RETURNING id
     `,
-    [modulo.slug, modulo.titulo, modulo.descripcion, modulo.imagen, modulo.orden]
+    [
+      modulo.slug,
+      modulo.titulo,
+      modulo.descripcion,
+      modulo.imagen,
+      modulo.orden
+    ]
   );
 
   return result.rows[0].id;
 }
 
+
 async function upsertUnidad(client, moduloId, unidad) {
   const result = await client.query(
     `
-    INSERT INTO unidades (modulo_id, titulo, descripcion, orden)
+    INSERT INTO unidad (
+      modulo_id,
+      titulo,
+      descripcion,
+      orden
+    )
     VALUES ($1, $2, $3, $4)
     ON CONFLICT DO NOTHING
     RETURNING id
     `,
-    [moduloId, unidad.titulo, unidad.descripcion, unidad.orden]
+    [
+      moduloId,
+      unidad.titulo,
+      unidad.descripcion,
+      unidad.orden
+    ]
   );
 
-  if (result.rows[0]?.id) return result.rows[0].id;
+  if (result.rows[0]?.id) {
+    return result.rows[0].id;
+  }
 
   const existing = await client.query(
     `
-    UPDATE unidades
-    SET descripcion = $3
-    WHERE modulo_id = $1 AND orden = $2
+    UPDATE unidad
+    SET
+      titulo = $3,
+      descripcion = $4
+    WHERE modulo_id = $1
+      AND orden = $2
     RETURNING id
     `,
-    [moduloId, unidad.orden, unidad.descripcion]
+    [
+      moduloId,
+      unidad.orden,
+      unidad.titulo,
+      unidad.descripcion
+    ]
   );
 
   return existing.rows[0].id;
 }
 
+
 async function upsertLeccion(client, unidadId, leccion) {
   const result = await client.query(
     `
-    INSERT INTO lecciones (
-      unidad_id, titulo, descripcion, contenido, video_url, orden, xp_recompensa
+    INSERT INTO leccion (
+      unidad_id,
+      titulo,
+      descripcion,
+      contenido,
+      video_url,
+      imagen_url,
+      orden,
+      xp_recompensa
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     ON CONFLICT DO NOTHING
     RETURNING id
     `,
@@ -100,23 +152,28 @@ async function upsertLeccion(client, unidadId, leccion) {
       leccion.descripcion,
       leccion.contenido,
       leccion.video_url || null,
+      leccion.imagen_url || null,
       leccion.orden,
       leccion.xp_recompensa
     ]
   );
 
-  if (result.rows[0]?.id) return result.rows[0].id;
+  if (result.rows[0]?.id) {
+    return result.rows[0].id;
+  }
 
   const existing = await client.query(
     `
-    UPDATE lecciones
+    UPDATE leccion
     SET
       titulo = $3,
       descripcion = $4,
       contenido = $5,
       video_url = $6,
-      xp_recompensa = $7
-    WHERE unidad_id = $1 AND orden = $2
+      imagen_url = COALESCE($7, imagen_url),
+      xp_recompensa = $8
+    WHERE unidad_id = $1
+      AND orden = $2
     RETURNING id
     `,
     [
@@ -126,6 +183,7 @@ async function upsertLeccion(client, unidadId, leccion) {
       leccion.descripcion,
       leccion.contenido,
       leccion.video_url || null,
+      leccion.imagen_url || null,
       leccion.xp_recompensa
     ]
   );
@@ -133,11 +191,18 @@ async function upsertLeccion(client, unidadId, leccion) {
   return existing.rows[0].id;
 }
 
+
 async function upsertEjercicio(client, leccionId, ejercicio) {
   const result = await client.query(
     `
-    INSERT INTO ejercicios (
-      leccion_id, tipo, pregunta, contenido, respuesta_correcta, puntos, orden
+    INSERT INTO ejercicio (
+      leccion_id,
+      tipo,
+      pregunta,
+      contenido,
+      respuesta_correcta,
+      puntos,
+      orden
     )
     VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT DO NOTHING
@@ -154,18 +219,22 @@ async function upsertEjercicio(client, leccionId, ejercicio) {
     ]
   );
 
-  if (result.rows[0]?.id) return;
+  if (result.rows[0]?.id) {
+    return result.rows[0].id;
+  }
 
-  await client.query(
+  const existing = await client.query(
     `
-    UPDATE ejercicios
+    UPDATE ejercicio
     SET
       tipo = $3,
       pregunta = $4,
       contenido = $5,
       respuesta_correcta = $6,
       puntos = $7
-    WHERE leccion_id = $1 AND orden = $2
+    WHERE leccion_id = $1
+      AND orden = $2
+    RETURNING id
     `,
     [
       leccionId,
@@ -177,42 +246,60 @@ async function upsertEjercicio(client, leccionId, ejercicio) {
       ejercicio.puntos
     ]
   );
+
+  return existing.rows[0]?.id;
 }
 
+
 export async function seedLearningPath({ closePool = true } = {}) {
-  await ensureSchema();
+  await ensureLearningPathSchema();
 
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
 
-    await client.query(
-      "DELETE FROM modulos WHERE slug = $1",
-      ["generalidades"]
-    );
-
     for (const modulo of learningPath) {
       const moduloId = await upsertModulo(client, modulo);
 
       for (const unidad of modulo.unidades) {
-        const unidadId = await upsertUnidad(client, moduloId, unidad);
+        const unidadId = await upsertUnidad(
+          client,
+          moduloId,
+          unidad
+        );
 
         for (const leccion of unidad.lecciones) {
-          const leccionId = await upsertLeccion(client, unidadId, leccion);
+          const leccionId = await upsertLeccion(
+            client,
+            unidadId,
+            leccion
+          );
 
           for (const ejercicio of leccion.ejercicios) {
-            await upsertEjercicio(client, leccionId, ejercicio);
+            await upsertEjercicio(
+              client,
+              leccionId,
+              ejercicio
+            );
           }
         }
       }
     }
 
     await client.query("COMMIT");
-    console.log("Camino de aprendizaje sembrado correctamente.");
+
+    console.log(
+      "Camino de aprendizaje sembrado correctamente."
+    );
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("No se pudo sembrar el camino de aprendizaje:", error);
+
+    console.error(
+      "No se pudo sembrar el camino de aprendizaje:",
+      error
+    );
+
     process.exitCode = 1;
   } finally {
     client.release();
@@ -223,8 +310,11 @@ export async function seedLearningPath({ closePool = true } = {}) {
   }
 }
 
+
+
 const isExecutedDirectly =
-  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isExecutedDirectly) {
   seedLearningPath();

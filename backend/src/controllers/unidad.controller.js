@@ -12,7 +12,7 @@ async (req, res) => {
     await pool.query(
       `
       SELECT id
-      FROM modulos
+      FROM modulo
       WHERE slug = $1
       `,
       [moduloSlug]
@@ -38,7 +38,7 @@ async (req, res) => {
     await pool.query(
       `
       SELECT *
-      FROM unidades
+      FROM unidad
       WHERE modulo_id = $1
       ORDER BY orden
       `,
@@ -77,7 +77,7 @@ async (req, res) => {
     await pool.query(
       `
       SELECT *
-      FROM unidades
+      FROM unidad
       WHERE id = $1
       `,
       [unidadId]
@@ -87,7 +87,7 @@ async (req, res) => {
     await pool.query(
       `
       SELECT *
-      FROM lecciones
+      FROM leccion
       WHERE unidad_id = $1
       ORDER BY orden
       `,

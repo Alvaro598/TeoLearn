@@ -3,31 +3,43 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../application/context/AuthContext";
 import { usePreferences } from "../../application/context/PreferencesContext";
 import { obtenerDashboard } from "../../application/services/progress";
-import OnboardingTutorial from "../components/ui/OnboardingTutorial";
+import OnboardingTutorial, { TutorialContextual } from "../components/ui/OnboardingTutorial";
 
 const MODULO_CONFIG = {
   ritmo: {
     path: "/modulos/ritmo/unidades",
     icon: "⚡",
     color: "bg-ritmo",
+    titulo: "Ritmo",
   },
   melodia: {
     path: "/modulos/melodia/unidades",
     icon: "♪",
     color: "bg-melodia",
+    titulo: "Melodía",
   },
   armonia: {
     path: "/modulos/armonia/unidades",
     icon: "🎹",
     color: "bg-armonia",
+    titulo: "Armonía",
   },
 };
+
+const MODULOS_FALLBACK = Object.entries(MODULO_CONFIG).map(([slug, config], index) => ({
+  id: index + 1,
+  slug,
+  titulo: config.titulo,
+  total_lecciones: 0,
+  lecciones_completadas: 0,
+  porcentaje: 0,
+}));
 
 
 
 export default function Dashboard() {
   const { usuario, usuarioDB } = useAuth();
-  const { preferences, updatePreferences } = usePreferences();
+  const { preferences } = usePreferences();
 
   const nombre =
     preferences.displayName ||
@@ -39,26 +51,29 @@ export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
 
+  const usuarioId = usuarioDB?.id ?? (Number(localStorage.getItem("teolearn-user-id")) || null);
+  const modulosBD = dashboardData?.modulos?.length ? dashboardData.modulos : MODULOS_FALLBACK;
+
   useEffect(() => {
     const cargarDashboard = async () => {
-
-      if (!usuarioDB?.id) {
+      if (!usuarioId) {
         setLoadingDashboard(false);
         return;
       }
 
       try {
-        const data = await obtenerDashboard(usuarioDB.id);
+        const data = await obtenerDashboard(usuarioId);
         setDashboardData(data);
       } catch (err) {
         console.error("Error cargando dashboard:", err);
+        setDashboardData(null);
       } finally {
         setLoadingDashboard(false);
       }
     };
 
     cargarDashboard();
-  }, [usuarioDB?.id]);
+  }, [usuarioId]);
 
 
   const xpTotal = dashboardData?.xp ?? usuarioDB?.xp ?? 0;
@@ -66,7 +81,6 @@ export default function Dashboard() {
   const xpNivel = dashboardData?.xp_nivel ?? xpTotal % 200;
   const leccionesOk = dashboardData?.lecciones_completadas ?? 0;
   const leccionesTotal = dashboardData?.total_lecciones ?? 0;
-  const modulosBD = dashboardData?.modulos ?? [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -85,14 +99,14 @@ export default function Dashboard() {
             {nombre} 👋
           </h1>
           <p className="text-gray-500 mt-1">
-            Sigue construyendo tu identidad musical paso a paso.
+            Construye tu identidad musical paso a paso.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {/* Nivel */}
-          <div className="bg-white rounded-2xl p-5 shadow-card col-span-2 md:col-span-1">
+          <div id="stats-nivel" className="bg-white rounded-2xl p-5 shadow-card col-span-2 md:col-span-1">
             <p className="text-xs text-gray-400 font-semibold uppercase mb-1">
               NIVEL
             </p>
@@ -164,6 +178,7 @@ export default function Dashboard() {
 
         {/* Categorías con progreso real */}
         <p
+          id="categorias"
           className="text-xl font-bold mb-4"
           style={{ fontFamily: "Syne,sans-serif" }}
         >
@@ -184,6 +199,7 @@ export default function Dashboard() {
                 path: `/modulos/${modulo.slug}/unidades`,
                 icon: "🎵",
                 color: "bg-gray-700",
+                titulo: modulo.titulo || modulo.slug,
               };
 
               return (
@@ -198,7 +214,7 @@ export default function Dashboard() {
                     className="font-extrabold text-xl"
                     style={{ fontFamily: "Syne,sans-serif" }}
                   >
-                    {modulo.titulo}
+                    {config.titulo || modulo.titulo}
                   </h3>
                   <p className="text-sm opacity-70 mt-1">
                     {modulo.lecciones_completadas} / {modulo.total_lecciones}{" "}
@@ -218,6 +234,7 @@ export default function Dashboard() {
             })}
         </div>
       </div>
+      <TutorialContextual pagina="dashboard" />
     </div>
   );
 }

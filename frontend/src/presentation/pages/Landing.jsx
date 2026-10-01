@@ -4,14 +4,11 @@ import {
   Brain,
   Music,
   Piano,
-  Sparkles,
-  Headphones,
-  AudioLines
 } from "lucide-react";
 
 import Navbar from "../components/ui/Navbar";
 
-const TICKER = ["TONALIDAD", "INTERVALO", "OCTAVA", "RITMO", "MELODÍA", "ARMONÍA", "ACORDE", "ESCALA", "COMPÁS", "PULSO"];
+
 
 export default function Landing() {
   return (
@@ -104,7 +101,7 @@ export default function Landing() {
 
           <iframe
             className="w-full aspect-video"
-            src="https://www.youtube.com/embed/ABC123XYZ"
+            src="https://www.youtube.com/embed/pBXtNz3tvOY"
             title="Video introductorio TeoLearn"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -216,7 +213,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="text-center text-xs text-gray-400 pb-8">
-        TeoLearn · Teoría musical con IA · Metodología OOHDM
+       Copyright © 2026 TeoLearn. Todos los derechos reservados.
       </footer>
     </div>
   );

@@ -11,13 +11,14 @@
  */
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth } from "./AuthContext";
 import { startBackgroundMusic, stopBackgroundMusic } from "../services/sound";
 
 const defaultPreferences = {
   displayName: "",
   avatarUrl: "",
   theme: "clasico",
-  ttsEnabled: true,
+  ttsEnabled: false,
   ttsVoiceURI: "",
   soundEnabled: true,
   backgroundMusic: false,
@@ -44,9 +45,29 @@ function normalizeTrack(track) {
   return "ambient";
 }
 
-function loadPreferences() {
+function getPreferencesStorageKey(userKey = null) {
+  const resolvedUserKey =
+    userKey ||
+    localStorage.getItem("teolearn-firebase-uid") ||
+    localStorage.getItem("teolearn-user-email") ||
+    localStorage.getItem("teolearn-user-id") ||
+    "guest";
+
+  return `teolearn-preferences:${String(resolvedUserKey)}`;
+}
+
+function loadPreferences(userKey = null) {
   try {
-    const storedPreferences = JSON.parse(localStorage.getItem("teolearn-preferences") || "{}");
+    const storageKey = getPreferencesStorageKey(userKey);
+    const legacyRaw = localStorage.getItem("teolearn-preferences");
+    const raw = localStorage.getItem(storageKey) || legacyRaw || "{}";
+
+    if (!localStorage.getItem(storageKey) && legacyRaw) {
+      localStorage.setItem(storageKey, legacyRaw);
+      localStorage.removeItem("teolearn-preferences");
+    }
+
+    const storedPreferences = JSON.parse(raw);
 
     return {
       ...defaultPreferences,
@@ -60,10 +81,23 @@ function loadPreferences() {
 }
 
 export function PreferencesProvider({ children }) {
-  const [preferences, setPreferences] = useState(loadPreferences);
+  const { usuarioDB, firebaseUser } = useAuth();
+  const activeUserKey = firebaseUser?.uid
+    ? String(firebaseUser.uid)
+    : usuarioDB?.correo
+      ? String(usuarioDB.correo)
+      : usuarioDB?.id
+        ? String(usuarioDB.id)
+        : "guest";
+  const [preferences, setPreferences] = useState(() => loadPreferences(activeUserKey));
 
   useEffect(() => {
-    localStorage.setItem("teolearn-preferences", JSON.stringify(preferences));
+    setPreferences(loadPreferences(activeUserKey));
+  }, [activeUserKey]);
+
+  useEffect(() => {
+    const storageKey = getPreferencesStorageKey(activeUserKey);
+    localStorage.setItem(storageKey, JSON.stringify(preferences));
 
     document.documentElement.dataset.theme = preferences.theme;
 
@@ -74,12 +108,7 @@ export function PreferencesProvider({ children }) {
     }
     // Se re-ejecuta también cuando cambia backgroundMusicTrack para que el
     // cambio de pista sea inmediato mientras la música está activada.
-  }, [preferences.theme, preferences.backgroundMusic, preferences.backgroundMusicTrack]);
-
-  // Persistir el resto de cambios (nombre, avatar, tts...) sin reiniciar audio
-  useEffect(() => {
-    localStorage.setItem("teolearn-preferences", JSON.stringify(preferences));
-  }, [preferences]);
+  }, [activeUserKey, preferences.theme, preferences.backgroundMusic, preferences.backgroundMusicTrack]);
 
   const value = useMemo(
     () => ({

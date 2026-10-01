@@ -1,35 +1,18 @@
-/**
- * EntrenamientoAuditivoMelodico.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EntrenamientoAuditivoMelodico.jsx
- *
- * Ejercicio auditivo de MELODÍA. Soporta cinco sub-tipos vía contenido.subtipo:
- *
- *  1. "nota-individual"   → identificar el nombre de una nota suelta.
- *  2. "direccion-melodica" → escuchar dos o más notas y decir si sube, baja
- *                            o se mantiene igual.
- *  3. "grado-tonal"        → dictado de grados: se da la tónica (pedal) y
- *                            luego una nota; el alumno identifica el grado
- *                            (1-7) respecto a la tónica.
- *  4. "pedal-tonica"       → se sostiene la tónica de fondo y el alumno
- *                            debe "cantar"/seleccionar la tónica entre
- *                            varias opciones después de un fragmento.
- *  5. "resolucion-tension" → se escucha una nota de tensión (ej. 7° grado/
- *                            sensible) y el alumno elige hacia qué nota
- *                            resuelve naturalmente (ej. tónica).
- *
- * Contrato de contenido:
- * {
- *   subtipo: "...",
- *   tonica: "C4",             // para grado-tonal / pedal-tonica / resolucion-tension
- *   notas: ["C4","E4","G4"],  // secuencia a reproducir (direccion-melodica)
- *   nota: "D4",                // nota objetivo (nota-individual / grado-tonal)
- *   opciones: [...]
- * }
- */
-
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Play, Pin } from "lucide-react";
 import { playNote, playSequence, playInterval } from "../../../../application/services/sound";
+
+function shuffleOptions(options = []) {
+  if (!Array.isArray(options) || options.length < 2) return options;
+
+  const next = [...options];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
 
 export default function EntrenamientoAuditivoMelodico({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
@@ -53,7 +36,10 @@ export default function EntrenamientoAuditivoMelodico({ exercise, onEvaluate, di
 // ── 1. Nota individual ───────────────────────────────────────────────────────
 function NotaIndividual({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
-  const opciones  = contenido.opciones || ["C4", "D4", "E4", "G4"];
+  const opciones  = useMemo(
+    () => shuffleOptions(contenido.opciones || ["C4", "D4", "E4", "G4"]),
+    [exercise.id, contenido.opciones]
+  );
   const objetivo   = exercise.respuesta_correcta?.respuesta || contenido.nota;
 
   const responder = (opcion) => {
@@ -92,7 +78,10 @@ function NotaIndividual({ exercise, onEvaluate, disabled }) {
 function DireccionMelodica({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const notas      = contenido.notas || ["C4", "G4"];
-  const opciones    = contenido.opciones || ["Sube", "Baja", "Se mantiene igual"];
+  const opciones    = useMemo(
+    () => shuffleOptions(contenido.opciones || ["Sube", "Baja", "Se mantiene igual"]),
+    [exercise.id, contenido.opciones]
+  );
   const objetivo     = exercise.respuesta_correcta?.respuesta;
 
   const reproducir = () => playSequence(notas, 0.5);
@@ -134,7 +123,10 @@ function GradoTonal({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const tonica     = contenido.tonica || "C4";
   const notaObjetivo = exercise.respuesta_correcta?.nota || contenido.nota;
-  const opciones      = contenido.opciones || ["1", "2", "3", "4", "5", "6", "7"];
+  const opciones      = useMemo(
+    () => shuffleOptions(contenido.opciones || ["1", "2", "3", "4", "5", "6", "7"]),
+    [exercise.id, contenido.opciones]
+  );
   const gradoCorrecto  = exercise.respuesta_correcta?.respuesta;
 
   const reproducirTonica = () => playNote(tonica, 0.9);
@@ -187,7 +179,10 @@ function GradoTonal({ exercise, onEvaluate, disabled }) {
 function PedalTonica({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const fragmento  = contenido.notas || ["C4", "E4", "G4", "E4", "D4"];
-  const opciones    = contenido.opciones || ["C4", "D4", "E4", "F4"];
+  const opciones    = useMemo(
+    () => shuffleOptions(contenido.opciones || ["C4", "D4", "E4", "F4"]),
+    [exercise.id, contenido.opciones]
+  );
   const tonicaCorrecta = exercise.respuesta_correcta?.respuesta;
 
   const reproducir = () => playSequence(fragmento, 0.35);
@@ -229,7 +224,10 @@ function PedalTonica({ exercise, onEvaluate, disabled }) {
 function ResolucionTension({ exercise, onEvaluate, disabled }) {
   const contenido   = exercise.contenido || {};
   const notaTension   = contenido.nota || "B4";
-  const opciones        = contenido.opciones || ["C5", "A4", "G4", "B4"];
+  const opciones        = useMemo(
+    () => shuffleOptions(contenido.opciones || ["C5", "A4", "G4", "B4"]),
+    [exercise.id, contenido.opciones]
+  );
   const resolucionCorrecta = exercise.respuesta_correcta?.respuesta;
 
   const reproducirTension = () => playNote(notaTension, 0.8);

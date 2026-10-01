@@ -11,31 +11,79 @@
  */
 
 import { apiUrl } from "../config/apiBase";
+import { authFetch } from "./api";
 
-const STORAGE_KEY = "teolearn-progress";
+const STORAGE_KEY_PREFIX = "teolearn-progress";
+const LEGACY_STORAGE_KEY = "teolearn-progress";
 const PROGRESO_BASE = apiUrl("/progreso");
 
 export const REQUIRED_QUIZ_MODULES = ["ritmo", "melodia", "armonia"];
+const FINAL_QUIZ_RESULT_PREFIX = "teolearn-final-quiz";
+
+const EMPTY_PROGRESS = { lessons: {}, units: {}, modules: {} };
 
 // ─── helpers de caché local ────────────────────────────────────────────────
 
+function getProgressStorageKey() {
+  const userId = localStorage.getItem("teolearn-user-id") || localStorage.getItem("teolearn-firebase-uid") || "guest";
+  return `${STORAGE_KEY_PREFIX}:${String(userId)}`;
+}
+
+function getFinalQuizStorageKey() {
+  const userId = localStorage.getItem("teolearn-user-id") || localStorage.getItem("teolearn-firebase-uid") || "guest";
+  return `${FINAL_QUIZ_RESULT_PREFIX}:${String(userId)}`;
+}
+
+export function getQuizFinalResult() {
+  try {
+    const raw = localStorage.getItem(getFinalQuizStorageKey());
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isQuizFinalCompleted() {
+  return Boolean(getQuizFinalResult());
+}
+
+export function markQuizFinalCompleted(result) {
+  localStorage.setItem(getFinalQuizStorageKey(), JSON.stringify(result));
+}
+
+function parseProgress(raw) {
+  const parsed = JSON.parse(raw);
+  return {
+    lessons: parsed.lessons || {},
+    units: parsed.units || {},
+    modules: parsed.modules || {},
+  };
+}
+
 function readProgress() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { lessons: {}, units: {}, modules: {} };
-    const parsed = JSON.parse(raw);
-    return {
-      lessons: parsed.lessons || {},
-      units: parsed.units || {},
-      modules: parsed.modules || {},
-    };
+    const storageKey = getProgressStorageKey();
+    const raw = localStorage.getItem(storageKey);
+
+    if (!raw) {
+      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacyRaw) {
+        localStorage.setItem(storageKey, legacyRaw);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        return parseProgress(legacyRaw);
+      }
+
+      return EMPTY_PROGRESS;
+    }
+
+    return parseProgress(raw);
   } catch {
-    return { lessons: {}, units: {}, modules: {} };
+    return EMPTY_PROGRESS;
   }
 }
 
 function saveProgress(progress) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+  localStorage.setItem(getProgressStorageKey(), JSON.stringify(progress));
 }
 
 function getLessonProgress(progress, lessonId) {
@@ -215,7 +263,7 @@ export async function guardarIntento({
   correcta,
   puntuacion,
 }) {
-  const response = await fetch(`${PROGRESO_BASE}/intento`, {
+  const response = await authFetch(`${PROGRESO_BASE}/intento`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -248,7 +296,7 @@ export async function guardarLeccionCompletada(
   puntuacion = 0,
   moduleSlug = ""
 ) {
-  const response = await fetch(`${PROGRESO_BASE}/completar`, {
+  const response = await authFetch(`${PROGRESO_BASE}/completar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -274,7 +322,7 @@ export async function guardarLeccionCompletada(
  * @param {number} usuarioId
  */
 export async function obtenerProgresoUsuario(usuarioId) {
-  const response = await fetch(`${PROGRESO_BASE}/${usuarioId}`);
+  const response = await authFetch(`${PROGRESO_BASE}/${usuarioId}`);
   if (!response.ok) throw new Error("Error obteniendo progreso");
   return response.json();
 }
@@ -286,43 +334,37 @@ export async function obtenerProgresoUsuario(usuarioId) {
  * @returns {{ xp, nivel, xp_nivel, lecciones_completadas, total_lecciones, modulos }}
  */
 export async function obtenerDashboard(usuarioId) {
-  const response = await fetch(`${PROGRESO_BASE}/dashboard/${usuarioId}`);
+  const response = await authFetch(`${PROGRESO_BASE}/dashboard/${usuarioId}`);
   if (!response.ok) throw new Error("Error obteniendo dashboard");
   return response.json();
 }
 
-// ─── Quiz Final (mantiene lógica previa) ───────────────────────────────────
+// ─── Quiz Final (usa el dashboard del servidor para desbloquear el acceso) ───────────────────────────────────
 
 export async function getQuizFinalProgress() {
-  const [modules, completedLessonIds] = await Promise.all([
-    fetchJson("/modulos"),
-    Promise.resolve(new Set(getCompletedLessonIds())),
-  ]);
+  const userId = localStorage.getItem("teolearn-user-id");
 
-  const moduleStates = await Promise.all(
-    modules.map(async (module) => {
-      const units = await fetchJson(`/unidades/modulo/${module.slug}`);
+  const modules = await fetchJson("/modulos");
+  const dashboard = userId
+    ? await obtenerDashboard(Number(userId)).catch(() => null)
+    : null;
 
-      const lessonGroups = await Promise.all(
-        units.map(async (unit) => {
-          const unitDetail = await fetchJson(`/unidades/${unit.id}/lecciones`);
-          return unitDetail.lecciones || [];
-        })
-      );
-
-      const lessons = lessonGroups.flat();
-      const completedLessons = lessons.filter((lesson) =>
-        completedLessonIds.has(String(lesson.id))
-      ).length;
-
-      return {
-        ...module,
-        totalLessons: lessons.length,
-        completedLessons,
-        unlocked: lessons.length > 0 && completedLessons === lessons.length,
-      };
-    })
+  const moduleProgressBySlug = new Map(
+    (dashboard?.modulos || []).map((module) => [module.slug, module])
   );
+
+  const moduleStates = modules.map((module) => {
+    const progress = moduleProgressBySlug.get(module.slug);
+    const totalLessons = Number(progress?.total_lecciones || 0);
+    const completedLessons = Number(progress?.lecciones_completadas || 0);
+
+    return {
+      ...module,
+      totalLessons,
+      completedLessons,
+      unlocked: totalLessons > 0 && completedLessons === totalLessons,
+    };
+  });
 
   const requiredModules = REQUIRED_QUIZ_MODULES.map(
     (moduleSlug) =>
@@ -337,6 +379,7 @@ export async function getQuizFinalProgress() {
 
   return {
     unlocked: requiredModules.every((m) => m.unlocked),
+    completed: isQuizFinalCompleted(),
     modules: moduleStates,
     requiredModules,
   };

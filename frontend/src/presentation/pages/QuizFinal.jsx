@@ -1,132 +1,221 @@
-import { Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { playError, playSuccess } from "../../application/services/sound";
-import { getQuizFinalProgress } from "../../application/services/progress";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, CheckCircle, XCircle, Lock } from "lucide-react";
+import { useAuth } from "../../application/context/AuthContext";
+import { apiUrl } from "../../application/config/apiBase";
+import {
+  getQuizFinalProgress,
+  isQuizFinalCompleted,
+  markQuizFinalCompleted,
+} from "../../application/services/progress";
+import { playSuccess, playError } from "../../application/services/sound";
 
-const questions = [
-  ["Ritmo", "Que es el pulso musical?", ["Un tiempo constante", "Una escala", "Un acorde", "Un timbre"], "Un tiempo constante"],
-  ["Ritmo", "Cuantos tiempos tiene normalmente un compas de 4/4?", ["4", "3", "2", "6"], "4"],
-  ["Ritmo", "Si la negra vale 1 pulso, la blanca vale...", ["2 pulsos", "1/2 pulso", "4 pulsos", "0 pulsos"], "2 pulsos"],
-  ["Ritmo", "Que representa un silencio?", ["Tiempo sin sonido", "Nota aguda", "Acorde menor", "Timbre"], "Tiempo sin sonido"],
-  ["Melodia", "C-D-E-F-G-A-B corresponde a...", ["Do-Re-Mi-Fa-Sol-La-Si", "La-Si-Do-Re-Mi-Fa-Sol", "I-IV-V", "Figuras"], "Do-Re-Mi-Fa-Sol-La-Si"],
-  ["Melodia", "Un intervalo es...", ["Distancia entre dos notas", "Volumen", "Velocidad", "Ruido"], "Distancia entre dos notas"],
-  ["Melodia", "La escala de Do mayor usa...", ["C-D-E-F-G-A-B-C", "C-E-G", "C-F-G", "A-C-E"], "C-D-E-F-G-A-B-C"],
-  ["Melodia", "En el pentagrama, mas arriba indica sonido...", ["Mas agudo", "Mas grave", "Mas lento", "Mas suave"], "Mas agudo"],
-  ["Armonia", "Una triada basica tiene...", ["Tres notas", "Siete notas", "Un pulso", "Una linea"], "Tres notas"],
-  ["Armonia", "C-E-G forma...", ["Do mayor", "La menor", "Sol mayor", "Un silencio"], "Do mayor"],
-  ["Armonia", "La funcion dominante suele generar...", ["Tension", "Reposo total", "Silencio", "Duracion"], "Tension"],
-  ["Armonia", "Una progresion armonica es...", ["Secuencia de acordes", "Una nota aislada", "Una figura ritmica", "Un ruido"], "Secuencia de acordes"],
-].map(([module, question, options, answer], index) => ({
-  id: index + 1,
-  module,
-  question,
-  options,
-  answer,
-}));
+function shuffleOptions(options = []) {
+  if (!Array.isArray(options) || options.length < 2) return options;
 
-export default function QuizFinal() {
-  const [answers, setAnswers] = useState({});
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [quizUnlocked, setQuizUnlocked] = useState(false);
-  const [progress, setProgress] = useState(null);
+  const next = [...options];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
 
+  return next;
+}
+
+// ─── Banco de preguntas por módulo ────────────────────────────────────────────
+const PREGUNTAS_POR_MODULO = {
+  ritmo: [
+    { id: 1, pregunta: "¿Qué es el pulso musical?", opciones: ["Un tiempo constante e igual", "Una nota aguda", "Un acorde mayor", "Un cambio de volumen"], respuesta: "Un tiempo constante e igual" },
+    { id: 2, pregunta: "En un compás de 4/4, ¿cuántos tiempos hay por compás?", opciones: ["4", "3", "2", "6"], respuesta: "4" },
+    { id: 3, pregunta: "¿Cuánto vale una blanca en tiempos?", opciones: ["2 tiempos", "1 tiempo", "4 tiempos", "0.5 tiempos"], respuesta: "2 tiempos" },
+    { id: 4, pregunta: "¿Cuántas corcheas equivalen a una negra?", opciones: ["2", "4", "1", "8"], respuesta: "2" },
+    { id: 5, pregunta: "¿Qué indica el numerador de la indicación de compás?", opciones: ["Cantidad de tiempos por compás", "Duración de la figura base", "El tempo en BPM", "La tonalidad"], respuesta: "Cantidad de tiempos por compás" },
+    { id: 6, pregunta: "Un compás de 3/4 tiene sensación de:", opciones: ["Vals", "Marcha", "Polka", "Blues"], respuesta: "Vals" },
+    { id: 7, pregunta: "¿Qué es una síncopa?", opciones: ["Acento en tiempo débil que anticipa el siguiente", "Una figura de 4 tiempos", "Un silencio de redonda", "El primer tiempo del compás"], respuesta: "Acento en tiempo débil que anticipa el siguiente" },
+    { id: 8, pregunta: "¿Qué ventaja tiene el AudioContext scheduling sobre setInterval para el metrónomo?", opciones: ["Elimina el drift acumulativo", "Usa menos CPU", "No necesita navegador", "Produce sonidos más fuertes"], respuesta: "Elimina el drift acumulativo" },
+  ],
+  melodia: [
+    { id: 1, pregunta: "¿Cuál es el equivalente anglosajón de 'Sol'?", opciones: ["G", "A", "F", "E"], respuesta: "G" },
+    { id: 2, pregunta: "¿Cuál es la fórmula de tonos y semitonos de la escala mayor?", opciones: ["T-T-S-T-T-T-S", "T-S-T-T-S-T-T", "S-T-T-T-S-T-T", "T-T-T-S-T-T-S"], respuesta: "T-T-S-T-T-T-S" },
+    { id: 3, pregunta: "¿Qué intervalo hay entre C y G?", opciones: ["Quinta justa", "Tercera mayor", "Cuarta justa", "Sexta menor"], respuesta: "Quinta justa" },
+    { id: 4, pregunta: "Las notas de las líneas del pentagrama en clave de Sol son:", opciones: ["E-G-B-D-F", "C-D-E-F-G", "A-B-C-D-E", "F-A-C-E-G"], respuesta: "E-G-B-D-F" },
+    { id: 5, pregunta: "¿Cuál es la relativa menor de C mayor?", opciones: ["A menor", "E menor", "D menor", "G menor"], respuesta: "A menor" },
+    { id: 6, pregunta: "C# y Db son enarmónicas porque:", opciones: ["Suenan igual pero se escriben diferente", "Son la misma nota escrita igual", "Tienen distinta altura", "Son de octavas distintas"], respuesta: "Suenan igual pero se escriben diferente" },
+    { id: 7, pregunta: "¿Qué grado de la escala mayor se llama 'Dominante'?", opciones: ["5to", "3er", "7mo", "1ro"], respuesta: "5to" },
+    { id: 8, pregunta: "Una frase melódica que termina en la tónica genera sensación de:", opciones: ["Reposo y conclusión", "Tensión sin resolver", "Inicio de sección nueva", "Cambio de tonalidad"], respuesta: "Reposo y conclusión" },
+  ],
+  armonia: [
+    { id: 1, pregunta: "¿Qué notas forman la tríada de C mayor?", opciones: ["C-E-G", "C-D-E", "C-F-A", "C-G-B"], respuesta: "C-E-G" },
+    { id: 2, pregunta: "¿Cuántos semitonos hay entre la tónica y la 3ª de un acorde menor?", opciones: ["3", "4", "5", "2"], respuesta: "3" },
+    { id: 3, pregunta: "¿Qué función armónica da sensación de máxima tensión?", opciones: ["Dominante (V)", "Tónica (I)", "Subdominante (IV)", "Mediante (III)"], respuesta: "Dominante (V)" },
+    { id: 4, pregunta: "¿Cómo se llama la cadencia V → I?", opciones: ["Auténtica", "Plagal", "Semicadencia", "Rota"], respuesta: "Auténtica" },
+    { id: 5, pregunta: "¿Qué acorde es el 'vi' en C mayor?", opciones: ["A menor", "F mayor", "G mayor", "D menor"], respuesta: "A menor" },
+    { id: 6, pregunta: "La progresión I-V-vi-IV es característica de:", opciones: ["Pop moderno", "Jazz bebop", "Flamenco", "Blues de 12 compases"], respuesta: "Pop moderno" },
+    { id: 7, pregunta: "En la primera inversión de C mayor, ¿qué nota está en el bajo?", opciones: ["E", "C", "G", "B"], respuesta: "E" },
+    { id: 8, pregunta: "El acorde VII° (disminuido) tiende a resolver hacia:", opciones: ["El acorde I (tónica)", "El acorde IV", "El acorde VI", "El acorde II"], respuesta: "El acorde I (tónica)" },
+  ],
+};
+
+const NOMBRE_MODULO = { ritmo: "Ritmo", melodia: "Melodía", armonia: "Armonía" };
+
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+export default function QuizModulo() {
+  const { moduloSlug }  = useParams();
+  const { usuarioDB }   = useAuth();
+  const navigate = useNavigate();
+  const quizFinalCompletado = !moduloSlug && isQuizFinalCompleted();
+
+  const preguntas = useMemo(() => {
+    if (moduloSlug) {
+      return PREGUNTAS_POR_MODULO[moduloSlug] || [];
+    }
+
+    return Object.entries(PREGUNTAS_POR_MODULO).flatMap(([slug, moduloPreguntas]) =>
+      moduloPreguntas.map((pregunta) => ({
+        ...pregunta,
+        id: `${slug}-${pregunta.id}`,
+        moduloSlug: slug,
+      }))
+    );
+  }, [moduloSlug]);
+
+  const nombreModulo = moduloSlug ? NOMBRE_MODULO[moduloSlug] : "Evaluación final";
+
+  const [respuestas, setResponder]       = useState({});
+  const [acceso, setAcceso]              = useState(null); // null=cargando, true/false
+  const [porcentaje, setPorcentaje]      = useState(0);
+
+  // Verificar acceso del módulo o del quiz final según la ruta
   useEffect(() => {
-    let active = true;
+    if (!usuarioDB?.id || quizFinalCompletado) {
+      return;
+    }
 
+    if (moduloSlug) {
+      fetch(apiUrl(`/progress/modulo/${usuarioDB.id}/${moduloSlug}`))
+        .then((r) => r.json())
+        .then((data) => {
+          setPorcentaje(data.porcentaje || 0);
+          setAcceso(data.completado === true);
+        })
+        .catch(() => setAcceso(false));
+      return;
+    }
+
+    // Ruta /quiz-final: confirmar que el acceso del usuario al examen final
+    // esté desbloqueado con el mismo cálculo del navbar.
     getQuizFinalProgress()
       .then((state) => {
-        if (!active) {
-          return;
-        }
-
-        setQuizUnlocked(state.unlocked);
-        setProgress(state);
-        setCheckingAccess(false);
+        setAcceso(Boolean(state.unlocked));
+        setPorcentaje(state.requiredModules.length
+          ? Math.round(
+              (state.requiredModules.filter((m) => m.unlocked).length /
+                state.requiredModules.length) *
+                100
+            )
+          : 0);
       })
       .catch(() => {
-        if (!active) {
-          return;
-        }
-
-        setQuizUnlocked(false);
-        setProgress(null);
-        setCheckingAccess(false);
+        setAcceso(false);
+        setPorcentaje(0);
       });
+  }, [usuarioDB?.id, moduloSlug, quizFinalCompletado]);
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  const aciertos = useMemo(
+    () => preguntas.filter((p) => respuestas[p.id] === p.respuesta).length,
+    [preguntas, respuestas]
+  );
 
-  const score = useMemo(() => {
-    return questions.reduce((total, question) => {
-      return total + (answers[question.id] === question.answer ? 1 : 0);
-    }, 0);
-  }, [answers]);
+  const opcionesAleatoriasPorPregunta = useMemo(() => {
+    const porPregunta = {};
+    preguntas.forEach((pregunta) => {
+      porPregunta[pregunta.id] = shuffleOptions(pregunta.opciones ?? []);
+    });
+    return porPregunta;
+  }, [preguntas]);
 
-  const answerQuestion = (question, option) => {
-    setAnswers((current) => ({ ...current, [question.id]: option }));
-    option === question.answer ? playSuccess() : playError();
+  const responder = (pregunta, opcion) => {
+    if (respuestas[pregunta.id]) return; // no revertir
+    const siguientesRespuestas = { ...respuestas, [pregunta.id]: opcion };
+    setResponder(siguientesRespuestas);
+    opcion === pregunta.respuesta ? playSuccess() : playError();
+
+    if (preguntas.every((item) => siguientesRespuestas[item.id])) {
+      sessionStorage.setItem(
+        "teolearn-quiz-result",
+        JSON.stringify({
+          moduloSlug: moduloSlug || "Evaluación final",
+          preguntas,
+          respuestas: siguientesRespuestas,
+          nombreUsuario: usuarioDB?.nombre,
+        })
+      );
+      if (!moduloSlug) {
+        markQuizFinalCompleted({
+          moduloSlug: "Evaluación final",
+          preguntas,
+          respuestas: siguientesRespuestas,
+          nombreUsuario: usuarioDB?.nombre,
+        });
+      }
+      navigate("/resultado-quiz");
+    }
   };
 
-  const downloadResults = () => {
-    const rows = [
-      ["id", "modulo", "pregunta", "respuesta_usuario", "respuesta_correcta", "correcta"],
-      ...questions.map((question) => [
-        question.id,
-        question.module,
-        question.question,
-        answers[question.id] || "",
-        question.answer,
-        answers[question.id] === question.answer ? "si" : "no",
-      ]),
-      ["total", "", "", score, questions.length, `${Math.round((score / questions.length) * 100)}%`],
-    ];
+  const todasRespondidas = preguntas.every((p) => respuestas[p.id]);
 
-    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "teolearn-quiz-final-resultados.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  if (checkingAccess) {
+  if (quizFinalCompletado) {
     return (
-      <div className="min-h-screen bg-gray-50 px-6 py-10 flex items-center justify-center">
-        <p className="text-gray-600 font-semibold">Verificando acceso al quiz final...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md w-full rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <p className="mb-2 text-sm font-bold uppercase tracking-widest text-brand-pink">
+            Evaluación final completada
+          </p>
+          <h1 className="mb-3 text-2xl font-extrabold text-gray-950">
+            Ya realizaste este quiz
+          </h1>
+          <p className="mb-6 text-gray-600">
+            No puedes responderlo nuevamente, pero puedes consultar y descargar tus resultados.
+          </p>
+          <Link
+            to="/resultado-quiz"
+            className="inline-flex rounded-xl bg-brand-blue px-5 py-3 font-extrabold text-white"
+          >
+            Ver resultados
+          </Link>
+        </div>
       </div>
     );
   }
 
-  if (!quizUnlocked) {
+  if (acceso === null) {
     return (
-      <div className="min-h-screen bg-gray-50 px-6 py-10 flex items-center justify-center">
-        <div className="max-w-xl w-full bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm">
-          <p className="text-sm font-bold uppercase tracking-widest text-brand-pink mb-3">
-            Evaluacion final bloqueada
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500 font-semibold">Verificando acceso...</p>
+      </div>
+    );
+  }
+
+  if (!acceso) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm">
+          <Lock size={40} className="mx-auto text-gray-400 mb-4" />
+          <p className="text-sm font-bold uppercase tracking-widest text-brand-pink mb-2">
+            Quiz bloqueado
           </p>
-          <h1 className="text-3xl font-extrabold text-gray-950 mb-3">
-            Completa todos los módulos para desbloquearla
+          <h1 className="text-2xl font-extrabold text-gray-950 mb-3">
+            Completa el módulo para desbloquear el quiz
           </h1>
           <p className="text-gray-600 mb-6">
-            Termina Ritmo, Melodía y Armonía para habilitar el quiz final.
+            Progreso actual: <strong>{porcentaje}%</strong>. Necesitas 100% para acceder.
           </p>
-
-          {progress?.requiredModules?.length ? (
-            <p className="text-sm text-gray-500 mb-6">
-              Módulos pendientes: {progress.requiredModules.filter((module) => !module.unlocked).map((module) => module.titulo).join(", ")}
-            </p>
-          ) : null}
-
           <Link
-            to="/modulos"
-            className="inline-flex items-center justify-center bg-brand-blue text-white px-5 py-3 rounded-xl font-extrabold"
+            to={`/modulos/${moduloSlug}/unidades`}
+            className="inline-flex items-center gap-2 bg-brand-blue text-white px-5 py-3 rounded-xl font-extrabold"
           >
-            Volver a módulos
+            Continuar lecciones
           </Link>
         </div>
       </div>
@@ -135,74 +224,109 @@ export default function QuizFinal() {
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-        <p className="text-sm font-bold uppercase tracking-widest text-brand-pink mb-3">
-          Evaluacion final
+      <div className="max-w-4xl mx-auto">
+        <Link
+          to="/modulos"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 font-bold mb-6"
+        >
+          <ArrowLeft size={16} />
+          Volver a módulos
+        </Link>
+
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-pink mb-2">
+          Evaluación · {nombreModulo}
         </p>
 
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-950 mb-3">
-              Quiz final descargable
+            <h1 className="text-4xl font-extrabold text-gray-950 mb-2">
+              Quiz de {nombreModulo}
             </h1>
-            <p className="text-gray-600 text-lg max-w-3xl">
-              Cubre ritmo, melodia y armonia. El archivo CSV sirve para analizar utilidad, aciertos y puntos de mejora durante pruebas de usabilidad.
+            <p className="text-gray-500">
+              {preguntas.length} preguntas · Descargable como PDF para pruebas de usabilidad.
             </p>
           </div>
 
-          <button
-            onClick={downloadResults}
-            className="inline-flex items-center justify-center gap-2 bg-brand-blue text-white px-5 py-3 rounded-xl font-extrabold"
-          >
-            <Download size={18} />
-            Descargar resultados
-          </button>
+          <p className="text-sm font-semibold text-gray-500">
+            {todasRespondidas ? "Preparando tus resultados..." : "Responde todas las preguntas"}
+          </p>
         </div>
 
+        {/* Barra de puntaje */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
-          <p className="font-extrabold text-xl">
-            Puntaje: {score} / {questions.length}
-          </p>
-          <div className="w-full bg-gray-100 h-3 rounded-full mt-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-extrabold text-lg">
+              Puntaje: {aciertos} / {preguntas.length}
+            </p>
+            <p className="text-sm text-gray-500">
+              {Math.round((aciertos / preguntas.length) * 100)}%
+            </p>
+          </div>
+          <div className="w-full bg-gray-100 h-3 rounded-full">
             <div
-              className="bg-brand-pink h-3 rounded-full"
-              style={{ width: `${(score / questions.length) * 100}%` }}
+              className="h-3 rounded-full bg-brand-pink transition-all"
+              style={{ width: `${(aciertos / preguntas.length) * 100}%` }}
             />
           </div>
+          {!todasRespondidas && (
+            <p className="text-xs text-gray-400 mt-2">
+              Responde todas las preguntas para habilitar la descarga del PDF.
+            </p>
+          )}
         </div>
 
+        {/* Preguntas */}
         <div className="space-y-5">
-          {questions.map((question) => (
-            <article key={question.id} className="bg-white border border-gray-200 rounded-xl p-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-brand-pink mb-2">
-                {question.module}
-              </p>
-              <h2 className="text-xl font-extrabold mb-4">{question.question}</h2>
+          {preguntas.map((pregunta) => {
+            const opcionesAleatorias = opcionesAleatoriasPorPregunta[pregunta.id] ?? [];
 
-              <div className="grid sm:grid-cols-2 gap-3">
-                {question.options.map((option) => {
-                  const selected = answers[question.id] === option;
-                  const correct = option === question.answer;
+            return (
+              <article
+                key={pregunta.id}
+                className="bg-white border border-gray-200 rounded-xl p-5"
+              >
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-pink mb-2">
+                  Pregunta {pregunta.id}
+                </p>
+                <h2 className="text-lg font-extrabold mb-4">{pregunta.pregunta}</h2>
 
-                  return (
-                    <button
-                      key={option}
-                      onClick={() => answerQuestion(question, option)}
-                      className={`p-4 rounded-xl text-left font-bold ${
-                        selected
-                          ? correct
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                          : "bg-gray-100 hover:bg-gray-200"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-            </article>
-          ))}
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {opcionesAleatorias.map((opcion) => {
+                    const seleccionada = respuestas[pregunta.id] === opcion;
+                    const correcta     = opcion === pregunta.respuesta;
+                    const respondida   = !!respuestas[pregunta.id];
+
+                    return (
+                      <button
+                        key={opcion}
+                        onClick={() => responder(pregunta, opcion)}
+                        disabled={respondida}
+                        className={`p-4 rounded-xl text-left font-bold flex items-center gap-2 transition ${
+                          respondida
+                            ? seleccionada
+                              ? correcta
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                              : correcta
+                              ? "bg-green-50 text-green-700 border border-green-300"
+                              : "bg-gray-100 text-gray-500 opacity-60"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-900"
+                        }`}
+                      >
+                        {respondida && seleccionada && correcta && (
+                          <CheckCircle size={16} className="text-green-600 shrink-0" />
+                        )}
+                        {respondida && seleccionada && !correcta && (
+                          <XCircle size={16} className="text-red-500 shrink-0" />
+                        )}
+                        {opcion}
+                      </button>
+                    );
+                  })}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </div>

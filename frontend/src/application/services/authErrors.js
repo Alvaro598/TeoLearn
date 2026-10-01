@@ -1,7 +1,7 @@
 const AUTH_MESSAGES = {
   "auth/email-already-in-use": "Ese correo ya tiene una cuenta registrada.",
   "auth/invalid-email": "El correo no tiene un formato válido.",
-  "auth/weak-password": "La contraseña debe tener al menos 6 caracteres.",
+  "auth/weak-password": "La contraseña debe tener mínimo 10 caracteres, con letras y números.",
   "auth/user-not-found": "No encontramos una cuenta con ese correo.",
   "auth/wrong-password": "La contraseña no coincide.",
   "auth/popup-closed-by-user": "Cerraste la ventana de Google antes de terminar.",

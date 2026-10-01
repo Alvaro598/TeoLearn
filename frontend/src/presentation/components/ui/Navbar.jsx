@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useEffect, useState } from "react";
 
@@ -9,6 +9,7 @@ import UserAvatar from "./UserAvatar";
 export default function Navbar() {
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const path = location.pathname;
 
@@ -18,7 +19,6 @@ export default function Navbar() {
 
   const {
     isAuthenticated,
-    logout,
     loading,
   } = useAuth();
 
@@ -31,7 +31,6 @@ export default function Navbar() {
     let active = true;
 
     if (!isAuthenticated) {
-      setQuizUnlocked(false);
       return () => {};
     }
 
@@ -158,7 +157,7 @@ export default function Navbar() {
               Tutor IA
             </Link>
 
-            {quizUnlocked && (
+            {isAuthenticated && quizUnlocked && (
               <Link
                 to="/quiz-final"
                 onClick={() =>
@@ -166,19 +165,19 @@ export default function Navbar() {
                 }
                 className={
                   path === "/quiz-final"
-                    ? "text-gray-800 font-bold"
-                    : ""
+                    ? "text-gray-800 font-bold border-b-2 border-brand-pink pb-1"
+                    : "text-gray-700 font-semibold hover:text-gray-950"
                 }
               >
-                Quiz final
+                🎯 Evaluación final
               </Link>
             )}
 
 
             <button
               onClick={() => {
-                logout();
                 setIsMenuOpen(false);
+                navigate("/cerrar-sesion");
               }}
               className="text-red-500"
             >

@@ -1,28 +1,3 @@
-/**
- * EjercicioMidiRitmico.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EjercicioMidiRitmico.jsx
- *
- * Editor de patrones rítmicos: el usuario coloca golpes (kick/snare/hi-hat,
- * representados como notas fijas) en una grilla de pasos y selecciona la
- * FIGURA de cada paso. Pensado para ejercicios como:
- *   "Kick en tiempo 1 y 3, Snare en tiempo 2 y 4"
- *
- * Contrato del ejercicio esperado en la BD (contenido):
- * {
- *   compas: 4,                          // pasos totales (4, 8, 16...)
- *   figuraBase: "negra",                // duración de cada paso/columna
- *   instrumentos: [
- *     { id: "kick",  nota: "C3", label: "Bombo (Kick)" },
- *     { id: "snare", nota: "D3", label: "Caja (Snare)" },
- *     { id: "hihat", nota: "F#3", label: "Hi-Hat" }
- *   ],
- *   tiemposFuertes: [1, 3],              // para resaltar visualmente
- *   instrucciones: "Coloca el kick en 1 y 3, snare en 2 y 4."
- * }
- * respuesta_correcta: {
- *   patron: { kick: [1,3], snare: [2,4], hihat: [] }
- * }
- */
 
 import { useState } from "react";
 import { Play, Eraser, Circle } from "lucide-react";

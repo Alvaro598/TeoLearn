@@ -4,6 +4,8 @@ import {
   PlayCircle,
 } from "lucide-react";
 
+const FALLBACK_LESSON_IMAGE = "https://images.unsplash.com/photo-1511379938547-c1f69419868d";
+
 export default function LeccionCard({
   leccion,
   unidadId,
@@ -13,10 +15,6 @@ export default function LeccionCard({
   const navigate = useNavigate();
 
   const handleClick = () => {
-    if (completada) {
-      return;
-    }
-
     navigate(
       `/unidad/${unidadId}/leccion/${leccion.id}`
     );
@@ -26,14 +24,19 @@ export default function LeccionCard({
 
     <div
       onClick={handleClick}
-      className={`rounded-xl overflow-hidden shadow-md transition transform bg-white ${completada ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:-translate-y-2"}`}
+      className={`rounded-xl overflow-hidden shadow-md transition transform bg-white cursor-pointer hover:-translate-y-2 ${completada ? "ring-2 ring-green-200" : ""}`}
     >
 
       {/* IMAGEN */}
       <img
-        src="https://images.unsplash.com/photo-1511379938547-c1f69419868d"
+        src={leccion.imagen_url || FALLBACK_LESSON_IMAGE}
         alt={leccion.titulo}
         className="h-40 w-full object-cover"
+        onError={(event) => {
+          if (event.currentTarget.src !== FALLBACK_LESSON_IMAGE) {
+            event.currentTarget.src = FALLBACK_LESSON_IMAGE;
+          }
+        }}
       />
 
       {/* CONTENIDO */}
@@ -45,7 +48,7 @@ export default function LeccionCard({
             {leccion.titulo}
           </h2>
 
-          <PlayCircle className={completada ? "text-gray-400" : "text-brand-pink"} />
+          <PlayCircle className={completada ? "text-green-600" : "text-brand-pink"} />
 
         </div>
 
@@ -56,7 +59,7 @@ export default function LeccionCard({
         <span
           className={`text-xs font-medium px-2 py-1 rounded ${completada ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-600"}`}
         >
-          {completada ? "Completada" : "Disponible"}
+          {completada ? "Repasar" : "Disponible"}
         </span>
 
       </div>

@@ -1,31 +1,18 @@
-/**
- * EntrenamientoAuditivoArmonico.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EntrenamientoAuditivoArmonico.jsx
- *
- * Ejercicio auditivo de ARMONÍA. Soporta tres sub-tipos vía contenido.subtipo:
- *
- *  1. "intervalo-parejas"     → escuchar dos notas (armónicas o melódicas) e
- *                               identificar el intervalo (2ª, 3ª, 5ª, etc.)
- *  2. "fundamental-cancion"   → escuchar un fragmento de acorde/canción
- *                               conocida y cantar/seleccionar la nota
- *                               fundamental del acorde.
- *  3. "progresion-comun"      → escuchar una progresión de acordes y
- *                               reconocerla entre opciones comunes
- *                               (I-IV-V-I, I-V-vi-IV, ii-V-I, etc.)
- *
- * Contrato de contenido:
- * {
- *   subtipo: "...",
- *   notas: ["C4","G4"],              // intervalo-parejas
- *   modo: "armonico" | "melodico",
- *   acorde: ["C4","E4","G4"],        // fundamental-cancion
- *   cancionReferencia: "Cumpleaños feliz",
- *   progresion: [["C4","E4","G4"], ["F4","A4","C5"], ["G4","B4","D5"], ["C4","E4","G4"]],
- *   opciones: [...]
- * }
- */
 
+import { useMemo } from "react";
 import { playChord, playInterval, playProgression, playNote } from "../../../../application/services/sound";
+
+function shuffleOptions(options = []) {
+  if (!Array.isArray(options) || options.length < 2) return options;
+
+  const next = [...options];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
 
 export default function EntrenamientoAuditivoArmonico({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
@@ -47,7 +34,10 @@ function IntervaloParejas({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const [n1, n2]   = contenido.notas || ["C4", "G4"];
   const modo        = contenido.modo || "armonico";
-  const opciones      = contenido.opciones || ["2ª", "3ª", "4ª", "5ª", "6ª", "8ª"];
+  const opciones      = useMemo(
+    () => shuffleOptions(contenido.opciones || ["2ª", "3ª", "4ª", "5ª", "6ª", "8ª"]),
+    [exercise.id, contenido.opciones]
+  );
   const respuesta       = exercise.respuesta_correcta?.respuesta;
 
   const reproducir = () => playInterval(n1, n2, modo, 0.9);
@@ -88,7 +78,10 @@ function FundamentalCancion({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const acorde     = contenido.acorde || ["C4", "E4", "G4"];
   const referencia  = contenido.cancionReferencia;
-  const opciones      = contenido.opciones || acorde;
+  const opciones      = useMemo(
+    () => shuffleOptions(contenido.opciones || acorde),
+    [exercise.id, contenido.opciones]
+  );
   const respuesta       = exercise.respuesta_correcta?.respuesta;
 
   const reproducir = () => playChord(acorde, 1.4);
@@ -132,7 +125,10 @@ function FundamentalCancion({ exercise, onEvaluate, disabled }) {
 function ProgresionComun({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const progresion = contenido.progresion || [];
-  const opciones      = contenido.opciones || ["I-IV-V-I", "I-V-vi-IV", "ii-V-I"];
+  const opciones      = useMemo(
+    () => shuffleOptions(contenido.opciones || ["I-IV-V-I", "I-V-vi-IV", "ii-V-I"]),
+    [exercise.id, contenido.opciones]
+  );
   const respuesta       = exercise.respuesta_correcta?.respuesta;
 
   const reproducir = () => playProgression(progresion, 0.9, 0.1);

@@ -1,28 +1,68 @@
 import pool from "../database/db.js";
 
+function parsePositiveInt(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+async function ensureUsuarioOwnedByFirebase(req, res, usuarioId) {
+  const authUid = req.firebaseUser?.uid;
+  const parsedUsuarioId = parsePositiveInt(usuarioId);
+
+  if (!authUid) {
+    return { error: res.status(401).json({ error: "Token de autenticación requerido" }) };
+  }
+
+  if (!parsedUsuarioId) {
+    return { error: res.status(400).json({ error: "usuario_id inválido" }) };
+  }
+
+  const usuarioResult = await pool.query(
+    `SELECT id, firebase_uid FROM usuario WHERE id = $1`,
+    [parsedUsuarioId]
+  );
+
+  if (usuarioResult.rows.length === 0) {
+    return { error: res.status(404).json({ error: "Usuario no encontrado" }) };
+  }
+
+  if (usuarioResult.rows[0].firebase_uid !== authUid) {
+    return { error: res.status(403).json({ error: "No tienes permisos para operar sobre este usuario" }) };
+  }
+
+  return { usuarioId: parsedUsuarioId };
+}
+
 // ==========================================
 // GUARDAR INTENTO DE EJERCICIO
-// Registra cada respuesta en intentos_ejercicio.
+// Registra cada respuesta en intento_ejercicio.
 // No modifica progreso_usuario ni XP por sí solo.
 // ==========================================
 export const guardarIntento = async (req, res) => {
   try {
     const { usuario_id, ejercicio_id, respuesta_usuario, correcta, puntuacion } = req.body;
+    const parsedUsuarioId = parsePositiveInt(usuario_id);
+    const parsedEjercicioId = parsePositiveInt(ejercicio_id);
 
-    if (!usuario_id || !ejercicio_id) {
-      return res.status(400).json({ error: "usuario_id y ejercicio_id son requeridos" });
+    if (!parsedUsuarioId || !parsedEjercicioId) {
+      return res.status(400).json({ error: "usuario_id y ejercicio_id deben ser enteros positivos" });
+    }
+
+    const ownership = await ensureUsuarioOwnedByFirebase(req, res, parsedUsuarioId);
+    if (ownership?.error) {
+      return ownership.error;
     }
 
     const resultado = await pool.query(
       `
-      INSERT INTO intentos_ejercicio
+      INSERT INTO intento_ejercicio
         (usuario_id, ejercicio_id, respuesta_usuario, correcta, puntuacion)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
       `,
       [
-        usuario_id,
-        ejercicio_id,
+        parsedUsuarioId,
+        parsedEjercicioId,
         JSON.stringify(respuesta_usuario),
         correcta ?? false,
         puntuacion ?? 0,
@@ -49,16 +89,24 @@ export const completarLeccion = async (req, res) => {
     await client.query("BEGIN");
 
     const { usuario_id, leccion_id, puntuacion } = req.body;
+    const parsedUsuarioId = parsePositiveInt(usuario_id);
+    const parsedLeccionId = parsePositiveInt(leccion_id);
 
-    if (!usuario_id || !leccion_id) {
+    if (!parsedUsuarioId || !parsedLeccionId) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ error: "usuario_id y leccion_id son requeridos" });
+      return res.status(400).json({ error: "usuario_id y leccion_id deben ser enteros positivos" });
+    }
+
+    const ownership = await ensureUsuarioOwnedByFirebase(req, res, parsedUsuarioId);
+    if (ownership?.error) {
+      await client.query("ROLLBACK");
+      return ownership.error;
     }
 
     // Verificar si ya existe el registro de progreso para esta lección
     const existente = await client.query(
       `SELECT id FROM progreso_usuario WHERE usuario_id = $1 AND leccion_id = $2`,
-      [usuario_id, leccion_id]
+      [parsedUsuarioId, parsedLeccionId]
     );
 
     let xpGanada = 0;
@@ -66,8 +114,8 @@ export const completarLeccion = async (req, res) => {
     if (existente.rows.length === 0) {
       // Obtener xp_recompensa de la lección
       const leccion = await client.query(
-        `SELECT xp_recompensa FROM lecciones WHERE id = $1`,
-        [leccion_id]
+        `SELECT xp_recompensa FROM leccion WHERE id = $1`,
+        [parsedLeccionId]
       );
 
       xpGanada = leccion.rows[0]?.xp_recompensa ?? 0;
@@ -79,28 +127,28 @@ export const completarLeccion = async (req, res) => {
           (usuario_id, leccion_id, completada, puntuacion, fecha_completado)
         VALUES ($1, $2, true, $3, NOW())
         `,
-        [usuario_id, leccion_id, puntuacion ?? 0]
+        [parsedUsuarioId, parsedLeccionId, puntuacion ?? 0]
       );
 
       // Sumar XP al usuario y recalcular nivel
       if (xpGanada > 0) {
         await client.query(
           `
-          UPDATE usuarios
+          UPDATE usuario
           SET
             xp = xp + $1,
             nivel = FLOOR((xp + $1) / 200) + 1
           WHERE id = $2
           `,
-          [xpGanada, usuario_id]
+          [xpGanada, parsedUsuarioId]
         );
       }
     }
 
     // Devolver usuario actualizado
     const usuarioActualizado = await client.query(
-      `SELECT id, nombre, correo, xp, nivel FROM usuarios WHERE id = $1`,
-      [usuario_id]
+      `SELECT id, nombre, correo, xp, nivel FROM usuario WHERE id = $1`,
+      [parsedUsuarioId]
     );
 
     await client.query("COMMIT");
@@ -126,6 +174,10 @@ export const completarLeccion = async (req, res) => {
 export const obtenerProgreso = async (req, res) => {
   try {
     const { usuarioId } = req.params;
+    const ownership = await ensureUsuarioOwnedByFirebase(req, res, usuarioId);
+    if (ownership?.error) {
+      return ownership.error;
+    }
 
     const resultado = await pool.query(
       `
@@ -135,7 +187,7 @@ export const obtenerProgreso = async (req, res) => {
       FROM progreso_usuario
       WHERE usuario_id = $1
       `,
-      [usuarioId]
+      [ownership.usuarioId]
     );
 
     return res.json(resultado.rows[0]);
@@ -156,11 +208,15 @@ export const obtenerProgreso = async (req, res) => {
 export const obtenerDashboard = async (req, res) => {
   try {
     const { usuarioId } = req.params;
+    const ownership = await ensureUsuarioOwnedByFirebase(req, res, usuarioId);
+    if (ownership?.error) {
+      return ownership.error;
+    }
 
     // XP y nivel del usuario
     const usuarioResult = await pool.query(
-      `SELECT xp, nivel FROM usuarios WHERE id = $1`,
-      [usuarioId]
+      `SELECT xp, nivel FROM usuario WHERE id = $1`,
+      [ownership.usuarioId]
     );
 
     if (usuarioResult.rows.length === 0) {
@@ -173,14 +229,14 @@ export const obtenerDashboard = async (req, res) => {
     const globalResult = await pool.query(
       `
       SELECT
-        (SELECT COUNT(*) FROM lecciones) AS total_lecciones,
+        (SELECT COUNT(*) FROM leccion) AS total_lecciones,
         (
           SELECT COUNT(*)
           FROM progreso_usuario
           WHERE usuario_id = $1 AND completada = true
         ) AS lecciones_completadas
       `,
-      [usuarioId]
+      [ownership.usuarioId]
     );
 
     const completedLessonsResult = await pool.query(
@@ -190,7 +246,7 @@ export const obtenerDashboard = async (req, res) => {
       WHERE usuario_id = $1 AND completada = true
       ORDER BY leccion_id ASC
       `,
-      [usuarioId]
+      [ownership.usuarioId]
     );
 
     const { total_lecciones, lecciones_completadas } = globalResult.rows[0];
@@ -206,15 +262,15 @@ export const obtenerDashboard = async (req, res) => {
         COUNT(pu.id) FILTER (
           WHERE pu.usuario_id = $1 AND pu.completada = true
         ) AS lecciones_completadas
-      FROM modulos m
-      LEFT JOIN unidades u ON u.modulo_id = m.id
-      LEFT JOIN lecciones l ON l.unidad_id = u.id
+      FROM modulo m
+      LEFT JOIN unidad u ON u.modulo_id = m.id
+      LEFT JOIN leccion l ON l.unidad_id = u.id
       LEFT JOIN progreso_usuario pu
         ON pu.leccion_id = l.id AND pu.usuario_id = $1
       GROUP BY m.id, m.titulo, m.slug
       ORDER BY m.orden ASC
       `,
-      [usuarioId]
+      [ownership.usuarioId]
     );
 
     const modulos = modulosResult.rows.map((m) => ({
@@ -243,5 +299,59 @@ export const obtenerDashboard = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Error obteniendo dashboard" });
+  }
+};
+
+// ==========================================
+// PROGRESO POR MÓDULO INDIVIDUAL
+// GET /api/progress/modulo/:usuarioId/:moduloSlug
+// Devuelve: { porcentaje, completada, lecciones_completadas, total_lecciones }
+// Usado por ModuloCard y QuizModulo para saber si el módulo está desbloqueado.
+// ==========================================
+export const progresoModulo = async (req, res) => {
+  try {
+    const { usuarioId, moduloSlug } = req.params;
+    const ownership = await ensureUsuarioOwnedByFirebase(req, res, usuarioId);
+    if (ownership?.error) {
+      return ownership.error;
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        m.titulo,
+        m.slug,
+        COUNT(l.id)                                                        AS total_lecciones,
+        COUNT(pu.id) FILTER (WHERE pu.usuario_id = $1 AND pu.completada = true) AS lecciones_completadas
+      FROM modulo m
+      LEFT JOIN unidad u         ON u.modulo_id = m.id
+      LEFT JOIN leccion l        ON l.unidad_id = u.id
+      LEFT JOIN progreso_usuario pu ON pu.leccion_id = l.id
+      WHERE m.slug = $2
+      GROUP BY m.titulo, m.slug
+      `,
+      [ownership.usuarioId, moduloSlug]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Módulo no encontrado" });
+    }
+
+    const row = result.rows[0];
+    const total     = parseInt(row.total_lecciones, 10);
+    const completadas = parseInt(row.lecciones_completadas, 10);
+    const porcentaje  = total > 0 ? Math.round((completadas / total) * 100) : 0;
+
+    return res.json({
+      slug:                  row.slug,
+      titulo:                row.titulo,
+      total_lecciones:       total,
+      lecciones_completadas: completadas,
+      porcentaje,
+      completado:            total > 0 && completadas === total,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error obteniendo progreso del módulo" });
   }
 };

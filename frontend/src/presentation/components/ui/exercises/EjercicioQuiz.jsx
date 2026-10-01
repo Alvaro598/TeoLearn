@@ -1,21 +1,27 @@
-/**
- * EjercicioQuiz.jsx
- * Ruta: frontend/src/presentation/components/ui/exercises/EjercicioQuiz.jsx
- *
- * Componente de selección múltiple extraído de Ejercicio.jsx.
- * Recibe el mismo contrato que EntrenamientoAuditivo y EjercicioMidi:
- *   - exercise   → objeto ejercicio de la BD
- *   - onEvaluate → callback(payload) con { respuesta, correcta, puntuacion }
- *   - disabled   → deshabilitar mientras avanza / hay resultado
- */
 
-import { useState } from "react";
+
+import { useMemo, useState } from "react";
 import { CheckCircle, XCircle } from "lucide-react";
+
+function shuffleOptions(options = []) {
+  if (!Array.isArray(options) || options.length < 2) return options;
+
+  const next = [...options];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
 
 export default function EjercicioQuiz({ exercise, onEvaluate, disabled }) {
   const [seleccionada, setSeleccionada] = useState(null);
 
-  const opciones  = exercise.contenido?.opciones ?? [];
+  const opciones  = useMemo(
+    () => shuffleOptions(exercise.contenido?.opciones ?? []),
+    [exercise.id, exercise.contenido?.opciones]
+  );
   const respuesta = exercise.respuesta_correcta?.respuesta;
 
   const responder = (opcion) => {
