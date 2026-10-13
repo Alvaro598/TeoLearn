@@ -31,7 +31,7 @@ export default function Navbar() {
     let active = true;
 
     if (!isAuthenticated) {
-      return () => {};
+      return () => { };
     }
 
     getQuizFinalProgress()
@@ -129,19 +129,6 @@ export default function Navbar() {
               Módulos
             </Link>
 
-            <Link
-              to="/generalidades"
-              onClick={() =>
-                setIsMenuOpen(false)
-              }
-              className={
-                path === "/generalidades"
-                  ? "text-gray-800 font-bold"
-                  : ""
-              }
-            >
-              Contenido de apoyo
-            </Link>
 
             <Link
               to="/chat"
@@ -219,8 +206,8 @@ export default function Navbar() {
               <Link
                 to="/register"
                 className={`px-4 py-2 rounded ${path === "/register"
-                    ? "bg-blue-700"
-                    : "bg-brand-blue text-white font-bold px-8 py-4 rounded-full hover:bg-opacity-90 transition flex items-center gap-2 justify-center"
+                  ? "bg-blue-700"
+                  : "bg-brand-blue text-white font-bold px-8 py-4 rounded-full hover:bg-opacity-90 transition flex items-center gap-2 justify-center"
                   } text-white`}
                 onClick={() =>
                   setIsMenuOpen(false)

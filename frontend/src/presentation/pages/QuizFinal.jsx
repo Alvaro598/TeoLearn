@@ -25,34 +25,28 @@ function shuffleOptions(options = []) {
 // ─── Banco de preguntas por módulo ────────────────────────────────────────────
 const PREGUNTAS_POR_MODULO = {
   ritmo: [
-    { id: 1, pregunta: "¿Qué es el pulso musical?", opciones: ["Un tiempo constante e igual", "Una nota aguda", "Un acorde mayor", "Un cambio de volumen"], respuesta: "Un tiempo constante e igual" },
-    { id: 2, pregunta: "En un compás de 4/4, ¿cuántos tiempos hay por compás?", opciones: ["4", "3", "2", "6"], respuesta: "4" },
-    { id: 3, pregunta: "¿Cuánto vale una blanca en tiempos?", opciones: ["2 tiempos", "1 tiempo", "4 tiempos", "0.5 tiempos"], respuesta: "2 tiempos" },
-    { id: 4, pregunta: "¿Cuántas corcheas equivalen a una negra?", opciones: ["2", "4", "1", "8"], respuesta: "2" },
-    { id: 5, pregunta: "¿Qué indica el numerador de la indicación de compás?", opciones: ["Cantidad de tiempos por compás", "Duración de la figura base", "El tempo en BPM", "La tonalidad"], respuesta: "Cantidad de tiempos por compás" },
-    { id: 6, pregunta: "Un compás de 3/4 tiene sensación de:", opciones: ["Vals", "Marcha", "Polka", "Blues"], respuesta: "Vals" },
-    { id: 7, pregunta: "¿Qué es una síncopa?", opciones: ["Acento en tiempo débil que anticipa el siguiente", "Una figura de 4 tiempos", "Un silencio de redonda", "El primer tiempo del compás"], respuesta: "Acento en tiempo débil que anticipa el siguiente" },
-    { id: 8, pregunta: "¿Qué ventaja tiene el AudioContext scheduling sobre setInterval para el metrónomo?", opciones: ["Elimina el drift acumulativo", "Usa menos CPU", "No necesita navegador", "Produce sonidos más fuertes"], respuesta: "Elimina el drift acumulativo" },
+    { id: 1, pregunta: "Repites el mismo patrón de cuatro negras a 60 y luego a 100 BPM. ¿Qué debe cambiar?", opciones: ["El espacio en segundos entre pulsos", "El orden de los golpes", "La cantidad de pulsos del patrón", "La figura rítmica de cada golpe"], respuesta: "El espacio en segundos entre pulsos", explicacion: "El tempo modifica la velocidad del pulso. Si el patrón se conserva, también se conservan el orden y la cantidad de golpes." },
+    { id: 2, pregunta: "Tocas un patrón en 3/4 y otro en 4/4. ¿Qué pista permite reconocer dónde termina cada compás?", opciones: ["El acento vuelve después de tres pulsos en 3/4 y de cuatro en 4/4", "El tempo siempre es mayor en 3/4", "El patrón de 3/4 debe tener más golpes", "El primer compás no lleva acento"], respuesta: "El acento vuelve después de tres pulsos en 3/4 y de cuatro en 4/4", explicacion: "El numerador indica cuántos pulsos agrupa el compás; el primer pulso ayuda a reconocer el inicio del grupo." },
+    { id: 3, pregunta: "En un compás de 4/4 ya colocaste una blanca y dos corcheas. ¿Qué duración falta para completar el compás?", opciones: ["Una negra", "Una blanca", "Dos negras", "Dos corcheas"], respuesta: "Una negra", explicacion: "La blanca ocupa dos pulsos y las dos corcheas ocupan uno más: falta un pulso, equivalente a una negra." },
+    { id: 4, pregunta: "Cuentas cuatro pulsos parejos y oyes ocho golpes repartidos por igual. ¿Cómo se organiza cada pulso?", opciones: ["En dos corcheas", "En una redonda", "En un silencio de blanca", "En cuatro negras"], respuesta: "En dos corcheas", explicacion: "Dos ataques por pulso dividen cada negra en dos partes iguales: dos corcheas." },
+    { id: 5, pregunta: "En un patrón de cuatro pulsos falta el golpe del pulso 2. ¿Qué haces para conservar el ritmo?", opciones: ["Sigues contando el pulso 2 en silencio", "Acortas el compás a tres pulsos", "Aceleras para saltar el espacio", "Mueves el pulso 2 al final"], respuesta: "Sigues contando el pulso 2 en silencio", explicacion: "El silencio ocupa su duración dentro del compás. El pulso continúa aunque no haya un ataque audible." },
+    { id: 6, pregunta: "El metrónomo marca cuatro clics y tus golpes caen justo antes de cada clic. ¿Qué debes corregir?", opciones: ["La sincronización: desplazar los golpes para hacerlos coincidir", "El número de pulsos del compás", "La duración de las negras", "La agrupación en corcheas"], respuesta: "La sincronización: desplazar los golpes para hacerlos coincidir", explicacion: "Si te adelantas, ajusta el momento de tus golpes hasta hacerlos coincidir con la referencia estable del metrónomo." },
   ],
   melodia: [
-    { id: 1, pregunta: "¿Cuál es el equivalente anglosajón de 'Sol'?", opciones: ["G", "A", "F", "E"], respuesta: "G" },
-    { id: 2, pregunta: "¿Cuál es la fórmula de tonos y semitonos de la escala mayor?", opciones: ["T-T-S-T-T-T-S", "T-S-T-T-S-T-T", "S-T-T-T-S-T-T", "T-T-T-S-T-T-S"], respuesta: "T-T-S-T-T-T-S" },
-    { id: 3, pregunta: "¿Qué intervalo hay entre C y G?", opciones: ["Quinta justa", "Tercera mayor", "Cuarta justa", "Sexta menor"], respuesta: "Quinta justa" },
-    { id: 4, pregunta: "Las notas de las líneas del pentagrama en clave de Sol son:", opciones: ["E-G-B-D-F", "C-D-E-F-G", "A-B-C-D-E", "F-A-C-E-G"], respuesta: "E-G-B-D-F" },
-    { id: 5, pregunta: "¿Cuál es la relativa menor de C mayor?", opciones: ["A menor", "E menor", "D menor", "G menor"], respuesta: "A menor" },
-    { id: 6, pregunta: "C# y Db son enarmónicas porque:", opciones: ["Suenan igual pero se escriben diferente", "Son la misma nota escrita igual", "Tienen distinta altura", "Son de octavas distintas"], respuesta: "Suenan igual pero se escriben diferente" },
-    { id: 7, pregunta: "¿Qué grado de la escala mayor se llama 'Dominante'?", opciones: ["5to", "3er", "7mo", "1ro"], respuesta: "5to" },
-    { id: 8, pregunta: "Una frase melódica que termina en la tónica genera sensación de:", opciones: ["Reposo y conclusión", "Tensión sin resolver", "Inicio de sección nueva", "Cambio de tonalidad"], respuesta: "Reposo y conclusión" },
+    { id: 1, pregunta: "Usando Do4 como referencia, ¿qué intervalo forma Sol4 por encima?", opciones: ["Quinta justa", "Tercera mayor", "Cuarta justa", "Segunda mayor"], respuesta: "Quinta justa", explicacion: "De Do a Sol hay cinco nombres de nota contando ambos extremos: Do-Re-Mi-Fa-Sol, una quinta." },
+    { id: 2, pregunta: "En clave de Sol, una nota está en la segunda línea desde abajo. ¿Qué nota es?", opciones: ["Sol4", "Mi4", "Si4", "Re5"], respuesta: "Sol4", explicacion: "La clave de Sol fija la segunda línea del pentagrama como Sol4; las demás posiciones se leen desde esa referencia." },
+    { id: 3, pregunta: "¿Por qué Do sostenido y Re bemol pueden sonar igual aunque se escriban distinto?", opciones: ["Son nombres enarmónicos de la misma altura", "Uno dura el doble que el otro", "Pertenecen a octavas distintas", "Uno siempre suena más fuerte"], respuesta: "Son nombres enarmónicos de la misma altura", explicacion: "El sostenido sube un semitono y el bemol baja un semitono; en este caso llegan a la misma tecla y altura." },
+    { id: 4, pregunta: "Do mayor y La menor natural usan las mismas notas. ¿Qué cambia para que el centro se sienta distinto?", opciones: ["La nota que funciona como punto de reposo", "La cantidad de notas de la escala", "El orden de tonos y semitonos de La menor", "El número de pulsos por compás"], respuesta: "La nota que funciona como punto de reposo", explicacion: "Do mayor y La menor comparten notas, pero comienzan y descansan en tónicas diferentes, lo que cambia su organización y color." },
+    { id: 5, pregunta: "Al subir por la escala de Do mayor, ¿entre qué pareja consecutiva hay un semitono?", opciones: ["Mi-Fa", "Do-Re", "Re-Mi", "Fa-Sol"], respuesta: "Mi-Fa", explicacion: "En Do mayor los semitonos están entre Mi-Fa y Si-Do; los demás pasos consecutivos de esa escala son tonos." },
+    { id: 6, pregunta: "Una melodía avanza Do-Re-Mi-Fa, nota por nota. ¿Cómo se describe ese movimiento?", opciones: ["Por grado, mediante pasos cercanos", "Por saltos de quinta", "Como un acorde simultáneo", "Como una progresión de acordes"], respuesta: "Por grado, mediante pasos cercanos", explicacion: "Moverse entre notas vecinas de la escala es movimiento por grado; los saltos recorren distancias más amplias." },
   ],
   armonia: [
-    { id: 1, pregunta: "¿Qué notas forman la tríada de C mayor?", opciones: ["C-E-G", "C-D-E", "C-F-A", "C-G-B"], respuesta: "C-E-G" },
-    { id: 2, pregunta: "¿Cuántos semitonos hay entre la tónica y la 3ª de un acorde menor?", opciones: ["3", "4", "5", "2"], respuesta: "3" },
-    { id: 3, pregunta: "¿Qué función armónica da sensación de máxima tensión?", opciones: ["Dominante (V)", "Tónica (I)", "Subdominante (IV)", "Mediante (III)"], respuesta: "Dominante (V)" },
-    { id: 4, pregunta: "¿Cómo se llama la cadencia V → I?", opciones: ["Auténtica", "Plagal", "Semicadencia", "Rota"], respuesta: "Auténtica" },
-    { id: 5, pregunta: "¿Qué acorde es el 'vi' en C mayor?", opciones: ["A menor", "F mayor", "G mayor", "D menor"], respuesta: "A menor" },
-    { id: 6, pregunta: "La progresión I-V-vi-IV es característica de:", opciones: ["Pop moderno", "Jazz bebop", "Flamenco", "Blues de 12 compases"], respuesta: "Pop moderno" },
-    { id: 7, pregunta: "En la primera inversión de C mayor, ¿qué nota está en el bajo?", opciones: ["E", "C", "G", "B"], respuesta: "E" },
-    { id: 8, pregunta: "El acorde VII° (disminuido) tiende a resolver hacia:", opciones: ["El acorde I (tónica)", "El acorde IV", "El acorde VI", "El acorde II"], respuesta: "El acorde I (tónica)" },
+    { id: 1, pregunta: "¿Qué rasgo convierte C-E-G en una tríada?", opciones: ["Reúne tónica, tercera y quinta en tres notas", "Contiene cuatro notas separadas por tonos", "Es una escala tocada en orden", "Tiene dos notas repetidas en octavas"], respuesta: "Reúne tónica, tercera y quinta en tres notas", explicacion: "Una tríada reúne tres alturas: la tónica, una tercera y una quinta; puede sonar como acorde o arpegio." },
+    { id: 2, pregunta: "Comparas Do mayor (C-E-G) con Do menor (C-E♭-G). ¿Qué cambio explica la cualidad menor?", opciones: ["La tercera baja un semitono", "La tónica sube un semitono", "La quinta baja dos tonos", "Se añade una cuarta nota"], respuesta: "La tercera baja un semitono", explicacion: "La raíz y la quinta se mantienen; la tercera Mi baja a Mi bemol, cambiando el acorde de mayor a menor." },
+    { id: 3, pregunta: "En Do mayor, ¿qué función cumple Sol mayor (G-B-D) antes de volver a Do mayor?", opciones: ["Dominante: crea tensión y tiende a resolver en la tónica", "Tónica: representa el reposo", "Subdominante: prepara la salida", "Relativa menor: comparte todas las notas"], respuesta: "Dominante: crea tensión y tiende a resolver en la tónica", explicacion: "Sol mayor es V en Do mayor. Su función dominante crea expectativa de resolución hacia Do, el acorde I." },
+    { id: 4, pregunta: "Una frase termina con Fa mayor seguido de Do mayor (IV-I). ¿Qué cadencia escuchas?", opciones: ["Plagal", "Auténtica", "Semicadencia", "Progresión que termina en V"], respuesta: "Plagal", explicacion: "La cadencia plagal va de IV a I. La auténtica va de V a I y la semicadencia termina en V." },
+    { id: 5, pregunta: "En Do mayor, analizas la secuencia Do-Fa-Sol-Do. ¿Qué números romanos corresponden?", opciones: ["I-IV-V-I", "I-V-vi-IV", "ii-V-I", "IV-I-V-vi"], respuesta: "I-IV-V-I", explicacion: "Do es I, Fa es IV y Sol es V en Do mayor; volver a Do completa I-IV-V-I." },
+    { id: 6, pregunta: "En Do mayor, una progresión Re menor-Sol mayor-Do mayor se escribe:", opciones: ["ii-V-I", "I-IV-V", "I-V-vi-IV", "IV-I-IV"], respuesta: "ii-V-I", explicacion: "Re menor es ii, Sol mayor es V y Do mayor es I. La secuencia lleva preparación y tensión hacia el reposo." },
   ],
 };
 
@@ -243,7 +237,9 @@ export default function QuizModulo() {
               Quiz de {nombreModulo}
             </h1>
             <p className="text-gray-500">
-              {preguntas.length} preguntas · Descargable como PDF para pruebas de usabilidad.
+              {preguntas.length} preguntas · {moduloSlug
+                ? "Casos de aplicación del módulo."
+                : "6 por categoría; integra conceptos de toda la ruta."}
             </p>
           </div>
 
@@ -286,7 +282,8 @@ export default function QuizModulo() {
                 className="bg-white border border-gray-200 rounded-xl p-5"
               >
                 <p className="text-xs font-bold uppercase tracking-widest text-brand-pink mb-2">
-                  Pregunta {pregunta.id}
+                  {pregunta.moduloSlug && `${NOMBRE_MODULO[pregunta.moduloSlug]} · `}
+                  Pregunta {String(pregunta.id).split("-").at(-1)} de {preguntas.length}
                 </p>
                 <h2 className="text-lg font-extrabold mb-4">{pregunta.pregunta}</h2>
 
@@ -324,6 +321,11 @@ export default function QuizModulo() {
                     );
                   })}
                 </div>
+                {respuestas[pregunta.id] && pregunta.explicacion && (
+                  <p className="mt-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
+                    <strong>Por qué:</strong> {pregunta.explicacion}
+                  </p>
+                )}
               </article>
             );
           })}

@@ -67,7 +67,7 @@ export default function Perfil() {
               </div>
               <button
                 type="button"
-                onClick={() => updatePreferences({ onboardingDone: false, onboardingStep: 0 })}
+                onClick={() => updatePreferences({ onboardingDone: false, onboardingStep: 0, explorationPages: {} })}
                 className="inline-flex items-center gap-2 bg-brand-blue text-white px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90"
               >
                 <RotateCcw size={16} />
@@ -209,7 +209,9 @@ export default function Perfil() {
             )}
 
             <p className="text-sm text-gray-500 mt-3">
-              Pistas precargadas y sinteticas: no necesitas subir tu propia musica.
+              Incluye “Sleepy Cat” de Alejandro Magaña, una pista real de Mixkit que requiere conexión a internet y se usa bajo su licencia gratuita.
+              {" "}<a href="https://mixkit.co/free-stock-music/lo-fi-beats/" target="_blank" rel="noreferrer" className="underline">Ver pista</a>
+              {" · "}<a href="https://mixkit.co/license/" target="_blank" rel="noreferrer" className="underline">Licencia Mixkit</a>
             </p>
           </div>
         </section>

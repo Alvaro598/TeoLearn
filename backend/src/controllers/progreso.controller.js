@@ -103,6 +103,14 @@ export const completarLeccion = async (req, res) => {
       return ownership.error;
     }
 
+    // Serializa completados simultáneos de la misma lección para este usuario.
+    // Sin este bloqueo, dos solicitudes paralelas pueden pasar el SELECT de abajo
+    // y crear dos filas aunque una repetición normal no lo haga.
+    await client.query(
+      "SELECT pg_advisory_xact_lock($1, $2)",
+      [parsedUsuarioId, parsedLeccionId]
+    );
+
     // Verificar si ya existe el registro de progreso para esta lección
     const existente = await client.query(
       `SELECT id FROM progreso_usuario WHERE usuario_id = $1 AND leccion_id = $2`,
@@ -231,7 +239,7 @@ export const obtenerDashboard = async (req, res) => {
       SELECT
         (SELECT COUNT(*) FROM leccion) AS total_lecciones,
         (
-          SELECT COUNT(*)
+          SELECT COUNT(DISTINCT leccion_id)
           FROM progreso_usuario
           WHERE usuario_id = $1 AND completada = true
         ) AS lecciones_completadas
@@ -241,7 +249,7 @@ export const obtenerDashboard = async (req, res) => {
 
     const completedLessonsResult = await pool.query(
       `
-      SELECT leccion_id
+      SELECT DISTINCT leccion_id
       FROM progreso_usuario
       WHERE usuario_id = $1 AND completada = true
       ORDER BY leccion_id ASC
@@ -258,8 +266,8 @@ export const obtenerDashboard = async (req, res) => {
         m.id,
         m.titulo,
         m.slug,
-        COUNT(l.id) AS total_lecciones,
-        COUNT(pu.id) FILTER (
+        COUNT(DISTINCT l.id) AS total_lecciones,
+        COUNT(DISTINCT pu.leccion_id) FILTER (
           WHERE pu.usuario_id = $1 AND pu.completada = true
         ) AS lecciones_completadas
       FROM modulo m
@@ -321,8 +329,8 @@ export const progresoModulo = async (req, res) => {
       SELECT
         m.titulo,
         m.slug,
-        COUNT(l.id)                                                        AS total_lecciones,
-        COUNT(pu.id) FILTER (WHERE pu.usuario_id = $1 AND pu.completada = true) AS lecciones_completadas
+        COUNT(DISTINCT l.id) AS total_lecciones,
+        COUNT(DISTINCT pu.leccion_id) FILTER (WHERE pu.usuario_id = $1 AND pu.completada = true) AS lecciones_completadas
       FROM modulo m
       LEFT JOIN unidad u         ON u.modulo_id = m.id
       LEFT JOIN leccion l        ON l.unidad_id = u.id

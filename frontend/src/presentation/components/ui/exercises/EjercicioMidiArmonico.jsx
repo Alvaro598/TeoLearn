@@ -3,24 +3,23 @@
 import { useMemo, useState } from "react";
 import { Play, Eraser } from "lucide-react";
 import { playProgression } from "../../../../application/services/sound";
+import {
+  alturaNotaMidi,
+  compararStacksEnarmonicos,
+  etiquetaNotaMidi,
+  notasCromaticasEnRango,
+} from "../../../../application/services/musicTheoryHelpers";
 
 const NOTAS_DEFECTO = [
   "C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5", "E5",
 ];
 
-const alturaNota = (nota) => {
-  const match = nota.match(/^([A-G]#?)(\d)$/);
-  if (!match) return 0;
-  const cromatica = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  return Number(match[2]) * 12 + cromatica.indexOf(match[1]);
-};
-
 export default function EjercicioMidiArmonico({ exercise, onEvaluate, disabled }) {
   const contenido    = exercise.contenido || {};
   const progresion    = contenido.progresion || ["I", "IV", "V", "I"];
-  const noteRows       = (contenido.notasDisponibles || NOTAS_DEFECTO)
-    .slice()
-    .sort((a, b) => alturaNota(b) - alturaNota(a));
+  const notasDisponibles = contenido.notasDisponibles || NOTAS_DEFECTO;
+  const noteRows = notasCromaticasEnRango(notasDisponibles)
+    .sort((a, b) => alturaNotaMidi(b) - alturaNotaMidi(a));
   const columnas        = progresion.length;
   const stackObjetivo   = exercise.respuesta_correcta?.stack || [];
 
@@ -57,9 +56,7 @@ export default function EjercicioMidiArmonico({ exercise, onEvaluate, disabled }
   };
 
   const enviar = () => {
-    const recibido = stackActual.map((acorde) => [...acorde].sort());
-    const esperado  = stackObjetivo.map((acorde) => [...acorde].sort());
-    const correcta  = JSON.stringify(recibido) === JSON.stringify(esperado);
+    const correcta = compararStacksEnarmonicos(stackObjetivo, stackActual);
 
     onEvaluate({
       respuesta:  { stack: stackActual },
@@ -118,7 +115,9 @@ export default function EjercicioMidiArmonico({ exercise, onEvaluate, disabled }
           {/* Filas por nota */}
           {noteRows.map((note) => (
             <div key={note} className="contents">
-              <div className="text-xs font-bold text-gray-700 flex items-center">{note}</div>
+              <div className={`text-[10px] font-bold flex items-center leading-tight ${note.includes("#") ? "bg-gray-950 text-white px-1" : "text-gray-700"}`}>
+                {etiquetaNotaMidi(note)}
+              </div>
               {progresion.map((_, columnIndex) => {
                 const activo = selected[columnIndex]?.has(note);
                 return (

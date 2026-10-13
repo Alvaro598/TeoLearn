@@ -2,7 +2,7 @@ import { Send, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { preguntarIA } from "../../../../application/services/chatbot";
 import { speakText, stopSpeech } from "../../../../application/services/speech";
-import { usePreferences } from "../../../../application/context/PreferencesContext";
+import { usePreferences } from "../../../../application/context/usePreferences";
 
 const initialMessages = [
   {

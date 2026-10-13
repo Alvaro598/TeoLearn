@@ -2,7 +2,7 @@ import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
-import { usePreferences } from "../../application/context/PreferencesContext";
+import { usePreferences } from "../../application/context/usePreferences";
 import { speakText, stopSpeech } from "../../application/services/speech";
 
 function getVideoEmbedUrl(videoUrl) {

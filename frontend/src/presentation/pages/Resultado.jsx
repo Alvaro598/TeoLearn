@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
 import { getLessonResultLocal } from "../../application/services/progress";
-import { usePreferences } from "../../application/context/PreferencesContext";
+import { usePreferences } from "../../application/context/usePreferences";
 import { playResultScreen } from "../../application/services/sound";
 
 function calcularVariante(resultado) {

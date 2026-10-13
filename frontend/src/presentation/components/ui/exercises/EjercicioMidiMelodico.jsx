@@ -4,16 +4,16 @@ import { useMemo, useState } from "react";
 import { Play, Eraser, Info } from "lucide-react";
 import { playSequence } from "../../../../application/services/sound";
 import { TECNICA_LABEL } from "../../../../application/services/musicTheoryHelpers";
+import {
+  alturaNotaMidi,
+  compararNotasEnarmonicas,
+  etiquetaNotaMidi,
+  notasCromaticasEnRango,
+} from "../../../../application/services/musicTheoryHelpers";
 import Metronomo from "../Metronomo";
+import useMetronomo from "../../../../application/hooks/useMetronomo";
 
 const NOTAS_DEFECTO = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
-
-const alturaNota = (nota) => {
-  const match = nota.match(/^([A-G]#?)(\d)$/);
-  if (!match) return 0;
-  const cromatica = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  return Number(match[2]) * 12 + cromatica.indexOf(match[1]);
-};
 
 const TECNICA_TITULOS = {
   "pregunta-respuesta": "Pregunta y respuesta",
@@ -25,14 +25,15 @@ const TECNICA_TITULOS = {
 
 export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }) {
   const contenido    = exercise.contenido || {};
-  const noteRows      = (contenido.notasDisponibles || NOTAS_DEFECTO)
-    .slice()
-    .sort((a, b) => alturaNota(b) - alturaNota(a));
+  const notasDisponibles = contenido.notasDisponibles || NOTAS_DEFECTO;
+  const noteRows = notasCromaticasEnRango(notasDisponibles)
+    .sort((a, b) => alturaNotaMidi(b) - alturaNotaMidi(a));
   const columns        = contenido.columnas || 8;
   const tecnica         = contenido.tecnica || "motivo-variacion";
   const articulacion    = contenido.articulacion;
   const pistaDada       = contenido.pista || [];   // motivo/pregunta ya colocada (no editable)
   const targetNotes     = exercise.respuesta_correcta?.notas || [];
+  const { bpm } = useMetronomo();
 
   const [selected, setSelected] = useState([]);
 
@@ -58,12 +59,12 @@ export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }
 
   const reproducirTodo = () => {
     const completo = [...pistaDada, ...orderedSelection].sort((a, b) => a.step - b.step);
-    playSequence(completo, articulacion === "staccato" ? 0.18 : 0.3);
+    playSequence(completo, (60 / bpm) * (articulacion === "staccato" ? 0.4 : 0.9));
   };
 
   const submit = () => {
     const received = orderedSelection.map((i) => i.note);
-    const correct   = JSON.stringify(targetNotes) === JSON.stringify(received);
+    const correct = compararNotasEnarmonicas(targetNotes, received);
 
     onEvaluate({
       respuesta:  { notas: received },
@@ -141,7 +142,9 @@ export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }
 
           {noteRows.map((note) => (
             <div key={note} className="contents">
-              <div className="text-xs font-bold text-gray-700 flex items-center">{note}</div>
+              <div className={`text-[10px] font-bold flex items-center leading-tight ${note.includes("#") ? "bg-gray-950 text-white px-1" : "text-gray-700"}`}>
+                {etiquetaNotaMidi(note)}
+              </div>
               {Array.from({ length: columns }, (_, index) => {
                 const step    = index + 1;
                 const dePista = pistaDada.find((p) => p.step === step && p.note === note);

@@ -1,5 +1,5 @@
 import { useAuth } from "../../../application/context/AuthContext";
-import { usePreferences } from "../../../application/context/PreferencesContext";
+import { usePreferences } from "../../../application/context/usePreferences";
 
 export default function UserAvatar({ size = "md" }) {
   const { usuario } = useAuth();

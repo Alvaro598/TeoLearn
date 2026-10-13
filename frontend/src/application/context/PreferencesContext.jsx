@@ -1,37 +1,7 @@
-/**
- * PreferencesContext.jsx
- * Ruta: frontend/src/application/context/PreferencesContext.jsx (reemplaza al anterior)
- *
- * CAMBIOS:
- *  - backgroundMusic (boolean) sigue existiendo, pero ahora se acompaña de
- *    backgroundMusicTrack ("ambient" | "focus" | "lofi" | "piano") para
- *    elegir CUÁL pista precargada sonar.
- *  - Nuevo campo ttsVoiceURI: guarda la voz de speechSynthesis elegida por
- *    el usuario (vacío = usar la mejor voz en español disponible).
- */
-
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { startBackgroundMusic, stopBackgroundMusic } from "../services/sound";
-
-const defaultPreferences = {
-  displayName: "",
-  avatarUrl: "",
-  theme: "clasico",
-  ttsEnabled: false,
-  ttsVoiceURI: "",
-  soundEnabled: true,
-  backgroundMusic: false,
-  backgroundMusicTrack: "ambient",
-  onboardingDone: false,
-};
-
-const defaultContextValue = {
-  preferences: defaultPreferences,
-  updatePreferences: () => {},
-};
-
-const PreferencesContext = createContext(defaultContextValue);
+import { defaultPreferences, PreferencesContext } from "./preferences-context";
 
 function normalizeTheme(theme) {
   if (theme === "oscuro" || theme === "clasico") {
@@ -89,11 +59,15 @@ export function PreferencesProvider({ children }) {
       : usuarioDB?.id
         ? String(usuarioDB.id)
         : "guest";
-  const [preferences, setPreferences] = useState(() => loadPreferences(activeUserKey));
+  return (
+    <PreferencesState key={activeUserKey} activeUserKey={activeUserKey}>
+      {children}
+    </PreferencesState>
+  );
+}
 
-  useEffect(() => {
-    setPreferences(loadPreferences(activeUserKey));
-  }, [activeUserKey]);
+function PreferencesState({ children, activeUserKey }) {
+  const [preferences, setPreferences] = useState(() => loadPreferences(activeUserKey));
 
   useEffect(() => {
     const storageKey = getPreferencesStorageKey(activeUserKey);
@@ -108,7 +82,7 @@ export function PreferencesProvider({ children }) {
     }
     // Se re-ejecuta también cuando cambia backgroundMusicTrack para que el
     // cambio de pista sea inmediato mientras la música está activada.
-  }, [activeUserKey, preferences.theme, preferences.backgroundMusic, preferences.backgroundMusicTrack]);
+  }, [activeUserKey, preferences]);
 
   const value = useMemo(
     () => ({
@@ -124,8 +98,4 @@ export function PreferencesProvider({ children }) {
       {children}
     </PreferencesContext.Provider>
   );
-}
-
-export function usePreferences() {
-  return useContext(PreferencesContext) || defaultContextValue;
 }

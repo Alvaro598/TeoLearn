@@ -117,6 +117,17 @@ export default function ResultadoQuiz() {
                   <div>
                     <p className="text-sm font-bold text-gray-800">Pregunta {index + 1}</p>
                     <p className="text-sm text-gray-600">{pregunta.pregunta}</p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      Tu respuesta: <strong>{respuestas[pregunta.id] || "Sin respuesta"}</strong>
+                    </p>
+                    {!correcta && (
+                      <p className="text-sm text-green-800">
+                        Respuesta correcta: <strong>{pregunta.respuesta}</strong>
+                      </p>
+                    )}
+                    {pregunta.explicacion && (
+                      <p className="mt-2 text-sm text-blue-900">{pregunta.explicacion}</p>
+                    )}
                   </div>
                   <span className={`text-sm font-extrabold ${correcta ? "text-green-700" : "text-red-700"}`}>
                     {correcta ? "Correcta" : "Revisar"}

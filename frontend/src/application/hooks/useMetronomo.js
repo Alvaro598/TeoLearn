@@ -87,6 +87,16 @@ export default function useMetronomo() {
   // Sincroniza bpmRef con el estado React
   useEffect(() => { bpmRef.current = bpm; }, [bpm]);
 
+  useEffect(() => {
+    const syncBpm = (event) => {
+      const next = clampBpm(event.detail);
+      bpmRef.current = next;
+      setBpmState(next);
+    };
+    window.addEventListener("teolearn:bpm-change", syncBpm);
+    return () => window.removeEventListener("teolearn:bpm-change", syncBpm);
+  }, []);
+
   const getCtx = useCallback(() => {
     if (!ctxRef.current) {
       ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -150,6 +160,7 @@ export default function useMetronomo() {
     bpmRef.current = next;
     setBpmState(next);
     localStorage.setItem(STORAGE_KEY, String(next));
+    window.dispatchEvent(new CustomEvent("teolearn:bpm-change", { detail: next }));
   }, []);
 
   // Limpiar al desmontar

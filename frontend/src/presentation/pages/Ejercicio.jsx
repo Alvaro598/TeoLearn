@@ -29,7 +29,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
 import { useAuth } from "../../application/context/AuthContext";
-import { usePreferences } from "../../application/context/PreferencesContext";
+import { usePreferences } from "../../application/context/usePreferences";
 import { solicitarFeedbackIA } from "../../application/services/feedbackIA";
 import { playError, playSuccess, playPerfectStreak } from "../../application/services/sound";
 import { speakText, stopSpeech } from "../../application/services/speech";
@@ -45,6 +45,16 @@ import EjercicioRenderer from "../components/ui/exercises/EjercicioRenderer";
 import CronometroEjercicio from "../components/ui/exercises/CronometroEjercicio";
 import { TutorialContextual } from "../components/ui/OnboardingTutorial";
 
+function describirRespuesta(respuesta) {
+  if (respuesta == null) return "sin respuesta";
+  if (typeof respuesta !== "object") return String(respuesta);
+  if (Array.isArray(respuesta)) return respuesta.join(", ");
+  if (Object.hasOwn(respuesta, "respuesta")) {
+    return describirRespuesta(respuesta.respuesta);
+  }
+  return JSON.stringify(respuesta);
+}
+
 export default function Ejercicio() {
   const { leccionId } = useParams();
   const navigate      = useNavigate();
@@ -55,11 +65,13 @@ export default function Ejercicio() {
   const [ejercicios, setEjercicios]                 = useState([]);
   const [loading, setLoading]                       = useState(true);
   const [activeIndex, setActiveIndex]               = useState(0);
+  const [attempt, setAttempt]                       = useState(0);
   const [resultadoActual, setResultadoActual]       = useState(null);
   const [avanzando, setAvanzando]                   = useState(false);
   const [isFeedbackSpeaking, setIsFeedbackSpeaking] = useState(false);
   const [rachaAciertos, setRachaAciertos]           = useState(0);
   const feedbackRequestIdRef                        = useRef(0);
+  const evaluarRef                                  = useRef(null);
 
   const currentExercise = ejercicios[activeIndex];
 
@@ -71,15 +83,12 @@ export default function Ejercicio() {
   // reinicie por referencia nueva en cada render.
   const onAgotado = useCallback(() => {
     if (!currentExercise) return;
-    evaluar(currentExercise, {
+    evaluarRef.current?.(currentExercise, {
       respuesta:  { respuesta: "__tiempo_agotado__" },
       correcta:   false,
       puntuacion: 0,
     });
-    // evaluar se define abajo con useRef para evitar la dependencia circular
-    // (evaluar necesita currentExercise, el timer necesita evaluar).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentExercise?.id]);
+  }, [currentExercise]);
 
   const { segundosRestantes, porcentaje, enAlerta, reiniciar } = useEjercicioTimer(
     currentExercise?.tipo || "quiz",
@@ -95,38 +104,41 @@ export default function Ejercicio() {
   // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => () => stopSpeech(), []);
-  useEffect(() => { obtenerDatos(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const obtenerDatos = async () => {
-    try {
-      const leccionResponse  = await fetch(apiUrl(`/lecciones/${leccionId}`));
-      const leccionData      = await leccionResponse.json();
-      setLeccion(leccionData);
+  useEffect(() => {
+    let cancelado = false;
 
-      const ejerciciosResponse = await fetch(apiUrl(`/ejercicios/leccion/${leccionId}`));
-      const ejerciciosData     = await ejerciciosResponse.json();
-      setEjercicios(ejerciciosData);
+    const obtenerDatos = async () => {
+      try {
+        const leccionResponse = await fetch(apiUrl(`/lecciones/${leccionId}`));
+        const leccionData = await leccionResponse.json();
+        if (cancelado) return;
+        setLeccion(leccionData);
 
-      const completados        = new Set(getCompletedExerciseIds(leccionId));
-      const siguientePendiente = ejerciciosData.findIndex(
-        (ex) => !completados.has(String(ex.id))
-      );
+        const ejerciciosResponse = await fetch(apiUrl(`/ejercicios/leccion/${leccionId}`));
+        const ejerciciosData = await ejerciciosResponse.json();
+        if (cancelado) return;
+        setEjercicios(ejerciciosData);
 
-      // Si la lección ya estaba completada, permitir repasar desde el inicio
-      // en vez de redirigir automáticamente y bloquear los ejercicios.
-      setActiveIndex(siguientePendiente === -1 ? 0 : siguientePendiente);
-    } catch (error) {
-      console.error("Error obteniendo ejercicios:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const completados = new Set(getCompletedExerciseIds(leccionId));
+        const siguientePendiente = ejerciciosData.findIndex(
+          (ex) => !completados.has(String(ex.id))
+        );
 
-  // Usamos ref para que onAgotado pueda llamar a evaluar sin crear
-  // una dependencia circular en useCallback.
-  const evaluarRef = useRef(null);
+        // Si la lección ya estaba completada, permitir repasar desde el inicio.
+        setActiveIndex(siguientePendiente === -1 ? 0 : siguientePendiente);
+      } catch (error) {
+        if (!cancelado) console.error("Error obteniendo ejercicios:", error);
+      } finally {
+        if (!cancelado) setLoading(false);
+      }
+    };
 
-  const evaluar = async (exercise, payload) => {
+    obtenerDatos();
+    return () => { cancelado = true; };
+  }, [leccionId]);
+
+  const evaluar = useCallback(async (exercise, payload) => {
     const feedbackRequestId = ++feedbackRequestIdRef.current;
 
     setAvanzando(true);
@@ -138,11 +150,9 @@ export default function Ejercicio() {
 
     if (preferences.soundEnabled) {
       if (payload.correcta) {
-        setRachaAciertos((racha) => {
-          const nuevaRacha = racha + 1;
-          nuevaRacha >= 3 ? playPerfectStreak() : playSuccess();
-          return nuevaRacha;
-        });
+        const nuevaRacha = rachaAciertos + 1;
+        setRachaAciertos(nuevaRacha);
+        nuevaRacha >= 3 ? playPerfectStreak() : playSuccess();
       } else {
         setRachaAciertos(0);
         playError();
@@ -185,20 +195,24 @@ export default function Ejercicio() {
       });
     } catch (error) {
       console.error("Error generando feedback:", error);
+      const respuestaCorrecta = describirRespuesta(
+        exercise.respuesta_correcta ?? "no especificada"
+      );
+      const respuestaEnviada = describirRespuesta(payload.respuesta);
       const fallback = payload.correcta
-        ? "Correcto. Repite el ejercicio para consolidar el aprendizaje."
-        : "Respuesta por mejorar. Revisa el concepto y vuelve a intentarlo con calma.";
+        ? `¡Correcto! Tu respuesta (${respuestaEnviada}) coincide con la respuesta esperada (${respuestaCorrecta}). El ejercicio trabaja este concepto: ${exercise.pregunta || exercise.tipo}. Repítelo una vez más y fíjate en qué dato te permitió reconocer la respuesta.`
+        : `La respuesta correcta es ${respuestaCorrecta}; tu respuesta fue ${respuestaEnviada}. El ejercicio trata sobre: ${exercise.pregunta || exercise.tipo}. Vuelve a leer la consigna y compara la respuesta esperada con las opciones antes de intentarlo otra vez.`;
 
       setResultadoActual((cur) => {
         if (!cur || cur.feedbackRequestId !== feedbackRequestId) return cur;
         return { ...cur, feedback: fallback };
       });
     }
-  };
+  }, [leccionId, preferences.soundEnabled, rachaAciertos, usuarioDB]);
 
-  // Mantener la ref sincronizada para que onAgotado siempre llame a la
-  // versión más reciente de evaluar.
-  evaluarRef.current = evaluar;
+  useEffect(() => {
+    evaluarRef.current = evaluar;
+  }, [evaluar]);
 
   const toggleFeedbackSpeech = () => {
     if (!resultadoActual?.feedback || !preferences.ttsEnabled) return;
@@ -328,6 +342,7 @@ export default function Ejercicio() {
               {/* ── ÁREA DE RESPUESTAS ────────────────────────────────── */}
               <div id="exercise-options">
                 <EjercicioRenderer
+                  key={`${currentExercise.id}-${attempt}`}
                   exercise={currentExercise}
                   disabled={avanzando || !!resultadoActual}
                   moduloSlug={leccion.modulo_slug}
@@ -396,6 +411,7 @@ export default function Ejercicio() {
                             stopSpeech();
                             setIsFeedbackSpeaking(false);
                             setResultadoActual(null);
+                            setAttempt((current) => current + 1);
                             reiniciar(); // ← reinicia el timer al volver a intentar
                           }}
                           className="bg-brand-pink text-white px-4 py-2 rounded-lg text-sm font-bold"

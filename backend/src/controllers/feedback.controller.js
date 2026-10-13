@@ -61,7 +61,8 @@ export async function generarFeedbackEjercicio(req, res) {
           })
         }
       ],
-      temperature: 0.4
+      temperature: 0.4,
+      max_tokens: 350
     });
 
     return res.json({

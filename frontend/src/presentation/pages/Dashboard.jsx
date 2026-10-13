@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../application/context/AuthContext";
-import { usePreferences } from "../../application/context/PreferencesContext";
+import { usePreferences } from "../../application/context/usePreferences";
 import { obtenerDashboard } from "../../application/services/progress";
 import OnboardingTutorial, { TutorialContextual } from "../components/ui/OnboardingTutorial";
 

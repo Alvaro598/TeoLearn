@@ -8,8 +8,7 @@ import { lazy, Suspense } from "react";
 
 import { AuthProvider }
 from "../../application/context/AuthContext";
-import { PreferencesProvider }
-from "../../application/context/PreferencesContext";
+import { PreferencesProvider } from "../../application/context/PreferencesContext.jsx";
 
 import PrivateRoute
 from "./PrivateRoute";
@@ -29,7 +28,6 @@ const Lecciones = lazy(() => import("../pages/Lecciones"));
 const DetalleLeccion = lazy(() => import("../pages/DetalleLeccion"));
 const Ejercicio = lazy(() => import("../pages/Ejercicio"));
 const Resultado = lazy(() => import("../pages/Resultado"));
-const Generalidades = lazy(() => import("../pages/Generalidades"));
 const ChatTutor = lazy(() => import("../pages/ChatTutor"));
 const Perfil = lazy(() => import("../pages/Perfil"));
 const ConfirmarCerrarSesion = lazy(() => import("../pages/ConfirmarCerrarSesion"));
@@ -111,14 +109,7 @@ export default function AppRouter() {
               }
             />
 
-            <Route
-              path="/generalidades"
-              element={
-                <PrivateRoute>
-                  <Generalidades />
-                </PrivateRoute>
-              }
-            />
+          
 
             <Route
               path="/chat"

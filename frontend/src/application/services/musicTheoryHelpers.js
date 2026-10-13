@@ -15,6 +15,54 @@ export const GRADO_A_SEMITONOS_MAYOR = {
 };
 
 const CROMATICA = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const NOTAS_ENARMONICAS = {
+  "C#": "Db", "D#": "Eb", "F#": "Gb", "G#": "Ab", "A#": "Bb",
+};
+
+export function alturaNotaMidi(nota) {
+  const match = nota.match(/^([A-G])([#b]?)(\d)$/);
+  if (!match) return null;
+  const [, letra, alteracion, octava] = match;
+  const nombre = `${letra}${alteracion}`;
+  const equivalenciasBemol = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#" };
+  const indice = CROMATICA.indexOf(equivalenciasBemol[nombre] || nombre);
+  return indice < 0 ? null : Number(octava) * 12 + indice;
+}
+
+export function notasCromaticasEnRango(notas = []) {
+  const alturas = notas.map(alturaNotaMidi).filter((altura) => altura !== null);
+  if (!alturas.length) return [];
+  const minimo = Math.min(...alturas);
+  const maximo = Math.max(...alturas);
+  return Array.from({ length: maximo - minimo + 1 }, (_, index) => {
+    const altura = minimo + index;
+    return `${CROMATICA[altura % 12]}${Math.floor(altura / 12)}`;
+  });
+}
+
+export function etiquetaNotaMidi(nota) {
+  const match = nota.match(/^([A-G]#)(\d)$/);
+  return match ? `${nota} / ${NOTAS_ENARMONICAS[match[1]]}${match[2]}` : nota;
+}
+
+export function compararNotasEnarmonicas(esperadas = [], recibidas = []) {
+  if (esperadas.length !== recibidas.length) return false;
+  return esperadas.every((nota, index) => {
+    const alturaEsperada = alturaNotaMidi(nota);
+    return alturaEsperada !== null && alturaEsperada === alturaNotaMidi(recibidas[index]);
+  });
+}
+
+export function compararStacksEnarmonicos(esperado = [], recibido = []) {
+  if (esperado.length !== recibido.length) return false;
+  return esperado.every((acorde, index) => {
+    const alturasEsperadas = acorde.map(alturaNotaMidi).sort((a, b) => a - b);
+    const alturasRecibidas = recibido[index].map(alturaNotaMidi).sort((a, b) => a - b);
+    return alturasEsperadas.length === alturasRecibidas.length && alturasEsperadas.every(
+      (altura, notaIndex) => altura !== null && altura === alturasRecibidas[notaIndex]
+    );
+  });
+}
 
 /** Devuelve el nombre de nota a `semitonos` de distancia de `tonica` (ej. "C4") */
 export function transportarNota(tonica, semitonos) {

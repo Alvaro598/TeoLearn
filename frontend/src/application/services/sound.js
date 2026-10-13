@@ -1,10 +1,7 @@
 let audioContext;
 let backgroundNodes;
 let backgroundTrackId = null;
-let metronomeInterval = null;
-let metronomeBeat     = 0;
-let metronomeEnabled  = false;
-
+let backgroundAudio = null;
 const METRONOME_STORAGE_KEY = "teolearn_metronome_bpm";
 
 // ─── Tabla de frecuencias ──────────────────────────────────────────────────────
@@ -174,6 +171,85 @@ export function playRhythm(pattern = [], bpm = 80) {
   });
 }
 
+export function playDrumPattern(pattern = [], bpm = 80, beatUnit = 1) {
+  const ctx = getContext();
+  if (ctx.state === "suspended") ctx.resume();
+  const beat = 60 / bpm;
+  const startAt = ctx.currentTime + 0.05;
+
+  pattern.forEach(({ instrumento = "snare", paso, beatOffset }) => {
+    const time = startAt + (beatOffset ?? (paso - 1)) * beat * beatUnit;
+    if (/kick|bombo/i.test(instrumento)) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150, time);
+      osc.frequency.exponentialRampToValueAtTime(48, time + 0.13);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(0.9, time + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.32);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(time);
+      osc.stop(time + 0.34);
+      return;
+    }
+
+    if (/hihat|hat/i.test(instrumento)) {
+      const length = Math.floor(ctx.sampleRate * 0.08);
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+      const noise = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      noise.buffer = buffer;
+      filter.type = "highpass";
+      filter.frequency.value = 6500;
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(0.12, time + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.065);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start(time);
+      noise.stop(time + 0.07);
+      return;
+    }
+
+    const length = Math.floor(ctx.sampleRate * 0.22);
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    noise.buffer = buffer;
+    filter.type = "highpass";
+    filter.frequency.value = 1400;
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(0.48, time + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.19);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(time);
+    noise.stop(time + 0.2);
+
+    const body = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    body.type = "triangle";
+    body.frequency.setValueAtTime(190, time);
+    body.frequency.exponentialRampToValueAtTime(110, time + 0.08);
+    bodyGain.gain.setValueAtTime(0.22, time);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+    body.connect(bodyGain);
+    bodyGain.connect(ctx.destination);
+    body.start(time);
+    body.stop(time + 0.13);
+  });
+}
+
 /* ═══════════════════════════════════════════════════════
    RETROALIMENTACIÓN EXPRESIVA (éxito / error / rachas / nivel)
 ═══════════════════════════════════════════════════════ */
@@ -309,7 +385,7 @@ export function isMetronomeRunning() { return false; }
 export const BACKGROUND_TRACKS = [
   { id: "ambient", label: "Ambiente suave",   description: "Pad cálido y envolvente. Ideal para lectura teórica." },
   { id: "focus",   label: "Enfoque profundo", description: "Drone grave y estable. Ideal para ejercicios MIDI/auditivos." },
-  { id: "lofi",    label: "Lo-fi relajado",   description: "Pulso suave con aire urbano. Ideal para sesiones largas." },
+  { id: "lofi",    label: "Lo-fi relajado",   description: "Sleepy Cat — Alejandro Magaña (Mixkit). Chill lo-fi para estudiar." },
   { id: "piano",   label: "Piano de estudio", description: "Arpegios lentos tipo piano. Ideal para repaso de teoría." },
 ];
 
@@ -353,31 +429,16 @@ function buildFocusDrone(ctx, master) {
   return [osc1, osc2];
 }
 
-function buildLofiPulse(ctx, master) {
-  // Pad suave + un "pulso" rítmico lento y discreto en el filtro de volumen,
-  // simulando la sensación lo-fi sin samples externos.
-  const osc  = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const lfo  = ctx.createOscillator();
-  const lfoGain = ctx.createGain();
-
-  osc.type = "triangle";
-  osc.frequency.value = 220; // A3
-  gain.gain.value = 0.02;
-
-  lfo.type = "sine";
-  lfo.frequency.value = 0.5; // pulso lento (~1 ciclo cada 2s)
-  lfoGain.gain.value = 0.01;
-
-  lfo.connect(lfoGain);
-  lfoGain.connect(gain.gain);
-  osc.connect(gain);
-  gain.connect(master);
-
-  osc.start();
-  lfo.start();
-
-  return [osc, lfo];
+function startLofiTrack() {
+  // Sleepy Cat by Alejandro Magaña, Mixkit Stock Music Free License.
+  const audio = new Audio("https://assets.mixkit.co/music/preview/mixkit-sleepy-cat-135.mp3");
+  audio.loop = true;
+  audio.volume = 0.28;
+  backgroundAudio = audio;
+  backgroundTrackId = "lofi";
+  audio.play().catch(() => {
+    // Los navegadores pueden bloquear audio automático hasta la primera interacción.
+  });
 }
 
 function buildPianoArpeggio(ctx, master) {
@@ -423,10 +484,15 @@ export function startBackgroundMusic(trackId = "ambient") {
   const id = BACKGROUND_TRACK_IDS.includes(trackId) ? trackId : "ambient";
 
   // Si ya está sonando la misma pista, no reiniciar (evita "clics")
-  if (backgroundNodes && backgroundTrackId === id) return;
+  if (backgroundTrackId === id && (backgroundNodes || backgroundAudio)) return;
 
   // Si hay otra pista sonando, detenerla primero
-  if (backgroundNodes) stopBackgroundMusic();
+  if (backgroundNodes || backgroundAudio) stopBackgroundMusic();
+
+  if (id === "lofi") {
+    startLofiTrack();
+    return;
+  }
 
   const ctx    = getContext();
   const master = ctx.createGain();
@@ -436,9 +502,6 @@ export function startBackgroundMusic(trackId = "ambient") {
   switch (id) {
     case "focus":
       builderResult = { oscillators: buildFocusDrone(ctx, master) };
-      break;
-    case "lofi":
-      builderResult = { oscillators: buildLofiPulse(ctx, master) };
       break;
     case "piano":
       builderResult = buildPianoArpeggio(ctx, master);
@@ -454,6 +517,11 @@ export function startBackgroundMusic(trackId = "ambient") {
 }
 
 export function stopBackgroundMusic() {
+  if (backgroundAudio) {
+    backgroundAudio.pause();
+    backgroundAudio.currentTime = 0;
+    backgroundAudio = null;
+  }
   if (!backgroundNodes) return;
   backgroundNodes.stop?.();
   backgroundNodes.oscillators?.forEach((o) => { try { o.stop(); } catch { /* ya detenido */ } });

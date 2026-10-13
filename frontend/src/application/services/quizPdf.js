@@ -49,6 +49,7 @@ export function generarPDF({ moduloSlug, preguntas, respuestas, nombreUsuario })
         <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${respuestas[p.id] || "-"}</td>
         <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${p.respuesta}</td>
         <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-weight:bold;color:${correcto ? "#16a34a" : "#dc2626"}">${correcto ? "OK" : "X"}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${p.explicacion || ""}</td>
       </tr>`;
   }).join("");
 
@@ -78,7 +79,7 @@ export function generarPDF({ moduloSlug, preguntas, respuestas, nombreUsuario })
 <body>
   <div class="header">
     <div>
-      <div class="brand">TeoLearn - Prueba de usabilidad</div>
+      <div class="brand">TeoLearn - Evaluación musical</div>
       <h1>Quiz de evaluación: ${modulo}</h1>
       <h2>${nombreUsuario || "Estudiante"} · ${fecha}</h2>
     </div>
@@ -111,13 +112,14 @@ export function generarPDF({ moduloSlug, preguntas, respuestas, nombreUsuario })
         <th>Respuesta del estudiante</th>
         <th>Respuesta correcta</th>
         <th>Resultado</th>
+        <th>Explicación</th>
       </tr>
     </thead>
     <tbody>${filas}</tbody>
   </table>
 
   <div class="footer">
-    Generado por TeoLearn · Módulo: ${modulo} · ${fecha} · Este documento es para uso exclusivo de pruebas de usabilidad.
+    Generado por TeoLearn · Módulo: ${modulo} · ${fecha}
   </div>
 
   <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { usePreferences } from "../../../application/context/PreferencesContext";
+import { usePreferences } from "../../../application/context/usePreferences";
 import { useNavigate } from "react-router-dom";
+import { PAGE_TUTORIALS } from "./pageTutorials";
 import {
   BookOpen,
   Music,
@@ -140,48 +141,6 @@ const ONBOARDING_STEPS = [
     },
   },
 ];
-
-// ─── Tutoriales contextuales por página ──────────────────────────────────────
-export const PAGE_TUTORIALS = {
-  dashboard: [
-    {
-      target: "stats-nivel",
-      texto:
-        "Aquí ves tu nivel actual y cuánto XP te falta para el siguiente.",
-      posicion: "bottom",
-    },
-    {
-      target: "categorias",
-      texto:
-        "Elige un módulo para comenzar. Te recomendamos empezar por Ritmo.",
-      posicion: "top",
-    },
-  ],
-
-  ejercicio: [
-    {
-      target: "ejercicio-header",
-      texto:
-        "Cada ejercicio tiene un tiempo límite. Cuando el cronómetro llega a cero se registra como tiempo agotado.",
-      posicion: "bottom",
-    },
-    {
-      target: "exercise-options",
-      texto:
-        "Selecciona tu respuesta antes de que se acabe el tiempo.",
-      posicion: "top",
-    },
-  ],
-
-  unidades: [
-    {
-      target: "unidades-grid",
-      texto:
-        "Completa todas las lecciones de una unidad para desbloquear la siguiente.",
-      posicion: "bottom",
-    },
-  ],
-};
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function OnboardingTutorial() {
