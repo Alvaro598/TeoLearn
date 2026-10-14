@@ -1,4 +1,4 @@
-import { useAuth } from "../../../application/context/AuthContext";
+import { useAuth } from "../../../application/context/useAuth";
 import { usePreferences } from "../../../application/context/usePreferences";
 
 export default function UserAvatar({ size = "md" }) {

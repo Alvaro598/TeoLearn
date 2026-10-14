@@ -25,7 +25,11 @@ const TECNICA_TITULOS = {
 
 export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }) {
   const contenido    = exercise.contenido || {};
-  const notasDisponibles = contenido.notasDisponibles || NOTAS_DEFECTO;
+  const notasObjetivo = exercise.respuesta_correcta?.notas || [];
+  const notasDisponibles = Array.from(new Set([
+    ...(contenido.notasDisponibles || NOTAS_DEFECTO),
+    ...notasObjetivo,
+  ]));
   const noteRows = notasCromaticasEnRango(notasDisponibles)
     .sort((a, b) => alturaNotaMidi(b) - alturaNotaMidi(a));
   const columns        = contenido.columnas || 8;

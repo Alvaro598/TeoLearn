@@ -28,7 +28,7 @@ import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
-import { useAuth } from "../../application/context/AuthContext";
+import { useAuth } from "../../application/context/useAuth";
 import { usePreferences } from "../../application/context/usePreferences";
 import { solicitarFeedbackIA } from "../../application/services/feedbackIA";
 import { playError, playSuccess, playPerfectStreak } from "../../application/services/sound";
@@ -39,6 +39,7 @@ import {
   markExerciseCompletedLocal,
   guardarIntento,
   guardarLeccionCompletada,
+  obtenerEjerciciosCompletados,
   registerLessonAttemptLocal,
 } from "../../application/services/progress";
 import EjercicioRenderer from "../components/ui/exercises/EjercicioRenderer";
@@ -120,7 +121,13 @@ export default function Ejercicio() {
         if (cancelado) return;
         setEjercicios(ejerciciosData);
 
-        const completados = new Set(getCompletedExerciseIds(leccionId));
+        const completadosEnServidor = usuarioDB?.id
+          ? await obtenerEjerciciosCompletados(usuarioDB.id, leccionId).catch(() => [])
+          : [];
+        const completados = new Set([
+          ...getCompletedExerciseIds(leccionId),
+          ...completadosEnServidor,
+        ]);
         const siguientePendiente = ejerciciosData.findIndex(
           (ex) => !completados.has(String(ex.id))
         );
@@ -136,7 +143,7 @@ export default function Ejercicio() {
 
     obtenerDatos();
     return () => { cancelado = true; };
-  }, [leccionId]);
+  }, [leccionId, usuarioDB?.id]);
 
   const evaluar = useCallback(async (exercise, payload) => {
     const feedbackRequestId = ++feedbackRequestIdRef.current;

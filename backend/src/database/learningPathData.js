@@ -61,6 +61,13 @@ function notaASemitonos(nota = "C4") {
   return CROMATICA.indexOf(letra) + Number(octavaStr) * 12;
 }
 
+function notasDisponiblesParaMelodia(notas = []) {
+  const base = ["C5", "B4", "A4", "G4", "F4", "E4", "D4", "C4"];
+  return Array.from(new Set([...base, ...notas])).sort(
+    (a, b) => notaASemitonos(b) - notaASemitonos(a)
+  );
+}
+
 function calidadDeAcorde(acorde = []) {
   const [raiz, tercera, quinta] = acorde;
   const semisTercera = ((notaASemitonos(tercera) - notaASemitonos(raiz)) % 12 + 12) % 12;
@@ -130,8 +137,7 @@ function gradoDiatonico(tonica, nota) {
   return String(mejorGrado);
 }
 
-// Cada escucha declara el concepto, la referencia sonora y la respuesta; no se
-// alternan plantillas auditivas ajenas al contenido de la lección.
+
 const AUDIO_PRACTICAS = {
   "Pulso": [
     { pregunta: "Escucha A y B: ¿cuál mantiene pulsos a intervalos iguales?", subtipo: "secuencia-rítmica", referencia: "Un pulso estable mantiene la misma distancia entre golpes; el timbre no cambia la respuesta.", ejemplos: [{ id: "A", bpm: 80, golpes: [{ beat: 0 }, { beat: 1 }, { beat: 2 }, { beat: 3 }, { beat: 4 }] }, { id: "B", bpm: 80, golpes: [{ beat: 0 }, { beat: 1 }, { beat: 2.35 }, { beat: 3.6 }, { beat: 4.6 }] }], opciones: ["A", "B"], respuesta: "A" },
@@ -165,21 +171,24 @@ const AUDIO_PRACTICAS = {
     { pregunta: "Después de escuchar la referencia, identifica la nota del sonido objetivo.", subtipo: "nota-individual", referencia: "Usa esta secuencia de notas como referencia: Do4-Re4-Mi4-Fa4. Luego escucha el sonido objetivo.", nota: "E4", referenciaNotas: ["C4", "D4", "E4", "F4"], opciones: ["C4", "D4", "E4", "G4"], respuesta: "E4" },
     { pregunta: "¿La secuencia sube o baja de altura?", subtipo: "direccion-melodica", referencia: "Escucha la primera y la última nota; aquí interesa la dirección del contorno.", notas: ["C4", "E4", "G4", "C5"], opciones: ["Sube", "Baja", "Se mantiene igual"], respuesta: "Sube" },
   ],
+  "Altura musical: graves y agudos": [
+    { pregunta: "Escucha los dos sonidos. ¿Cuál es más agudo?", subtipo: "comparar-alturas", referencia: "Escucha ambos sonidos en orden y compara su altura.", notas: ["C4", "G4"], opciones: ["El primero", "El segundo"], respuesta: "El segundo" },
+    { pregunta: "Escucha la secuencia Do → Re → Mi. ¿La melodía está ascendiendo o descendiendo?", subtipo: "direccion-melodica", referencia: "Compara la altura de cada nota con la anterior.", notas: ["C4", "D4", "E4"], opciones: ["Ascendiendo", "Descendiendo", "Mantiene la misma altura"], respuesta: "Ascendiendo" },
+    { pregunta: "Escucha la secuencia Sol → Fa → Mi. ¿La melodía está ascendiendo o descendiendo?", subtipo: "direccion-melodica", referencia: "Compara la altura de cada nota con la anterior.", notas: ["G4", "F4", "E4"], opciones: ["Ascendiendo", "Descendiendo", "Mantiene la misma altura"], respuesta: "Descendiendo" },
+    { pregunta: "Escucha los dos Do. ¿Qué ocurre?", subtipo: "comparar-alturas", referencia: "Las dos notas comparten el mismo nombre, pero están en registros distintos.", notas: ["C4", "C5"], opciones: ["Son la misma nota en diferentes alturas", "Son notas con nombres diferentes", "El segundo es un Re", "El primero es un Si"], respuesta: "Son la misma nota en diferentes alturas" },
+  ],
   "Sistema anglosajón y alteraciones": [
     { pregunta: "Con Fa natural como referencia, identifica el sonido elevado un semitono.", subtipo: "nota-individual", referencia: "Fa sostenido está un semitono por encima de Fa natural.", nota: "F#4", notaReferencia: "F4", opciones: ["F4", "F#4", "G4", "E4"], respuesta: "F#4" },
     { pregunta: "Con Mi natural como referencia, identifica el sonido bajado un semitono.", subtipo: "nota-individual", referencia: "Mi bemol está un semitono por debajo de Mi natural.", nota: "D#4", notaReferencia: "E4", opciones: ["D4", "D#4", "E4", "F4"], respuesta: "D#4" },
   ],
-  "Pentagrama y clave de Sol": [
-    { pregunta: "Con Sol4 como ancla, identifica el sonido de Mi4, en la línea inferior.", subtipo: "nota-individual", referencia: "La segunda línea desde abajo es Sol4; Mi4 está en la primera línea del pentagrama.", nota: "E4", notaReferencia: "G4", opciones: ["E4", "G4", "B4", "D5"], respuesta: "E4" },
-    { pregunta: "Escucha E4, G4 y B4: ¿cuál aparece en segundo lugar?", subtipo: "nota-en-secuencia", referencia: "Las líneas de la clave de Sol, de abajo hacia arriba, son Mi4, Sol4, Si4, Re5 y Fa5.", notas: ["E4", "G4", "B4"], opciones: ["E4", "G4", "B4", "D5"], respuesta: "G4" },
-  ],
+ 
   "Intervalos": [
     { pregunta: "¿Qué intervalo oyes entre Do4 y Sol4?", subtipo: "intervalo", referencia: "Compara la distancia desde la nota inicial; la quinta es un salto más amplio que la segunda.", notas: ["C4", "G4"], opciones: ["2ª", "3ª", "5ª", "8ª"], respuesta: "5ª" },
     { pregunta: "¿Cuál de estas distancias es una tercera mayor desde Do4?", subtipo: "intervalo", referencia: "Escucha Do4 seguido de Mi4 y compara ese salto con las opciones.", notas: ["C4", "E4"], opciones: ["2ª", "3ª mayor", "4ª", "5ª"], respuesta: "3ª mayor" },
   ],
   "Escala mayor": [
     { pregunta: "Compara A y B: ¿cuál sigue la fórmula de la escala mayor?", subtipo: "comparar-escalas", referencia: "Escucha el patrón de tonos y semitonos; en Do mayor, los semitonos quedan entre Mi-Fa y Si-Do.", ejemplos: [{ id: "A", notas: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"] }, { id: "B", notas: ["C4", "D4", "D#4", "F4", "G4", "G#4", "A#4", "C5"] }], opciones: ["A", "B"], respuesta: "A" },
-    { pregunta: "En Do mayor, ¿qué pareja de notas queda separada por un semitono al final de la escala?", subtipo: "intervalo", referencia: "La sensible Si tiende a resolver en Do, que cierra la escala.", notas: ["B4", "C5"], opciones: ["Tono", "Semitono", "Tercera", "Quinta"], respuesta: "Semitono" },
+    { tipo: "quiz", pregunta: "En Do mayor, ¿qué pareja de notas queda separada por un semitono al final de la escala?", opciones: ["Si4-Do5", "La4-Si4", "Sol4-La4", "Fa4-Sol4"], respuesta: "Si4-Do5" },
   ],
   "Escala menor": [
     { pregunta: "Compara las escalas A y B desde La: ¿cuál es menor natural?", subtipo: "comparar-escalas", referencia: "La menor natural usa la fórmula tono-semitono-tono-tono-semitono-tono-tono.", ejemplos: [{ id: "A", notas: ["A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5"] }, { id: "B", notas: ["A4", "B4", "C#5", "D5", "E5", "F#5", "G#5", "A5"] }], opciones: ["A", "B"], respuesta: "A" },
@@ -197,10 +206,6 @@ const AUDIO_PRACTICAS = {
     { pregunta: "¿Qué progresión termina con una resolución de dominante a tónica?", subtipo: "comparar-progresiones", referencia: "La dominante crea tensión y la tónica ofrece reposo; escucha el acorde final de cada secuencia.", ejemplos: [{ id: "A", acordes: [["G4", "B4", "D5"], ["C4", "E4", "G4"]] }, { id: "B", acordes: [["C4", "E4", "G4"], ["F4", "A4", "C5"]] }], opciones: ["A", "B"], respuesta: "A" },
     { pregunta: "En C mayor, ¿qué función tiene el acorde final G-B-D?", subtipo: "comparar-acordes", referencia: "La referencia de tónica es C-E-G; compárala con G-B-D, el acorde que crea tensión antes del regreso.", ejemplos: [{ id: "A", notas: ["C4", "E4", "G4"] }, { id: "B", notas: ["G4", "B4", "D5"] }], opciones: ["A: tónica / reposo", "B: dominante / tensión"], respuesta: "B: dominante / tensión" },
   ],
-  "Cadencias": [
-    { pregunta: "¿Cuál ejemplo resuelve la tensión y termina en reposo?", subtipo: "comparar-progresiones", referencia: "Una cadencia auténtica va de V a I; una semicadencia termina en V y queda abierta.", ejemplos: [{ id: "A", acordes: [["G4", "B4", "D5"], ["C4", "E4", "G4"]] }, { id: "B", acordes: [["C4", "E4", "G4"], ["G4", "B4", "D5"]] }], opciones: ["A", "B"], respuesta: "A" },
-    { pregunta: "¿Qué cadencia oyes en el ejemplo F-C?", subtipo: "progresion-comun", referencia: "La cadencia plagal mueve IV-I; escucha el ejemplo F mayor-C mayor.", progresion: [["F4", "A4", "C5"], ["C4", "E4", "G4"]], opciones: ["Plagal (IV-I)", "Auténtica (V-I)", "Semicadencia (termina en V)"], respuesta: "Plagal (IV-I)" },
-  ],
   "Progresiones armónicas": [
     { pregunta: "Escucha la secuencia C-G-Am-F: ¿qué progresión representa?", subtipo: "progresion-comun", referencia: "En Do mayor, I-V-vi-IV equivale a Do-Sol-La menor-Fa.", progresion: [["C4", "E4", "G4"], ["G4", "B4", "D5"], ["A4", "C5", "E5"], ["F4", "A4", "C5"]], opciones: ["I-V-vi-IV", "I-IV-V-I", "ii-V-I"], respuesta: "I-V-vi-IV" },
     { pregunta: "¿Qué progresión vuelve al acorde de reposo después de pasar por IV y V?", subtipo: "progresion-comun", referencia: "Escucha C-F-G-C y sigue la tensión de Sol de vuelta al reposo en Do.", progresion: [["C4", "E4", "G4"], ["F4", "A4", "C5"], ["G4", "B4", "D5"], ["C4", "E4", "G4"]], opciones: ["I-IV-V-I", "I-V-vi-IV", "ii-V-I"], respuesta: "I-IV-V-I" },
@@ -212,6 +217,9 @@ const AUDIO_PRACTICAS = {
 function audio(order, title, slot, categoria, points = 15) {
   const practica = AUDIO_PRACTICAS[title]?.[slot];
   if (!practica) throw new Error(`Falta una práctica auditiva específica para ${title} (${slot + 1}).`);
+  if (practica.tipo === "quiz") {
+    return quiz(order, practica.pregunta, practica.opciones, practica.respuesta, points);
+  }
   const { pregunta, respuesta, ...contenido } = practica;
   return {
     tipo: "auditivo",
@@ -313,7 +321,7 @@ function midi(order, def, categoria = "melodia", variante = 0, points = 20) {
       contenido: {
         categoria: "melodia",
         tecnica,
-        notasDisponibles: ["C5", "B4", "A4", "G4", "F4", "E4", "D4", "C4"],
+        notasDisponibles: notasDisponiblesParaMelodia(def.notas),
         columnas: def.notas.length,
         pista,
         instrucciones: `${def.pregunta} La primera parte (pregunta) ya está dada; completa la respuesta.`,
@@ -330,7 +338,7 @@ function midi(order, def, categoria = "melodia", variante = 0, points = 20) {
     contenido: {
       categoria: "melodia",
       tecnica: "motivo-variacion",
-      notasDisponibles: ["C5", "B4", "A4", "G4", "F4", "E4", "D4", "C4"],
+      notasDisponibles: notasDisponiblesParaMelodia(def.notas),
       columnas: Math.max(def.notas.length, 4),
       pista: [],
       instrucciones: def.pregunta,
@@ -347,6 +355,16 @@ function midi(order, def, categoria = "melodia", variante = 0, points = 20) {
  *  5. MIDI replicar · 6. MIDI crear · 7. quiz de síntesis
  */
 function ejercicios7(def, categoria = "melodia", variante = 0, title = "", base = 1) {
+  const practicasAuditivas = AUDIO_PRACTICAS[title] || [];
+  if (practicasAuditivas.length > 2) {
+    return [
+      quiz(base, def.q3.pregunta, def.q3.opciones, def.q3.respuesta, 15),
+      ...practicasAuditivas.map((_, slot) => audio(base + slot + 1, title, slot, categoria)),
+      midi(base + 5, def.m1, categoria, variante),
+      midi(base + 6, def.m2, categoria, variante + 1),
+    ];
+  }
+
   return [
     quiz(base, def.q1.pregunta, def.q1.opciones, def.q1.respuesta),
     quiz(base + 1, def.q2.pregunta, def.q2.opciones, def.q2.respuesta),
@@ -402,7 +420,7 @@ const ritmo_u1 = [
     xp: 70,
     ejercicios: {
       q1: { pregunta: "¿Qué describe mejor el pulso musical?", opciones: ["Un tiempo constante e igual", "La distribución de sonidos y silencios", "La velocidad de los pulsos", "La división de un pulso en partes"], respuesta: "Un tiempo constante e igual" },
-      q2: { pregunta: "¿Qué describe el pulso?", opciones: ["Un latido regular para orientarse", "La combinación de sonidos y silencios", "La velocidad general del latido", "La agrupación de pulsos en compases"], respuesta: "Un latido regular para orientarse" },
+      q2: { pregunta: "¿Qué concepto describe mejor el pulso?", opciones: ["Un latido regular para orientarse", "La combinación de sonidos y silencios", "La velocidad general del latido", "La agrupación de pulsos en compases"], respuesta: "Un latido regular para orientarse" },
       m1: { instrucciones: "Coloca un golpe de bombo en cada uno de los 4 tiempos del compás.", compas: 4, figura: "negra", tiempos: { kick: [1, 2, 3, 4], snare: [] }, tiemposFuertes: [1] },
       m2: { instrucciones: "Mantén el bombo en los cuatro pulsos aunque se oigan golpes de caja entre ellos.", compas: 4, figura: "negra", tiempos: { kick: [1, 2, 3, 4], snare: [2, 4] }, tiemposFuertes: [1] },
       q3: { pregunta: "Un músico que 'pierde el pulso' significa que:", opciones: ["Acelera o frena sin control", "Mantiene estable el espacio entre pulsos", "Agrupa correctamente los tiempos", "Subdivide cada pulso en partes iguales"], respuesta: "Acelera o frena sin control" },
@@ -427,7 +445,7 @@ const ritmo_u1 = [
       q1: { pregunta: "¿Qué significa 120 BPM?", opciones: ["120 pulsos por minuto", "120 notas por compás", "120 compases por hora", "120 decibeles"], respuesta: "120 pulsos por minuto" },
       q2: { pregunta: "Si repites cuatro negras a 60 BPM y luego a 100 BPM, ¿qué cambió?", opciones: ["La velocidad del pulso", "El orden de los golpes", "La cantidad de pulsos", "La subdivisión de cada pulso"], respuesta: "La velocidad del pulso" },
       m1: { instrucciones: "Mantén el mismo patrón de cuatro golpes y reprodúcelo primero a 60 BPM.", bpm: 60, compas: 4, figura: "negra", tiempos: { kick: [1, 2, 3, 4], snare: [] }, tiemposFuertes: [1] },
-      m2: { instrucciones: "Conserva los cuatro golpes en sus posiciones y sube el tempo a 100 BPM.", bpm: 100, compas: 4, figura: "negra", tiempos: { kick: [1, 2, 3, 4], snare: [] }, tiemposFuertes: [1] },
+      m2: { instrucciones: "Coloca los cuatro golpes del kick y sube el tempo a 100 BPM.", bpm: 100, compas: 4, figura: "negra", tiempos: { kick: [1, 2, 3, 4], snare: [] }, tiemposFuertes: [1] },
       q3: { pregunta: "¿Qué se conserva al aumentar el tempo de un patrón de cuatro negras?", opciones: ["El orden y la cantidad de golpes", "El espacio en segundos entre pulsos", "La cantidad de pulsos por minuto", "La duración total en segundos"], respuesta: "El orden y la cantidad de golpes" },
     },
   },
@@ -465,7 +483,7 @@ const ritmo_u1 = [
       { title: "Barras de compás", body: "La barra simple separa compases; la doble marca el final de una sección; la de repetición indica tocar de nuevo.", example: "| c1 | c2 || — |: sección A :| → tocar dos veces." },
     ],
     graphic: "4/4: ⬤ · ◉ · | ⬤ · ◉ · (⬤=fuerte, ◉=medio, ·=débil)",
-    video_url: "https://www.youtube.com/results?search_query=compas+musical+4/4+3/4+explicacion",
+    video_url: "https://www.youtube.com/embed/g-A_5znA8lw",
     xp: 70,
     ejercicios: {
       q1: { pregunta: "En un compás de 4/4, ¿cuántos tiempos hay?", opciones: ["4", "3", "2", "6"], respuesta: "4" },
@@ -682,7 +700,9 @@ const melodia_u1 = [
           "Mi → Re → Do → Si"
         ],
         respuesta: "Do → Re → Mi → Fa"
-      }
+      },
+      m1: { pregunta: "Construye una secuencia ascendente: Do4-Re4-Mi4-Fa4.", notas: ["C4", "D4", "E4", "F4"] },
+      m2: { pregunta: "Construye una secuencia descendente: Sol4-Fa4-Mi4-Do4.", notas: ["G4", "F4", "E4", "C4"] },
     },
   },
 ];
@@ -898,12 +918,12 @@ export const learningPath = [
   }, {
     slug: "armonia",
     titulo: "Armonía",
-    descripcion: "Tríadas, acordes mayores y menores, funciones tonales, cadencias y progresiones.",
+    descripcion: "Tríadas, acordes mayores y menores, funciones tonales y progresiones.",
     imagen: moduleImages.armonia,
     orden: 3,
     unidades: [
       unit("Acordes", "Tríadas y acordes mayores y menores.", 1, armonia_u1, "armonia"),
-      unit("Funciones tonales", "Tónica, subdominante, dominante, cadencias y progresiones.", 2, armonia_u2, "armonia"),
+      unit("Funciones tonales", "Tónica, subdominante, dominante y progresiones.", 2, armonia_u2, "armonia"),
     ],
   },
 ];

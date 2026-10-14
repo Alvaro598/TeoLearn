@@ -1,10 +1,9 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { onIdTokenChanged, signOut } from "firebase/auth";
 import { auth } from "../../infrastructure/config/firebase";
 import { apiUrl } from "../config/apiBase";
 import { authFetch, getAuthHeaders } from "../services/api";
-
-const AuthContext = createContext();
+import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }) {
   // firebaseUser  → objeto User de Firebase (o null)
@@ -98,14 +97,13 @@ export function AuthProvider({ children }) {
     await signOut(auth);
   };
 
-  // Retrocompatibilidad: la prop `usuario` sigue siendo el firebaseUser
-  // para no romper ningún componente que ya use useAuth().usuario
+
   return (
     <AuthContext.Provider
       value={{
-        // Prop de compatibilidad (igual que antes)
+        
         usuario: firebaseUser,
-        // Nuevas props
+       
         firebaseUser,
         usuarioDB,
         isAuthenticated: !!firebaseUser,
@@ -117,8 +115,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

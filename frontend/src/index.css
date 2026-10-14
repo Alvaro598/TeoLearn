@@ -313,3 +313,19 @@ html[data-theme="oscuro"] #boton-chatbot {
   background-color: #64748b !important;
   color: #f1f5f9 !important;
 }
+
+html[data-theme="oscuro"] #boton-reiniciar-tutorial {
+  background-color: #64748b !important;
+}
+
+html[data-theme="oscuro"] #botonlimpiar-chat-tutor {
+  background-color: #64748b !important;
+}
+
+html[data-theme="oscuro"] #boton-enviar-chat-tutor {
+  background-color: #64748b !important;
+}
+
+html[data-theme="oscuro"] #boton-ir-ejercicios {
+  background-color: #055ac2 !important;
+}

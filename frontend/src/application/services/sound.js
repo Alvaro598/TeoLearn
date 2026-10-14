@@ -36,20 +36,42 @@ function getContext() {
   return audioContext;
 }
 
-export function playTone(frequency = 440, duration = 0.35, type = "sine", volume = 0.12) {
+function scheduleMetronomeClick(ctx, time, accent) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "square";
+  osc.frequency.value = accent ? 1200 : 800;
+  gain.gain.setValueAtTime(0.08, time);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(time);
+  osc.stop(time + 0.05);
+}
+
+export function playTone(frequency = 440, duration = 0.35, type = "sine", volume = 0.12, { metronome = false, bpm = 80 } = {}) {
   const ctx = getContext();
+  if (ctx.state === "suspended") ctx.resume();
+  const startAt = ctx.currentTime + (metronome ? 0.05 : 0);
   const osc  = ctx.createOscillator();
   const gain = ctx.createGain();
 
   osc.type            = type;
   osc.frequency.value = frequency;
-  gain.gain.setValueAtTime(volume, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+  gain.gain.setValueAtTime(volume, startAt);
+  gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
 
   osc.connect(gain);
   gain.connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + duration);
+  osc.start(startAt);
+  osc.stop(startAt + duration);
+
+  if (metronome) {
+    const beatDuration = 60 / Number(bpm);
+    for (let pulse = 0; pulse * beatDuration < duration; pulse += 1) {
+      scheduleMetronomeClick(ctx, startAt + pulse * beatDuration, pulse === 0);
+    }
+  }
 }
 
 /** Tono programado en un instante futuro (ctx.currentTime + offsetSec) */
@@ -171,32 +193,51 @@ export function playRhythm(pattern = [], bpm = 80) {
   });
 }
 
-export function playDrumPattern(pattern = [], bpm = 80, beatUnit = 1) {
+export function playDrumPattern(pattern = [], bpm = 80, beatUnit = 1, { metronome = false, totalBeats = 4 } = {}) {
   const ctx = getContext();
   if (ctx.state === "suspended") ctx.resume();
   const beat = 60 / bpm;
   const startAt = ctx.currentTime + 0.05;
 
-  pattern.forEach(({ instrumento = "snare", paso, beatOffset }) => {
-    const time = startAt + (beatOffset ?? (paso - 1)) * beat * beatUnit;
-    if (/kick|bombo/i.test(instrumento)) {
+  if (metronome) {
+    for (let pulse = 0; pulse < totalBeats; pulse += 1) {
+      const time = startAt + pulse * beat;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(150, time);
-      osc.frequency.exponentialRampToValueAtTime(48, time + 0.13);
-      gain.gain.setValueAtTime(0.0001, time);
-      gain.gain.exponentialRampToValueAtTime(0.9, time + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.32);
+      osc.type = "square";
+      osc.frequency.value = pulse === 0 ? 1200 : 800;
+      gain.gain.setValueAtTime(0.08, time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(time);
-      osc.stop(time + 0.34);
+      osc.stop(time + 0.05);
+    }
+  }
+
+  pattern.forEach(({ instrumento = "snare", paso, beatOffset, duracionBeats }) => {
+    const time = startAt + (beatOffset ?? (paso - 1)) * beat * beatUnit;
+    const duracion = Number.isFinite(duracionBeats) ? Math.max(0.03, beat * duracionBeats) : null;
+    if (/kick|bombo/i.test(instrumento)) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const fin = duracion ?? 0.32;
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150, time);
+      osc.frequency.exponentialRampToValueAtTime(48, time + Math.min(0.13, fin * 0.5));
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(0.9, time + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + fin);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(time);
+      osc.stop(time + fin + 0.02);
       return;
     }
 
     if (/hihat|hat/i.test(instrumento)) {
-      const length = Math.floor(ctx.sampleRate * 0.08);
+      const fin = duracion ?? 0.08;
+      const length = Math.floor(ctx.sampleRate * fin);
       const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
@@ -208,16 +249,17 @@ export function playDrumPattern(pattern = [], bpm = 80, beatUnit = 1) {
       filter.frequency.value = 6500;
       gain.gain.setValueAtTime(0.0001, time);
       gain.gain.exponentialRampToValueAtTime(0.12, time + 0.002);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.065);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + (duracion ? fin * 0.9 : 0.065));
       noise.connect(filter);
       filter.connect(gain);
       gain.connect(ctx.destination);
       noise.start(time);
-      noise.stop(time + 0.07);
+      noise.stop(time + (duracion ? fin : 0.07));
       return;
     }
 
-    const length = Math.floor(ctx.sampleRate * 0.22);
+    const fin = duracion ?? 0.22;
+    const length = Math.floor(ctx.sampleRate * fin);
     const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
@@ -229,24 +271,25 @@ export function playDrumPattern(pattern = [], bpm = 80, beatUnit = 1) {
     filter.frequency.value = 1400;
     gain.gain.setValueAtTime(0.0001, time);
     gain.gain.exponentialRampToValueAtTime(0.48, time + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.19);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + (duracion ? fin * 0.86 : 0.19));
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
     noise.start(time);
-    noise.stop(time + 0.2);
+    noise.stop(time + (duracion ? fin : 0.2));
 
     const body = ctx.createOscillator();
     const bodyGain = ctx.createGain();
+    const bodyDuration = duracion ? Math.min(0.12, fin * 0.6) : 0.12;
     body.type = "triangle";
     body.frequency.setValueAtTime(190, time);
-    body.frequency.exponentialRampToValueAtTime(110, time + 0.08);
+    body.frequency.exponentialRampToValueAtTime(110, time + Math.min(0.08, bodyDuration));
     bodyGain.gain.setValueAtTime(0.22, time);
-    bodyGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, time + bodyDuration);
     body.connect(bodyGain);
     bodyGain.connect(ctx.destination);
     body.start(time);
-    body.stop(time + 0.13);
+    body.stop(time + bodyDuration + 0.01);
   });
 }
 

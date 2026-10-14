@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../application/context/AuthContext";
+import { useAuth } from "../../application/context/useAuth";
 import { usePreferences } from "../../application/context/usePreferences";
 import { obtenerDashboard } from "../../application/services/progress";
 import OnboardingTutorial, { TutorialContextual } from "../components/ui/OnboardingTutorial";

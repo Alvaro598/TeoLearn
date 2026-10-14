@@ -1,6 +1,6 @@
 
 import { useMemo } from "react";
-import { playChord, playInterval, playProgression, playNote } from "../../../../application/services/sound";
+import { playChord, playInterval, playProgression, playSequence } from "../../../../application/services/sound";
 
 function shuffleOptions(options = []) {
   if (!Array.isArray(options) || options.length < 2) return options;
@@ -19,6 +19,11 @@ export default function EntrenamientoAuditivoArmonico({ exercise, onEvaluate, di
   const subtipo    = contenido.subtipo || "intervalo-parejas";
 
   switch (subtipo) {
+    case "comparar-acordes":
+    case "comparar-progresiones":
+    case "textura-acorde":
+    case "contar-notas":
+      return <CompararArmonia exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
     case "fundamental-cancion":
       return <FundamentalCancion exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
     case "progresion-comun":
@@ -33,7 +38,7 @@ export default function EntrenamientoAuditivoArmonico({ exercise, onEvaluate, di
 function IntervaloParejas({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const [n1, n2]   = contenido.notas || ["C4", "G4"];
-  const modo        = contenido.modo || "armonico";
+  const modo        = contenido.subtipo === "intervalo" ? "melodico" : contenido.modo || "armonico";
   const opciones      = useMemo(
     () => shuffleOptions(contenido.opciones || ["2ª", "3ª", "4ª", "5ª", "6ª", "8ª"]),
     [exercise.id, contenido.opciones]
@@ -64,6 +69,73 @@ function IntervaloParejas({ exercise, onEvaluate, disabled }) {
             disabled={disabled}
             onClick={() => responder(opcion)}
             className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-3 rounded-xl text-center font-extrabold"
+          >
+            {opcion}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CompararArmonia({ exercise, onEvaluate, disabled }) {
+  const contenido = exercise.contenido || {};
+  const ejemplos = contenido.ejemplos || [];
+  const opciones = useMemo(
+    () => shuffleOptions(contenido.opciones || []),
+    [contenido.opciones]
+  );
+  const respuesta = exercise.respuesta_correcta?.respuesta;
+
+  const reproducir = (ejemplo) => {
+    if (contenido.subtipo === "comparar-progresiones") {
+      playProgression(ejemplo.acordes || [], 0.9, 0.12);
+    } else if (contenido.subtipo === "textura-acorde") {
+      if (ejemplo.modo === "arpegio") playSequence(ejemplo.notas || [], 0.45);
+      else playChord(ejemplo.notas || [], 1.2);
+    } else if (ejemplo.notas) {
+      playChord(ejemplo.notas, 1.2);
+    }
+  };
+
+  const responder = (opcion) => {
+    const correcta = opcion === respuesta;
+    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        {ejemplos.map((ejemplo) => (
+          <button
+            key={ejemplo.id}
+            type="button"
+            onClick={() => reproducir(ejemplo)}
+            className="inline-flex items-center gap-3 bg-brand-blue px-5 py-3 font-extrabold text-white"
+          >
+            🎧 Escuchar {ejemplo.id}
+            {ejemplo.modo ? ` (${ejemplo.modo})` : ""}
+          </button>
+        ))}
+        {!ejemplos.length && contenido.notas && (
+          <button
+            type="button"
+            onClick={() => playSequence(contenido.notas, 0.45)}
+            className="inline-flex items-center gap-3 bg-brand-blue px-5 py-3 font-extrabold text-white"
+          >
+            🎧 Escuchar secuencia
+          </button>
+        )}
+      </div>
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {opciones.map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            disabled={disabled}
+            onClick={() => responder(opcion)}
+            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
           >
             {opcion}
           </button>

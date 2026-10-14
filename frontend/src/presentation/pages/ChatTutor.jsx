@@ -2,7 +2,7 @@ import ChatPanel from "../components/ui/chatbot/ChatPanel";
 
 export default function ChatTutor() {
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-10">
+    <div  className="min-h-screen bg-gray-50 px-6 py-10">
       <div className="max-w-5xl mx-auto">
         <p className="text-sm font-bold uppercase tracking-widest text-brand-pink mb-3">
           Tutor IA

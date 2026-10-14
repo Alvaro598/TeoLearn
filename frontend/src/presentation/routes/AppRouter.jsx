@@ -55,7 +55,7 @@ export default function AppRouter() {
     <AuthProvider>
       <PreferencesProvider>
 
-      <BrowserRouter basename="/TeoLearn">
+      <BrowserRouter>
 
         <GlobalChatbot />
 

@@ -77,6 +77,45 @@ export const guardarIntento = async (req, res) => {
 };
 
 // ==========================================
+// OBTENER EJERCICIOS COMPLETADOS DE UNA LECCIÓN
+// Un ejercicio queda completado al registrar al menos un intento correcto.
+// ==========================================
+export const obtenerEjerciciosCompletados = async (req, res) => {
+  try {
+    const { usuarioId, leccionId } = req.params;
+    const parsedUsuarioId = parsePositiveInt(usuarioId);
+    const parsedLeccionId = parsePositiveInt(leccionId);
+
+    if (!parsedUsuarioId || !parsedLeccionId) {
+      return res.status(400).json({ error: "usuarioId y leccionId deben ser enteros positivos" });
+    }
+
+    const ownership = await ensureUsuarioOwnedByFirebase(req, res, parsedUsuarioId);
+    if (ownership?.error) {
+      return ownership.error;
+    }
+
+    const result = await pool.query(
+      `
+      SELECT DISTINCT ie.ejercicio_id
+      FROM intento_ejercicio ie
+      JOIN ejercicio e ON e.id = ie.ejercicio_id
+      WHERE ie.usuario_id = $1
+        AND e.leccion_id = $2
+        AND ie.correcta = true
+      ORDER BY ie.ejercicio_id
+      `,
+      [parsedUsuarioId, parsedLeccionId]
+    );
+
+    return res.json({ ejercicios_completados_ids: result.rows.map((row) => String(row.ejercicio_id)) });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error obteniendo ejercicios completados" });
+  }
+};
+
+// ==========================================
 // COMPLETAR LECCIÓN
 // 1. Evita duplicados en progreso_usuario.
 // 2. Suma xp_recompensa al usuario.

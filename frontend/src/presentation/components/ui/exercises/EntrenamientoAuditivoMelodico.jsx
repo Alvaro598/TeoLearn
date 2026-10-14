@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Play, Pin } from "lucide-react";
 import { playNote, playSequence, playInterval } from "../../../../application/services/sound";
 
@@ -19,6 +19,12 @@ export default function EntrenamientoAuditivoMelodico({ exercise, onEvaluate, di
   const subtipo    = contenido.subtipo || "nota-individual";
 
   switch (subtipo) {
+    case "comparar-alturas":
+      return <CompararAlturas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+    case "comparar-escalas":
+      return <CompararEscalas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+    case "intervalo":
+      return <Intervalo exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
     case "direccion-melodica":
       return <DireccionMelodica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
     case "grado-tonal":
@@ -31,6 +37,137 @@ export default function EntrenamientoAuditivoMelodico({ exercise, onEvaluate, di
     default:
       return <NotaIndividual exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
   }
+}
+
+function CompararAlturas({ exercise, onEvaluate, disabled }) {
+  const contenido = exercise.contenido || {};
+  const notas = contenido.notas || ["C4", "G4"];
+  const opciones = useMemo(
+    () => shuffleOptions(contenido.opciones || ["El primero", "El segundo"]),
+    [contenido.opciones]
+  );
+  const respuesta = exercise.respuesta_correcta?.respuesta;
+
+  const responder = (opcion) => {
+    const correcta = opcion === respuesta;
+    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+  };
+
+  return (
+    <div className="space-y-4">
+      <button
+        type="button"
+        onClick={() => playSequence(notas, 0.65)}
+        className="inline-flex items-center gap-3 bg-brand-blue px-5 py-3 font-extrabold text-white"
+      >
+        <Play size={18} fill="currentColor" />
+        Escuchar sonidos
+      </button>
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {opciones.map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            disabled={disabled}
+            onClick={() => responder(opcion)}
+            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
+          >
+            {opcion}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CompararEscalas({ exercise, onEvaluate, disabled }) {
+  const contenido = exercise.contenido || {};
+  const ejemplos = contenido.ejemplos || [];
+  const opciones = useMemo(
+    () => shuffleOptions(contenido.opciones || []),
+    [contenido.opciones]
+  );
+  const respuesta = exercise.respuesta_correcta?.respuesta;
+
+  const responder = (opcion) => {
+    const correcta = opcion === respuesta;
+    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        {ejemplos.map((ejemplo) => (
+          <button
+            key={ejemplo.id}
+            type="button"
+            onClick={() => playSequence(ejemplo.notas || [], 0.45)}
+            className="inline-flex items-center gap-2 bg-brand-blue px-5 py-3 font-extrabold text-white"
+          >
+            <Play size={18} fill="currentColor" />
+            Escuchar {ejemplo.id}
+          </button>
+        ))}
+      </div>
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {opciones.map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            disabled={disabled}
+            onClick={() => responder(opcion)}
+            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
+          >
+            {opcion}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Intervalo({ exercise, onEvaluate, disabled }) {
+  const contenido = exercise.contenido || {};
+  const notas = contenido.notas || ["C4", "G4"];
+  const opciones = useMemo(
+    () => shuffleOptions(contenido.opciones || []),
+    [contenido.opciones]
+  );
+  const respuesta = exercise.respuesta_correcta?.respuesta;
+
+  const responder = (opcion) => {
+    const correcta = opcion === respuesta;
+    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+  };
+
+  return (
+    <div className="space-y-4">
+      <button
+        type="button"
+        onClick={() => playSequence(notas, 0.65)}
+        className="inline-flex items-center gap-3 bg-brand-blue px-5 py-3 font-extrabold text-white"
+      >
+        <Play size={18} fill="currentColor" />
+        Escuchar intervalo
+      </button>
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {opciones.map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            disabled={disabled}
+            onClick={() => responder(opcion)}
+            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
+          >
+            {opcion}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── 1. Nota individual ───────────────────────────────────────────────────────
@@ -49,6 +186,7 @@ function NotaIndividual({ exercise, onEvaluate, disabled }) {
 
   return (
     <div className="space-y-4">
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
       <button
         type="button"
         onClick={() => playNote(objetivo)}
@@ -93,6 +231,7 @@ function DireccionMelodica({ exercise, onEvaluate, disabled }) {
 
   return (
     <div className="space-y-4">
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
       <button
         type="button"
         onClick={reproducir}

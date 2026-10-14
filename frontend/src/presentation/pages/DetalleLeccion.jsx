@@ -170,6 +170,7 @@ export default function DetalleLeccion() {
         </div>
 
         <button
+        id="boton-ir-ejercicios"
           onClick={() => navigate(`/ejercicio/${leccion.id}`)}
           className="mt-4 w-full bg-brand-pink text-white font-extrabold py-4 rounded-xl hover:opacity-90 transition"
         >

@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useAuth } from "../../application/context/AuthContext";
+import { useAuth } from "../../application/context/useAuth";
 import { apiUrl } from "../../application/config/apiBase";
 import { obtenerDashboard } from "../../application/services/progress";
 import ModuloCard from "../components/ui/ModuloCard";

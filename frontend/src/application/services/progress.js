@@ -279,6 +279,15 @@ export async function guardarIntento({
   return response.json();
 }
 
+export async function obtenerEjerciciosCompletados(usuarioId, leccionId) {
+  const response = await authFetch(
+    `${PROGRESO_BASE}/ejercicios/${usuarioId}/${leccionId}`
+  );
+  if (!response.ok) throw new Error("Error obteniendo ejercicios completados");
+  const data = await response.json();
+  return data.ejercicios_completados_ids || [];
+}
+
 /**
  * Marca una lección como completada en la BD.
  * Evita duplicados, suma XP al usuario y recalcula nivel.

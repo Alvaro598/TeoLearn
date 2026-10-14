@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useEffect, useState } from "react";
 
-import { useAuth } from "../../../application/context/AuthContext";
+import { useAuth } from "../../../application/context/useAuth";
 import { getQuizFinalProgress } from "../../../application/services/progress";
 import UserAvatar from "./UserAvatar";
 

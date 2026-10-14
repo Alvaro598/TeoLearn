@@ -50,11 +50,33 @@ export default function ChatPanel({ fullPage = false }) {
     ]);
 
     try {
-      const answer = await preguntarIA(question);
+      const historial = messages
+        .filter((message, index) =>
+          message.text !== "Pensando..."
+          && !(index === 0 && message.from === "bot")
+        )
+        .map((message) => {
+          if (message.from === "user") {
+            return { role: "user", parts: [{ text: message.text }] };
+          }
+
+          return {
+            role: "model",
+            parts: Array.isArray(message.modelParts) && message.modelParts.length > 0
+              ? message.modelParts
+              : [{ text: message.text }],
+          };
+        });
+      const result = await preguntarIA(question, historial);
+      const answer = result.respuesta;
 
       setMessages((current) => {
         const updated = [...current];
-        updated[updated.length - 1] = { from: "bot", text: answer };
+        updated[updated.length - 1] = {
+          from: "bot",
+          text: answer,
+          modelParts: result.modelParts,
+        };
         return updated;
       });
 
@@ -71,7 +93,7 @@ export default function ChatPanel({ fullPage = false }) {
         const updated = [...current];
         updated[updated.length - 1] = {
           from: "bot",
-          text: "No pude conectarme con la IA. Revisa el backend o la clave de OpenRouter.",
+          text: "No pude conectarme con la IA. Revisa el backend o la clave de Gemini.",
         };
         return updated;
       });
@@ -110,6 +132,7 @@ export default function ChatPanel({ fullPage = false }) {
         </div>
 
         <button
+         id="botonlimpiar-chat-tutor"
           onClick={clear}
           className="inline-flex items-center gap-2 text-xs bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg"
         >
@@ -158,6 +181,7 @@ export default function ChatPanel({ fullPage = false }) {
         />
 
         <button
+        id="boton-enviar-chat-tutor"
           onClick={send}
           disabled={isLoading || !input.trim()}
           className="inline-flex items-center justify-center bg-brand-blue disabled:bg-gray-400 text-white w-11 rounded-xl"

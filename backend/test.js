@@ -1,42 +1,28 @@
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
-const openai = new OpenAI({
-  baseURL:
-    "https://openrouter.ai/api/v1",
-
-  apiKey:
-    process.env.OPENROUTER_API_KEY,
-});
-
 async function test() {
-
   try {
+    const apiKey = process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim();
+    if (!apiKey) {
+      throw new Error("Falta configurar GEMINI_API_KEY.");
+    }
 
-    const completion =
-      await openai.chat.completions.create({
+    const gemini = new GoogleGenAI({ apiKey });
+    const response = await gemini.models.generateContent({
+      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
+      contents: "Hola",
+      config: {
+        thinkingConfig: { thinkingLevel: "low", includeThoughts: false },
+        maxOutputTokens: 1000,
+      },
+    });
 
-        model:
-          "openai/gpt-3.5-turbo",
-
-        messages: [
-          {
-            role: "user",
-            content: "Hola",
-          },
-        ],
-      });
-
-    console.log(
-      completion.choices[0]
-      .message.content
-    );
-
+    console.log(response.text);
   } catch (error) {
-
-    console.log(error);
+    console.error(error);
   }
 }
 

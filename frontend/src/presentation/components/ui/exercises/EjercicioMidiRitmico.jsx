@@ -1,20 +1,21 @@
 
-import { useEffect, useState } from "react";
-import { Play, Eraser, Circle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Play, Eraser, Circle, Repeat, Timer } from "lucide-react";
 import { playDrumPattern, playTone } from "../../../../application/services/sound";
 import useMetronomo from "../../../../application/hooks/useMetronomo";
-import Metronomo from "../Metronomo";
 
 export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled }) {
   const contenido      = exercise.contenido || {};
   const compas         = contenido.compas || 4;
-  const instrumentos    = contenido.instrumentos || [
+  const instrumentos = useMemo(() => contenido.instrumentos || [
     { id: "kick",  nota: "C3", label: "Bombo (Kick)" },
     { id: "snare", nota: "D3", label: "Caja (Snare)" },
-  ];
+  ], [contenido.instrumentos]);
   const tiemposFuertes  = contenido.tiemposFuertes || [1];
   const objetivo        = exercise.respuesta_correcta?.patron || {};
   const { bpm, setBpm } = useMetronomo();
+  const divisionPulso = contenido.divisionPulso || 1;
+  const totalBeats = compas * divisionPulso;
 
   useEffect(() => {
     if (contenido.bpm) setBpm(contenido.bpm);
@@ -23,6 +24,20 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
   // estado: { kick: Set([1,3]), snare: Set([2,4]) }
   const [patron, setPatron] = useState(() =>
     Object.fromEntries(instrumentos.map((i) => [i.id, new Set()]))
+  );
+  const [duracionGolpe, setDuracionGolpe] = useState(contenido.divisionPulso || 1);
+  const [loop, setLoop] = useState(false);
+  const [metronomoSincronizado, setMetronomoSincronizado] = useState(Boolean(contenido.usarMetronomo));
+
+  const golpes = useMemo(
+    () => instrumentos.flatMap((instrumento) =>
+      [...(patron[instrumento.id] || [])].map((paso) => ({
+        instrumento: instrumento.id,
+        paso,
+        duracionBeats: duracionGolpe,
+      }))
+    ),
+    [instrumentos, patron, duracionGolpe]
   );
 
   const toggle = (instrumentoId, paso) => {
@@ -39,11 +54,28 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
   };
 
   const reproducir = () => {
-    const golpes = instrumentos.flatMap((instrumento) =>
-      [...(patron[instrumento.id] || [])].map((paso) => ({ instrumento: instrumento.id, paso }))
-    );
-    playDrumPattern(golpes, bpm, contenido.divisionPulso || 1);
+    playDrumPattern(golpes, bpm, divisionPulso, {
+      metronome: metronomoSincronizado,
+      totalBeats,
+    });
   };
+
+  useEffect(() => {
+    if (!loop || disabled) return undefined;
+
+    const duracionCompasMs = (totalBeats * 60000) / bpm;
+    let timeoutId;
+    const reproducirLoop = () => {
+      playDrumPattern(golpes, bpm, divisionPulso, {
+        metronome: metronomoSincronizado,
+        totalBeats,
+      });
+      timeoutId = window.setTimeout(reproducirLoop, duracionCompasMs);
+    };
+
+    reproducirLoop();
+    return () => window.clearTimeout(timeoutId);
+  }, [loop, disabled, golpes, bpm, divisionPulso, metronomoSincronizado, totalBeats]);
 
   const limpiar = () => {
     if (disabled) return;
@@ -62,7 +94,7 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
     });
 
     onEvaluate({
-      respuesta:  { patron: patronPlano },
+      respuesta:  { patron: patronPlano, duracionGolpe },
       correcta,
       puntuacion: correcta ? exercise.puntos : 0,
     });
@@ -72,6 +104,7 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
 
   if (contenido.subtipo === "duracion") {
     return <EditorDuracionMidi
+      key={exercise.id || exercise.orden}
       contenido={contenido}
       bpm={bpm}
       setBpm={setBpm}
@@ -84,7 +117,6 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
 
   return (
     <div className="space-y-4">
-      {contenido.usarMetronomo && <Metronomo />}
       <div className="bg-white border-2 border-gray-950 rounded-xl p-4">
         <p className="font-bold text-gray-950">{contenido.instrucciones}</p>
         <p className="text-xs text-gray-500 mt-2">
@@ -99,6 +131,37 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
             Tempo {bpm} BPM
             <input type="range" min="40" max="200" step="1" value={bpm} onChange={(event) => setBpm(event.target.value)} aria-label="Tempo del ejercicio MIDI" />
           </label>
+          <label className="flex items-center gap-2 text-xs font-bold whitespace-nowrap">
+            Duración del golpe: {duracionGolpe} pulsos
+            <input
+              type="range"
+              min="0.125"
+              max="2"
+              step="0.125"
+              value={duracionGolpe}
+              disabled={disabled}
+              onChange={(event) => setDuracionGolpe(Number(event.target.value))}
+              aria-label="Duración de las notas MIDI"
+            />
+          </label>
+          <button
+            type="button"
+            aria-pressed={metronomoSincronizado}
+            onClick={() => setMetronomoSincronizado((activo) => !activo)}
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold ${metronomoSincronizado ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-700"}`}
+          >
+            <Timer size={15} />
+            Metrónomo
+          </button>
+          <button
+            type="button"
+            aria-pressed={loop}
+            onClick={() => setLoop((activo) => !activo)}
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold ${loop ? "bg-pink-100 text-pink-800" : "bg-gray-100 text-gray-700"}`}
+          >
+            <Repeat size={15} />
+            Loop
+          </button>
           <div className="flex gap-2">
             <button
               type="button"
@@ -184,12 +247,32 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
 
 function EditorDuracionMidi({ contenido, bpm, setBpm, onEvaluate, respuestaCorrecta, puntos, disabled }) {
   const [duracion, setDuracion] = useState(contenido.opciones?.[0] || "1 pulso");
+  const [loop, setLoop] = useState(false);
+  const [metronomoSincronizado, setMetronomoSincronizado] = useState(false);
+  const opciones = contenido.opciones || ["1 pulso", "2 pulsos", "4 pulsos"];
   const beats = Number.parseInt(duracion, 10) || 1;
-  const reproducir = () => playTone(261.63, (60 / bpm) * beats, "sine", 0.08);
+  const indiceDuracion = Math.max(0, opciones.indexOf(duracion));
+  const duracionSegundos = (60 / bpm) * beats;
+  const reproducir = useCallback(() => playTone(261.63, duracionSegundos, "sine", 0.08, {
+    metronome: metronomoSincronizado,
+    bpm,
+  }), [duracionSegundos, metronomoSincronizado, bpm]);
   const enviar = () => {
     const correcta = duracion === respuestaCorrecta;
     onEvaluate({ respuesta: { duracion }, correcta, puntuacion: correcta ? puntos : 0 });
   };
+
+  useEffect(() => {
+    if (!loop || disabled) return undefined;
+
+    let timeoutId;
+    const reproducirLoop = () => {
+      reproducir();
+      timeoutId = window.setTimeout(reproducirLoop, duracionSegundos * 1000);
+    };
+    reproducirLoop();
+    return () => window.clearTimeout(timeoutId);
+  }, [loop, disabled, reproducir, duracionSegundos]);
 
   return <div className="space-y-4">
     <div className="rounded-xl border-2 border-gray-950 bg-white p-4">
@@ -199,11 +282,50 @@ function EditorDuracionMidi({ contenido, bpm, setBpm, onEvaluate, respuestaCorre
     <label className="flex items-center gap-3 text-sm font-bold">Tempo {bpm} BPM
       <input type="range" min="40" max="200" value={bpm} onChange={(event) => setBpm(event.target.value)} aria-label="Tempo del ejercicio MIDI" />
     </label>
-    <div className="flex flex-wrap gap-2">
-      {contenido.opciones.map((opcion) => <button key={opcion} type="button" aria-pressed={duracion === opcion} onClick={() => setDuracion(opcion)} className={`rounded-xl border px-4 py-3 font-bold ${duracion === opcion ? "border-brand-blue bg-blue-50 text-brand-blue" : "border-gray-200 bg-white"}`}>{opcion}</button>)}
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <p className="mb-3 text-xs font-extrabold uppercase tracking-widest">Nota MIDI · {duracion}</p>
+      <div className="relative grid h-16 grid-cols-4 border border-gray-300 bg-gray-50" aria-label={`Nota de ${beats} pulsos en una línea de cuatro pulsos`}>
+        {Array.from({ length: 4 }, (_, index) => <div key={index} className="border-r border-gray-300 px-2 pt-1 text-[10px] font-bold text-gray-500">{index + 1}</div>)}
+        <div className="absolute bottom-2 left-1 top-6 flex items-center overflow-hidden rounded-sm bg-brand-blue px-2 text-xs font-bold text-white transition-[width]" style={{ width: `${(Math.min(beats, 4) / 4) * 100}%` }}>
+          Do4
+        </div>
+      </div>
+      <label className="mt-4 block text-sm font-bold">
+        Duración de la nota: {duracion}
+        <input
+          type="range"
+          min="0"
+          max={opciones.length - 1}
+          step="1"
+          value={indiceDuracion}
+          disabled={disabled}
+          onChange={(event) => setDuracion(opciones[Number(event.target.value)])}
+          aria-label="Duración de la nota MIDI"
+          className="mt-2 block w-full"
+        />
+      </label>
+      <div className="flex justify-between text-xs text-gray-500">
+        {opciones.map((opcion) => <span key={opcion}>{opcion}</span>)}
+      </div>
     </div>
     <div className="flex gap-2">
       <button type="button" onClick={reproducir} className="rounded-xl bg-blue-100 px-4 py-3 font-bold text-blue-800">Escuchar duración</button>
+      <button
+        type="button"
+        aria-pressed={metronomoSincronizado}
+        onClick={() => setMetronomoSincronizado((activo) => !activo)}
+        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-bold ${metronomoSincronizado ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-700"}`}
+      >
+        <Timer size={15} /> Metrónomo
+      </button>
+      <button
+        type="button"
+        aria-pressed={loop}
+        onClick={() => setLoop((activo) => !activo)}
+        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-bold ${loop ? "bg-pink-100 text-pink-800" : "bg-gray-100 text-gray-700"}`}
+      >
+        <Repeat size={15} /> Loop
+      </button>
       <button type="button" disabled={disabled} onClick={enviar} className="rounded-xl bg-brand-pink px-4 py-3 font-bold text-white disabled:opacity-50">Comprobar</button>
     </div>
   </div>;

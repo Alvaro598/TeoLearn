@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
-import { useAuth } from "../../application/context/AuthContext";
+import { useAuth } from "../../application/context/useAuth";
 import { obtenerDashboard } from "../../application/services/progress";
 import LeccionCard from "../components/ui/LeccionCard";
 

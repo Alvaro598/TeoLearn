@@ -3,6 +3,7 @@ import {
   obtenerProgreso,
   completarLeccion,
   guardarIntento,
+  obtenerEjerciciosCompletados,
   obtenerDashboard,
   progresoModulo,
 } from "../controllers/progreso.controller.js";
@@ -11,6 +12,9 @@ const router = express.Router();
 
 // POST /api/progress/intento — registrar intento de ejercicio
 router.post("/intento", guardarIntento);
+
+// GET /api/progress/ejercicios/:usuarioId/:leccionId — ejercicios aprobados
+router.get("/ejercicios/:usuarioId/:leccionId", obtenerEjerciciosCompletados);
 
 // POST /api/progress/completar — marcar lección como completada y sumar XP
 router.post("/completar", completarLeccion);

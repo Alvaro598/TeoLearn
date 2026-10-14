@@ -3,22 +3,22 @@
   "name": "backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "main": "src/app.js",
   "scripts": {
     "dev": "nodemon src/app.js",
-    "seed:learning-path": "node src/database/seedLearningPath.js"
+    "seed:learning-path": "node src/database/seedLearningPath.js",
+    "start": "node src/app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^2.29.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase-admin": "^13.0.0",
     "helmet": "^8.0.0",
-    "openai": "^6.37.0",
     "pg": "^8.20.0"
   },
   "devDependencies": {

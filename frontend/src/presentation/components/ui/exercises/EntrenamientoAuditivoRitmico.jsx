@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Timer as TimerIcon, Hand } from "lucide-react";
-import { playRhythm, playTone } from "../../../../application/services/sound";
+import { playDrumPattern, playRhythm, playTone } from "../../../../application/services/sound";
 
 function shuffleOptions(options = []) {
   if (!Array.isArray(options) || options.length < 2) return options;
@@ -17,17 +17,28 @@ function shuffleOptions(options = []) {
 export default function EntrenamientoAuditivoRitmico({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const subtipo    = contenido.subtipo || "identificar-figura";
-  const patron      = contenido.patron || [];
-  const bpm          = contenido.bpm || 80;
 
   if (subtipo === "reloj-interno") {
     return <PruebaRelojInterno exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
   }
+  if (subtipo === "secuencia-rítmica") {
+    return <SecuenciaRitmica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+  }
+  if (subtipo === "duracion-auditiva" || subtipo === "duracion-comparar") {
+    return <PracticaDuracionAuditiva exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+  }
 
-  // ── identificar-figura / tiempo-fuerte comparten la misma UI base ──────────
+  return <PracticaPatron exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+}
+
+function PracticaPatron({ exercise, onEvaluate, disabled }) {
+  const contenido = exercise.contenido || {};
+  const subtipo = contenido.subtipo || "identificar-figura";
+  const patron = contenido.patron || [];
+  const bpm = contenido.bpm || 80;
   const opciones  = useMemo(
     () => shuffleOptions(contenido.opciones || []),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
   const respuesta = exercise.respuesta_correcta?.respuesta;
   const [reproducido, setReproducido] = useState(false);
@@ -78,12 +89,129 @@ export default function EntrenamientoAuditivoRitmico({ exercise, onEvaluate, dis
   );
 }
 
+function SecuenciaRitmica({ exercise, onEvaluate, disabled }) {
+  const contenido = exercise.contenido || {};
+  const ejemplos = contenido.ejemplos || [];
+  const opciones = useMemo(
+    () => shuffleOptions(contenido.opciones || []),
+    [contenido.opciones]
+  );
+  const respuesta = exercise.respuesta_correcta?.respuesta;
+  const [reproducido, setReproducido] = useState(false);
+
+  const reproducir = (ejemplo) => {
+    const golpes = (ejemplo.golpes || []).map(({ beat, instrumento }) => ({
+      beatOffset: beat,
+      instrumento,
+    }));
+    playDrumPattern(golpes, ejemplo.bpm || contenido.bpm || 80);
+    setReproducido(true);
+  };
+
+  const responder = (opcion) => {
+    const correcta = opcion === respuesta;
+    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+  };
+
+  return (
+    <div className="space-y-4">
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
+      <div className="flex flex-wrap gap-2">
+        {ejemplos.map((ejemplo, index) => (
+          <button
+            key={ejemplo.id || index}
+            type="button"
+            onClick={() => reproducir(ejemplo)}
+            className="inline-flex items-center gap-2 bg-brand-blue px-4 py-3 font-extrabold text-white"
+            aria-label={`Escuchar ejemplo ${ejemplo.id || index + 1}`}
+          >
+            <Play size={16} fill="currentColor" />
+            {ejemplos.length > 1 ? `Ejemplo ${ejemplo.id || index + 1}` : "Escuchar patrón"}
+          </button>
+        ))}
+      </div>
+      {!reproducido && <p className="text-xs text-gray-400">Escucha al menos un ejemplo antes de responder.</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {opciones.map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            disabled={disabled || !reproducido}
+            onClick={() => responder(opcion)}
+            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
+          >
+            {opcion}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PracticaDuracionAuditiva({ exercise, onEvaluate, disabled }) {
+  const contenido = exercise.contenido || {};
+  const comparar = contenido.subtipo === "duracion-comparar";
+  const ejemplos = comparar
+    ? contenido.ejemplos || []
+    : [{ id: "objetivo", duracionPulsos: contenido.duracionPulsos || 1 }];
+  const opciones = useMemo(
+    () => shuffleOptions(contenido.opciones || []),
+    [contenido.opciones]
+  );
+  const respuesta = exercise.respuesta_correcta?.respuesta;
+  const bpm = contenido.bpm || 80;
+  const [reproducido, setReproducido] = useState(false);
+
+  const reproducir = (ejemplo) => {
+    playTone(261.63, (60 / bpm) * ejemplo.duracionPulsos, "square", 0.08);
+    setReproducido(true);
+  };
+
+  const responder = (opcion) => {
+    const correcta = opcion === respuesta;
+    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+  };
+
+  return (
+    <div className="space-y-4">
+      {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
+      <div className="flex flex-wrap gap-2">
+        {ejemplos.map((ejemplo, index) => (
+          <button
+            key={ejemplo.id || index}
+            type="button"
+            onClick={() => reproducir(ejemplo)}
+            className="inline-flex items-center gap-2 bg-brand-blue px-4 py-3 font-extrabold text-white"
+          >
+            <Play size={16} fill="currentColor" />
+            {comparar ? `Ejemplo ${ejemplo.id || index + 1}` : "Escuchar duración"}
+          </button>
+        ))}
+      </div>
+      {!reproducido && <p className="text-xs text-gray-400">Escucha el sonido antes de responder.</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {opciones.map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            disabled={disabled || !reproducido}
+            onClick={() => responder(opcion)}
+            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
+          >
+            {opcion}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Sub-componente: prueba de reloj interno / sincronización ────────────────
 function PruebaRelojInterno({ exercise, onEvaluate, disabled }) {
   const contenido     = exercise.contenido || {};
   const bpm             = contenido.bpm || 80;
   const pulsosGuia       = contenido.pulsosGuia || 4;   // cuántos clicks suenan antes de detenerse
-  const toleranciaMs     = exercise.respuesta_correcta?.toleranciaMs || 150;
+  const toleranciaMs     = exercise.respuesta_correcta?.toleranciaMs ?? 220;
 
   const [fase, setFase]   = useState("inicio");  // inicio → reproduciendo → esperando-tap → resultado
   const [resultadoMs, setResultadoMs] = useState(null);
@@ -102,11 +230,10 @@ function PruebaRelojInterno({ exercise, onEvaluate, disabled }) {
     // El "pulso fantasma" que el usuario debe predecir es el siguiente (pulsosGuia + 1)
     tiempoEsperadoRef.current = ctxStart + pulsosGuia * beatMs;
 
-    setTimeout(() => setFase("esperando-tap"), pulsosGuia * beatMs - 50);
   };
 
   const tap = () => {
-    if (fase !== "esperando-tap" || disabled) return;
+    if (fase !== "reproduciendo" || disabled) return;
     const ahora = performance.now();
     const diferencia = Math.abs(ahora - tiempoEsperadoRef.current);
     setResultadoMs(Math.round(diferencia));
@@ -129,7 +256,7 @@ function PruebaRelojInterno({ exercise, onEvaluate, disabled }) {
           <TimerIcon size={16} /> Prueba de reloj interno
         </p>
         <p className="text-xs text-gray-500 mt-2">
-          Escucharás {pulsosGuia} pulsos a {bpm} BPM. Cuando se detengan, presiona el botón exactamente cuando creas que debería sonar el siguiente pulso.
+          Escucharás {pulsosGuia} pulsos a {bpm} BPM. El botón queda disponible desde el inicio; presiónalo cuando debería sonar el siguiente pulso.
         </p>
       </div>
 
@@ -148,14 +275,15 @@ function PruebaRelojInterno({ exercise, onEvaluate, disabled }) {
         <p className="text-sm font-bold text-gray-500 animate-pulse">Escuchando el pulso guía…</p>
       )}
 
-      {fase === "esperando-tap" && (
+      {fase === "reproduciendo" && (
         <button
           type="button"
           onClick={tap}
+          disabled={disabled}
           className="w-full bg-brand-pink text-white py-8 rounded-2xl font-extrabold text-xl flex items-center justify-center gap-3 animate-pulse"
         >
           <Hand size={28} />
-          ¡TAP AHORA!
+          Marcar siguiente pulso
         </button>
       )}
 

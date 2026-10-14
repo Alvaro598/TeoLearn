@@ -40,7 +40,7 @@ export default function EjercicioRenderer({ exercise, onEvaluate, disabled, modu
 
   if (exercise.tipo === "midi") {
     const Componente = MIDI_POR_CATEGORIA[categoria] || EjercicioMidiMelodico;
-    return <Componente exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+    return <Componente key={exercise.id || exercise.orden || exercise.pregunta} exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
   }
 
   return (

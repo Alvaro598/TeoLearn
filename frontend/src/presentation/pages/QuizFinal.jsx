@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle, XCircle, Lock } from "lucide-react";
-import { useAuth } from "../../application/context/AuthContext";
+import { useAuth } from "../../application/context/useAuth";
 import { apiUrl } from "../../application/config/apiBase";
 import {
   getQuizFinalProgress,

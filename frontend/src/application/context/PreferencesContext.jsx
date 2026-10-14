@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./useAuth";
 import { startBackgroundMusic, stopBackgroundMusic } from "../services/sound";
 import { defaultPreferences, PreferencesContext } from "./preferences-context";
 

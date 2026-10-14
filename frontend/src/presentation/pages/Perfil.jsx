@@ -1,7 +1,7 @@
 import { Music, Palette, Volume2, PlayCircle, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useAuth } from "../../application/context/AuthContext";
-import { usePreferences } from "../../application/context/PreferencesContext";
+import { useAuth } from "../../application/context/useAuth";
+import { usePreferences } from "../../application/context/usePreferences";
 import { BACKGROUND_TRACKS } from "../../application/services/sound";
 import { getAvailableVoices, onVoicesReady, previewVoice } from "../../application/services/speech";
 import UserAvatar from "../components/ui/UserAvatar";
@@ -66,6 +66,7 @@ export default function Perfil() {
                 <p className="text-sm text-gray-500">Reinicia la guía de bienvenida para verla otra vez.</p>
               </div>
               <button
+              id="boton-reiniciar-tutorial"
                 type="button"
                 onClick={() => updatePreferences({ onboardingDone: false, onboardingStep: 0, explorationPages: {} })}
                 className="inline-flex items-center gap-2 bg-brand-blue text-white px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90"

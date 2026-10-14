@@ -16,11 +16,6 @@ import { getFirebaseAuthMessage } from "../../application/services/authErrors";
 export default function Login() {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -30,6 +25,14 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    const formData = new FormData(e.currentTarget);
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+
+    if (!email || !password) {
+      setError("Ingresa tu correo y contraseña para continuar.");
+      return;
+    }
 
     if (Date.now() < cooldownUntil) {
       setError("Demasiados intentos. Espera un momento antes de volver a intentar.");
@@ -43,8 +46,8 @@ export default function Login() {
 
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        form.email,
-        form.password
+        email,
+        password
       );
 
 
@@ -53,7 +56,7 @@ export default function Login() {
       sessionStorage.setItem("token", token);
 
       setFailedAttempts(0);
-      setSuccess("Hola de nuevo");
+      setSuccess("Inicio de sesión exitoso.");
 
       setTimeout(() => {
         navigate("/dashboard");
@@ -154,11 +157,11 @@ export default function Login() {
             <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
             <input
               type="email"
+              name="email"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               placeholder="correo@ejemplo.com"
-              value={form.email}
-              onChange={(e) =>
-                setForm({ ...form, email: e.target.value })
-              }
               className="w-full pl-10 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
@@ -169,11 +172,9 @@ export default function Login() {
             <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
             <input
               type="password"
+              name="password"
+              autoComplete="current-password"
               placeholder="••••••••"
-              value={form.password}
-              onChange={(e) =>
-                setForm({ ...form, password: e.target.value })
-              }
               className="w-full pl-10 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
