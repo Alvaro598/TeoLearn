@@ -299,10 +299,8 @@ html[data-theme="oscuro"] #botones-unidades {
   background-color: #64748b !important;
 }
 
-/* ── Botones de módulos ────────────────────────────────────────────────────────── */
-html[data-theme="oscuro"] #botones-modulos {
-  background-color: #64748b !important;
-}
+
+
 
 html[data-theme="oscuro"] #escuchar-ejemplo {
   background-color: #64748b !important;

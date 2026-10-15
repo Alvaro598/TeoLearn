@@ -108,7 +108,7 @@ export default function DetalleLeccion() {
           Volver a lecciones
         </button>
 
-        <p className="text-xs font-bold tracking-[0.35em] uppercase mb-3 text-brand-pink">
+        <p className="text-xs font-bold tracking-[0.20em] uppercase mb-3 text-brand-pink">
           Leccion
         </p>
 

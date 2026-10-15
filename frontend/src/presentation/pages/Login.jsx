@@ -14,6 +14,7 @@ import { getFirebaseAuthMessage } from "../../application/services/authErrors";
 export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(0);
@@ -27,17 +28,14 @@ export default function Login() {
       localStorage.setItem("teolearn-user-email", user.email);
     }
 
-    // PrivateRoute espera a que AuthContext termine de inicializar la sesión.
-    // El mensaje se envía al Dashboard para que no desaparezca al navegar.
-    navigate("/dashboard", {
-      replace: true,
-      state: { loginSuccess: message },
-    });
+    setSuccess(message);
+    window.setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+    setSuccess("");
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") || "").trim();
@@ -80,6 +78,7 @@ export default function Login() {
 
   const loginWithGoogle = async () => {
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
@@ -120,6 +119,15 @@ export default function Login() {
           </div>
         )}
 
+        {success && (
+          <div
+            role="status"
+            className="bg-green-100 border border-green-300 text-green-700 text-sm px-4 py-3 rounded-lg mb-4"
+          >
+            {success}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
@@ -132,7 +140,7 @@ export default function Login() {
               placeholder="correo@ejemplo.com"
               className="w-full pl-10 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              disabled={loading}
+              disabled={loading || Boolean(success)}
             />
           </div>
 
@@ -145,13 +153,13 @@ export default function Login() {
               placeholder="••••••••"
               className="w-full pl-10 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              disabled={loading}
+              disabled={loading || Boolean(success)}
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || Boolean(success)}
             className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-2 rounded-lg font-semibold transition disabled:opacity-60"
           >
             {loading ? "Ingresando..." : "Iniciar sesión"}
@@ -174,7 +182,7 @@ export default function Login() {
         <button
           type="button"
           onClick={loginWithGoogle}
-          disabled={loading}
+          disabled={loading || Boolean(success)}
           className="w-full border border-gray-300 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition disabled:opacity-60"
         >
           <img
