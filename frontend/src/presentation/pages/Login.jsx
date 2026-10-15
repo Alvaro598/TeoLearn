@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
 import {
   browserSessionPersistence,
@@ -8,32 +8,84 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
+
 import { auth } from "../../infrastructure/config/firebase";
 import { getFirebaseAuthMessage } from "../../application/services/authErrors";
 
+const SUCCESS_MESSAGE_DURATION = 1200;
+
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const submittingRef = useRef(false);
+  const navigationTimerRef = useRef(null);
+  const mountedRef = useRef(true);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(0);
 
-  const completeLogin = async (user, message) => {
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+
+      if (navigationTimerRef.current !== null) {
+        window.clearTimeout(navigationTimerRef.current);
+      }
+    };
+  }, []);
+
+  const getDestination = () => {
+    const requestedPath = location.state?.from?.pathname;
+
+    if (
+      requestedPath &&
+      requestedPath.startsWith("/") &&
+      !["/login", "/register"].includes(requestedPath)
+    ) {
+      return requestedPath;
+    }
+
+    return "/dashboard";
+  };
+
+  const finishLogin = async (user, message) => {
     const token = await user.getIdToken();
-    // El servicio de API y AuthContext leen el token desde localStorage.
+
     localStorage.setItem("token", token);
     localStorage.setItem("teolearn-firebase-uid", user.uid);
+
     if (user.email) {
       localStorage.setItem("teolearn-user-email", user.email);
     }
 
+    if (!mountedRef.current) return;
+
+    setError("");
     setSuccess(message);
-    window.setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
+
+    await new Promise((resolve) => {
+      navigationTimerRef.current = window.setTimeout(
+        resolve,
+        SUCCESS_MESSAGE_DURATION
+      );
+    });
+
+    if (mountedRef.current) {
+      navigate(getDestination(), { replace: true });
+    }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (submittingRef.current) return;
+
     setError("");
     setSuccess("");
 
@@ -47,53 +99,98 @@ export default function Login() {
     }
 
     if (Date.now() < cooldownUntil) {
-      setError("Demasiados intentos. Espera un momento antes de volver a intentar.");
+      setError(
+        "Demasiados intentos. Espera un momento antes de volver a intentar."
+      );
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
+
     try {
       await setPersistence(auth, browserSessionPersistence);
-      const credential = await signInWithEmailAndPassword(auth, email, password);
-      await completeLogin(credential.user, "Inicio de sesión exitoso.");
-      setFailedAttempts(0);
-    } catch (err) {
-      setError(
-        getFirebaseAuthMessage(
-          err,
-          "No pudimos iniciar sesión. Revisa tu correo y contraseña."
-        )
+
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
       );
+
+      await finishLogin(
+        credential.user,
+        "Inicio de sesión exitoso."
+      );
+
+      if (mountedRef.current) {
+        setFailedAttempts(0);
+      }
+    } catch (err) {
+      if (!mountedRef.current) return;
+
+      setSuccess("");
 
       const nextAttempts = failedAttempts + 1;
       setFailedAttempts(nextAttempts);
+
       if (nextAttempts >= 5) {
         setCooldownUntil(Date.now() + 60000);
-        setError("Demasiados intentos fallidos. Espera 1 minuto antes de reintentar.");
+        setError(
+          "Demasiados intentos fallidos. Espera 1 minuto antes de reintentar."
+        );
+      } else {
+        setError(
+          getFirebaseAuthMessage(
+            err,
+            "No pudimos iniciar sesión. Revisa tu correo y contraseña."
+          )
+        );
       }
     } finally {
-      setLoading(false);
+      submittingRef.current = false;
+
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const loginWithGoogle = async () => {
+    if (submittingRef.current) return;
+
+    submittingRef.current = true;
     setError("");
     setSuccess("");
     setLoading(true);
 
     try {
       await setPersistence(auth, browserSessionPersistence);
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
-      await completeLogin(result.user, "Bienvenido a TeoLearn 🎵");
-    } catch (err) {
-      setError(
-        getFirebaseAuthMessage(
-          err,
-          "No pudimos iniciar con Google. Intenta de nuevo."
-        )
+
+      const result = await signInWithPopup(
+        auth,
+        new GoogleAuthProvider()
       );
+
+      await finishLogin(
+        result.user,
+        "Bienvenido a TeoLearn 🎵"
+      );
+    } catch (err) {
+      if (mountedRef.current) {
+        setSuccess("");
+        setError(
+          getFirebaseAuthMessage(
+            err,
+            "No pudimos iniciar con Google. Intenta de nuevo."
+          )
+        );
+      }
     } finally {
-      setLoading(false);
+      submittingRef.current = false;
+
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -101,7 +198,10 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">🎵 Entrar</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            🎵 Entrar
+          </h2>
+
           <p className="text-gray-500 text-sm mt-1">
             Bienvenido. Ingresa tus datos.
           </p>
@@ -113,7 +213,12 @@ export default function Login() {
             className="flex justify-between items-center bg-red-100 border border-red-300 text-red-600 text-sm px-4 py-2 rounded-lg mb-4"
           >
             <span>{error}</span>
-            <button type="button" aria-label="Cerrar mensaje" onClick={() => setError("")}>
+
+            <button
+              type="button"
+              aria-label="Cerrar mensaje"
+              onClick={() => setError("")}
+            >
               ×
             </button>
           </div>
@@ -122,6 +227,7 @@ export default function Login() {
         {success && (
           <div
             role="status"
+            aria-live="polite"
             className="bg-green-100 border border-green-300 text-green-700 text-sm px-4 py-3 rounded-lg mb-4"
           >
             {success}
@@ -130,7 +236,11 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <Mail
+              className="absolute left-3 top-2.5 text-gray-400"
+              size={18}
+            />
+
             <input
               type="email"
               name="email"
@@ -145,7 +255,11 @@ export default function Login() {
           </div>
 
           <div className="relative">
-            <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <Lock
+              className="absolute left-3 top-2.5 text-gray-400"
+              size={18}
+            />
+
             <input
               type="password"
               name="password"
@@ -168,7 +282,10 @@ export default function Login() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           ¿No tienes cuenta?{" "}
-          <Link to="/register" className="text-blue-500 font-semibold hover:underline">
+          <Link
+            to="/register"
+            className="text-blue-500 font-semibold hover:underline"
+          >
             Regístrate
           </Link>
         </p>
@@ -190,6 +307,7 @@ export default function Login() {
             alt=""
             className="w-5 h-5"
           />
+
           Continuar con Google
         </button>
       </div>

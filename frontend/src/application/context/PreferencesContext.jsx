@@ -59,15 +59,19 @@ export function PreferencesProvider({ children }) {
       : usuarioDB?.id
         ? String(usuarioDB.id)
         : "guest";
-  return (
-    <PreferencesState key={activeUserKey} activeUserKey={activeUserKey}>
-      {children}
-    </PreferencesState>
-  );
-}
 
-function PreferencesState({ children, activeUserKey }) {
-  const [preferences, setPreferences] = useState(() => loadPreferences(activeUserKey));
+  const [preferenceState, setPreferenceState] = useState(() => ({
+    userKey: activeUserKey,
+    preferences: loadPreferences(activeUserKey),
+  }));
+
+  // Keep the router and its current page mounted when Firebase changes user.
+  // Prefer the current user's preferences immediately, without synchronizing
+  // state in an effect, to avoid cascading renders on user switches.
+  const preferences =
+    preferenceState.userKey === activeUserKey
+      ? preferenceState.preferences
+      : loadPreferences(activeUserKey);
 
   useEffect(() => {
     const storageKey = getPreferencesStorageKey(activeUserKey);
@@ -82,15 +86,25 @@ function PreferencesState({ children, activeUserKey }) {
     }
     // Se re-ejecuta también cuando cambia backgroundMusicTrack para que el
     // cambio de pista sea inmediato mientras la música está activada.
-  }, [activeUserKey, preferences]);
+  }, [activeUserKey, preferenceState, preferences]);
 
   const value = useMemo(
     () => ({
       preferences,
       updatePreferences: (updates) =>
-        setPreferences((current) => ({ ...current, ...updates })),
+        setPreferenceState((current) => {
+          const currentPreferences =
+            current.userKey === activeUserKey
+              ? current.preferences
+              : preferences;
+
+          return {
+            userKey: activeUserKey,
+            preferences: { ...currentPreferences, ...updates },
+          };
+        }),
     }),
-    [preferences]
+    [activeUserKey, preferences]
   );
 
   return (

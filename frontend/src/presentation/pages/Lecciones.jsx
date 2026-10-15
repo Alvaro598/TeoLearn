@@ -17,37 +17,30 @@ export default function Lecciones() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const obtenerLecciones = async () => {
+      try {
+        const [response, dashboardData] = await Promise.all([
+          fetch(apiUrl(`/unidades/${unidadId}/lecciones`)),
+          usuarioDB?.id
+            ? obtenerDashboard(usuarioDB.id).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        const data = await response.json();
+        setCompletedLessonIds(
+          new Set(dashboardData?.lecciones_completadas_ids || [])
+        );
+        setUnidad(data);
+        setLecciones(data.lecciones || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     obtenerLecciones();
   }, [unidadId, usuarioDB?.id]);
-
-  async function obtenerLecciones() {
-
-    try {
-      const [response, dashboardData] = await Promise.all([
-        fetch(apiUrl(`/unidades/${unidadId}/lecciones`)),
-        usuarioDB?.id
-          ? obtenerDashboard(usuarioDB.id).catch(() => null)
-          : Promise.resolve(null),
-      ]);
-
-      const data = await response.json();
-      setCompletedLessonIds(
-        new Set(dashboardData?.lecciones_completadas_ids || [])
-      );
-
-      setUnidad(data);
-      setLecciones(data.lecciones || []);
-
-    } catch (error) {
-
-      console.error(error);
-
-    } finally {
-
-      setLoading(false);
-
-    }
-  }
 
   if (loading) {
     return (
