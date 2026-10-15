@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { preguntarIA } from "../../../../application/services/chatbot";
 import { speakText, stopSpeech } from "../../../../application/services/speech";
 import { usePreferences } from "../../../../application/context/usePreferences";
+import { useAuth } from "../../../../application/context/useAuth";
+import { actualizarEstadoUsuario, obtenerEstadoUsuario } from "../../../../application/services/userState";
 
 const initialMessages = [
   {
@@ -11,9 +13,15 @@ const initialMessages = [
   },
 ];
 
-function loadMessages() {
+function getHistoryStorageKey(userKey) {
+  return `teolearn-chat-history:${userKey}`;
+}
+
+function loadMessages(storageKey, allowLegacy = false) {
   try {
-    return JSON.parse(localStorage.getItem("teolearn-chat-history") || "null") || initialMessages;
+    const stored = localStorage.getItem(storageKey) ||
+      (allowLegacy ? localStorage.getItem("teolearn-chat-history") : null);
+    return JSON.parse(stored || "null") || initialMessages;
   } catch {
     return initialMessages;
   }
@@ -21,16 +29,71 @@ function loadMessages() {
 
 export default function ChatPanel({ fullPage = false }) {
   const { preferences } = usePreferences();
-  const [messages, setMessages] = useState(loadMessages);
+  const { usuarioDB, firebaseUser } = useAuth();
+  const userKey = firebaseUser?.uid || String(usuarioDB?.id || "guest");
+  const storageKey = getHistoryStorageKey(userKey);
+  const [historyState, setHistoryState] = useState(() => ({
+    userKey,
+    messages: loadMessages(storageKey, userKey === "guest"),
+  }));
+  const [loadedHistoryFor, setLoadedHistoryFor] = useState(() =>
+    userKey === "guest" ? userKey : null
+  );
+  const messages = historyState.userKey === userKey
+    ? historyState.messages
+    : loadMessages(storageKey);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [speakingText, setSpeakingText] = useState("");
   const endRef = useRef(null);
 
+  const updateMessages = (updater) => {
+    setHistoryState((current) => {
+      const currentMessages = current.userKey === userKey
+        ? current.messages
+        : loadMessages(storageKey);
+      return {
+        userKey,
+        messages: typeof updater === "function" ? updater(currentMessages) : updater,
+      };
+    });
+  };
+
   useEffect(() => {
-    localStorage.setItem("teolearn-chat-history", JSON.stringify(messages));
+    if (userKey === "guest") return undefined;
+    let cancelled = false;
+
+    obtenerEstadoUsuario()
+      .then((state) => {
+        if (cancelled) return;
+        const remoteMessages = state.historial_chat;
+        if (Array.isArray(remoteMessages) && remoteMessages.length > 0) {
+          setHistoryState({ userKey, messages: remoteMessages });
+        }
+        setLoadedHistoryFor(userKey);
+      })
+      .catch((error) => {
+        console.error("No se pudo cargar el historial del servidor:", error);
+        if (!cancelled) setLoadedHistoryFor(userKey);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userKey]);
+
+  useEffect(() => {
+    if (historyState.userKey !== userKey) return;
+    localStorage.setItem(storageKey, JSON.stringify(messages));
+    if (userKey === "guest" || loadedHistoryFor !== userKey) return;
+    const timeoutId = window.setTimeout(() => {
+      actualizarEstadoUsuario({ historial_chat: messages }).catch((error) => {
+        console.error("No se pudo guardar el historial:", error);
+      });
+    }, 500);
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    return () => window.clearTimeout(timeoutId);
+  }, [historyState, loadedHistoryFor, messages, storageKey, userKey]);
 
   useEffect(() => {
     return () => stopSpeech();
@@ -43,7 +106,7 @@ export default function ChatPanel({ fullPage = false }) {
     setInput("");
     setIsLoading(true);
 
-    setMessages((current) => [
+    updateMessages((current) => [
       ...current,
       { from: "user", text: question },
       { from: "bot", text: "Pensando..." },
@@ -70,7 +133,7 @@ export default function ChatPanel({ fullPage = false }) {
       const result = await preguntarIA(question, historial);
       const answer = result.respuesta;
 
-      setMessages((current) => {
+      updateMessages((current) => {
         const updated = [...current];
         updated[updated.length - 1] = {
           from: "bot",
@@ -89,7 +152,7 @@ export default function ChatPanel({ fullPage = false }) {
       }
     } catch (error) {
       console.error(error);
-      setMessages((current) => {
+      updateMessages((current) => {
         const updated = [...current];
         updated[updated.length - 1] = {
           from: "bot",
@@ -105,8 +168,8 @@ export default function ChatPanel({ fullPage = false }) {
   const clear = () => {
     stopSpeech();
     setSpeakingText("");
-    setMessages(initialMessages);
-    localStorage.removeItem("teolearn-chat-history");
+    updateMessages(initialMessages);
+    localStorage.removeItem(storageKey);
   };
 
   const toggleSpeech = (text) => {

@@ -12,7 +12,6 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
     { id: "snare", nota: "D3", label: "Caja (Snare)" },
   ], [contenido.instrumentos]);
   const tiemposFuertes  = contenido.tiemposFuertes || [1];
-  const objetivo        = exercise.respuesta_correcta?.patron || {};
   const { bpm, setBpm } = useMetronomo();
   const divisionPulso = contenido.divisionPulso || 1;
   const totalBeats = compas * divisionPulso;
@@ -87,16 +86,8 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
       instrumentos.map((i) => [i.id, [...(patron[i.id] || [])].sort((a, b) => a - b)])
     );
 
-    const correcta = instrumentos.every((inst) => {
-      const esperado = (objetivo[inst.id] || []).slice().sort((a, b) => a - b);
-      const recibido = patronPlano[inst.id];
-      return JSON.stringify(esperado) === JSON.stringify(recibido);
-    });
-
     onEvaluate({
       respuesta:  { patron: patronPlano, duracionGolpe },
-      correcta,
-      puntuacion: correcta ? exercise.puntos : 0,
     });
   };
 
@@ -109,7 +100,6 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
       bpm={bpm}
       setBpm={setBpm}
       onEvaluate={onEvaluate}
-      respuestaCorrecta={exercise.respuesta_correcta?.duracion}
       puntos={exercise.puntos}
       disabled={disabled}
     />;
@@ -245,7 +235,7 @@ export default function EjercicioMidiRitmico({ exercise, onEvaluate, disabled })
   );
 }
 
-function EditorDuracionMidi({ contenido, bpm, setBpm, onEvaluate, respuestaCorrecta, puntos, disabled }) {
+function EditorDuracionMidi({ contenido, bpm, setBpm, onEvaluate, disabled }) {
   const [duracion, setDuracion] = useState(contenido.opciones?.[0] || "1 pulso");
   const [loop, setLoop] = useState(false);
   const [metronomoSincronizado, setMetronomoSincronizado] = useState(false);
@@ -258,8 +248,7 @@ function EditorDuracionMidi({ contenido, bpm, setBpm, onEvaluate, respuestaCorre
     bpm,
   }), [duracionSegundos, metronomoSincronizado, bpm]);
   const enviar = () => {
-    const correcta = duracion === respuestaCorrecta;
-    onEvaluate({ respuesta: { duracion }, correcta, puntuacion: correcta ? puntos : 0 });
+    onEvaluate({ respuesta: { duracion } });
   };
 
   useEffect(() => {

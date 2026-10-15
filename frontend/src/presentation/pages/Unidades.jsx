@@ -80,76 +80,58 @@ export default function Unidades() {
   const [loading, setLoading] =
     useState(true);
 
-  /*
-    useEffect
-    Se ejecuta automáticamente
-    cuando abre la pantalla
-  */
-
   useEffect(() => {
+    let cancelado = false;
+
+    const obtenerUnidades = async () => {
+      try {
+        const [respuesta, dashboardData] = await Promise.all([
+          fetch(apiUrl(`/unidades/modulo/${moduloId}`)),
+          usuarioDB?.id
+            ? obtenerDashboard(usuarioDB.id).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        const data = await respuesta.json();
+        const completedLessons = new Set(
+          dashboardData?.lecciones_completadas_ids || []
+        );
+
+        const unidadesConProgreso = await Promise.all(
+          data.map(async (unidad) => {
+            const detalleResponse = await fetch(
+              apiUrl(`/unidades/${unidad.id}/lecciones`)
+            );
+            const detalle = await detalleResponse.json();
+            const lecciones = detalle.lecciones || [];
+            const leccionesCompletadas = lecciones.filter((leccion) =>
+              completedLessons.has(String(leccion.id))
+            ).length;
+            const finalizada =
+              lecciones.length > 0 && leccionesCompletadas === lecciones.length;
+
+            return {
+              ...unidad,
+              totalLecciones: lecciones.length,
+              leccionesCompletadas,
+              finalizada,
+            };
+          })
+        );
+
+        if (!cancelado) setUnidades(unidadesConProgreso);
+      } catch (error) {
+        if (!cancelado) console.error("Error obteniendo unidades:", error);
+      } finally {
+        if (!cancelado) setLoading(false);
+      }
+    };
 
     obtenerUnidades();
-
+    return () => {
+      cancelado = true;
+    };
   }, [moduloId, usuarioDB?.id]);
-
-  /*
-    Consulta al backend
-  */
-
-  const obtenerUnidades = async () => {
-
-    try {
-
-      const [respuesta, dashboardData] = await Promise.all([
-        fetch(apiUrl(`/unidades/modulo/${moduloId}`)),
-        usuarioDB?.id
-          ? obtenerDashboard(usuarioDB.id).catch(() => null)
-          : Promise.resolve(null),
-      ]);
-
-      const data = await respuesta.json();
-      const completedLessons = new Set(
-        dashboardData?.lecciones_completadas_ids || []
-      );
-
-      const unidadesConProgreso = await Promise.all(
-        data.map(async (unidad) => {
-          const detalleResponse = await fetch(
-            apiUrl(`/unidades/${unidad.id}/lecciones`)
-          );
-          const detalle = await detalleResponse.json();
-          const lecciones = detalle.lecciones || [];
-          const leccionesCompletadas = lecciones.filter((leccion) =>
-            completedLessons.has(String(leccion.id))
-          ).length;
-          const finalizada =
-            lecciones.length > 0 && leccionesCompletadas === lecciones.length;
-
-          return {
-            ...unidad,
-            totalLecciones: lecciones.length,
-            leccionesCompletadas,
-            finalizada,
-          };
-        })
-      );
-
-      setUnidades(unidadesConProgreso);
-
-    } catch (error) {
-
-      console.error(
-        "Error obteniendo unidades:",
-        error
-      );
-
-    } finally {
-
-      setLoading(false);
-
-    }
-
-  };
 
   const finalizarUnidad = (unidad) => {
     if (unidad.finalizada) {
@@ -237,6 +219,7 @@ export default function Unidades() {
         <div id="unidades-grid" className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
 
           {unidades.map((unidad, idx) => {
+            const bloqueada = idx > 0 && !unidades[idx - 1].finalizada;
 
             return (
 
@@ -308,15 +291,16 @@ export default function Unidades() {
                         `/unidad/${unidad.id}/lecciones`
                       )
                     }
-                    className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition`}
+                    disabled={bloqueada}
+                    className={`${cfg.color} text-white w-full py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    {unidad.finalizada ? "Revisar →" : "Empezar →"}
+                    {bloqueada ? "Completa la unidad anterior" : unidad.finalizada ? "Revisar →" : "Empezar →"}
                   </button>
 
                   <button 
                     type="button"
                     onClick={() => finalizarUnidad(unidad)}
-                    disabled={unidad.finalizada || unidad.leccionesCompletadas < unidad.totalLecciones || savingUnitId === unidad.id}
+                    disabled={bloqueada || unidad.finalizada || unidad.leccionesCompletadas < unidad.totalLecciones || savingUnitId === unidad.id}
                     className="w-full border-2 border-gray-950 text-gray-950 py-3 rounded-xl font-semibold text-sm hover:bg-gray-100 transition disabled:opacity-50 disabled:hover:bg-transparent"
                   >
                     {unidad.finalizada

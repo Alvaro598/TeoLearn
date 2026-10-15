@@ -76,12 +76,17 @@ async (req, res) => {
     const unidadQuery =
     await pool.query(
       `
-      SELECT *
-      FROM unidad
-      WHERE id = $1
+        SELECT unidad.*, modulo.slug AS modulo_slug
+        FROM unidad
+        INNER JOIN modulo ON modulo.id = unidad.modulo_id
+        WHERE unidad.id = $1
       `,
       [unidadId]
     );
+
+    if (unidadQuery.rows.length === 0) {
+      return res.status(404).json({ error: "Unidad no encontrada" });
+    }
 
     const leccionesQuery =
     await pool.query(
@@ -118,4 +123,4 @@ async (req, res) => {
 
   }
 
-};E
+};

@@ -14,9 +14,10 @@
  */
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
-import { getLessonResultLocal } from "../../application/services/progress";
+import { getLessonResultLocal, guardarLeccionCompletada } from "../../application/services/progress";
+import { useAuth } from "../../application/context/useAuth";
 import { usePreferences } from "../../application/context/usePreferences";
 import { playResultScreen } from "../../application/services/sound";
 
@@ -30,10 +31,14 @@ function calcularVariante(resultado) {
 export default function Resultado() {
   const { leccionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const modoRepaso = Boolean(location.state?.modoRepaso);
+  const { usuarioDB, refrescarUsuarioDB } = useAuth();
   const { preferences } = usePreferences();
 
   const [leccion, setLeccion] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errorFinalizar, setErrorFinalizar] = useState("");
 
   const [resultado, setResultado] = useState(() =>
     getLessonResultLocal(leccionId)
@@ -60,20 +65,25 @@ export default function Resultado() {
     if (!resultado || !preferences.soundEnabled) return;
     playResultScreen(calcularVariante(resultado));
     // Solo debe sonar una vez al entrar a la pantalla con el resultado ya cargado.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultado, preferences.soundEnabled]);
 
   const finalizarLeccion = async () => {
     try {
-      await fetch(apiUrl(`/lecciones/${leccionId}/finalizar`), {
-        method: "POST",
-      });
+      if (!usuarioDB?.id) throw new Error("Inicia sesión para guardar tu progreso.");
+      await guardarLeccionCompletada(
+        usuarioDB.id,
+        Number(leccionId),
+        resultado?.puntuacion || 0,
+        leccion?.modulo_slug || ""
+      );
+      await refrescarUsuarioDB();
 
       navigate(`/unidad/${leccion?.unidad_id}/lecciones`, {
         replace: true,
       });
     } catch (error) {
       console.error("Error al finalizar lección:", error);
+      setErrorFinalizar(error.message || "No se pudo guardar la lección.");
     }
   };
 
@@ -103,6 +113,12 @@ export default function Resultado() {
         Has finalizado la lección {leccionId}
       </p>
 
+      {modoRepaso && (
+        <p role="status" className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-left text-sm text-blue-900">
+          Estás repasando una lección cuyos ejercicios ya estaban aprobados. Si la lección ya estaba registrada como completada, finalizarla de nuevo no duplicará los XP.
+        </p>
+      )}
+
       <div className="bg-white border rounded-xl p-6 shadow mb-6">
         <h2 className="text-lg font-bold mb-4">Resultados</h2>
 
@@ -126,6 +142,12 @@ export default function Resultado() {
       <p className="text-sm text-gray-500 mb-6">
         {mensajePorVariante[variante]}
       </p>
+
+      {errorFinalizar && (
+        <p role="alert" className="text-sm text-red-600 mb-4">
+          {errorFinalizar}
+        </p>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button

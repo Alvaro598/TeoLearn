@@ -50,7 +50,7 @@ app.use("/api/chat", rateLimit({ windowMs: 60000, max: 15 }), verifyFirebaseToke
 app.use("/api/modulos", moduloRoutes);
 app.use("/api/unidades", unidadRoutes);
 app.use("/api/lecciones", leccionRoutes);
-app.use("/api/ejercicios", ejercicioRoutes);
+app.use("/api/ejercicios", verifyFirebaseToken, ejercicioRoutes);
 app.use("/api/feedback", rateLimit({ windowMs: 60000, max: 30 }), verifyFirebaseToken, feedbackRoutes);
 app.use("/api/usuarios", rateLimit({ windowMs: 60000, max: 60 }), verifyFirebaseToken, usuarioRoutes);
 app.use("/api/progreso", rateLimit({ windowMs: 60000, max: 60 }), verifyFirebaseToken, progresoRoutes);

@@ -1,18 +1,11 @@
-import pool
-from "../database/db.js";
+import pool from "../database/db.js";
 
-/* EJERCICIOS */
-export const obtenerEjerciciosLeccion =
-async (req, res) => {
-
+export const obtenerEjerciciosLeccion = async (req, res) => {
   try {
-
     const { leccionId } = req.params;
-
-    const resultado =
-    await pool.query(
+    const result = await pool.query(
       `
-      SELECT *
+      SELECT id, leccion_id, tipo, pregunta, contenido, puntos, orden
       FROM ejercicio
       WHERE leccion_id = $1
       ORDER BY orden ASC
@@ -20,25 +13,11 @@ async (req, res) => {
       [leccionId]
     );
 
-    res.json(resultado.rows);
-
-  }
-
-  catch (error) {
-
+    return res.json(result.rows);
+  } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-
-      error:
-      "Error obteniendo ejercicios"
-
-    });
-
+    return res.status(500).json({ error: "Error obteniendo ejercicios" });
   }
-
 };
-
-/* EVALUAR */
 
 

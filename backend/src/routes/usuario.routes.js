@@ -3,6 +3,8 @@ import {
   crearUsuario,
   obtenerUsuarioPorFirebaseUid,
   obtenerOCrearUsuario,
+  obtenerEstadoUsuario,
+  actualizarEstadoUsuario,
 } from "../controllers/usuarios.controller.js";
 
 const router = express.Router();
@@ -15,5 +17,7 @@ router.get("/firebase/:uid", obtenerUsuarioPorFirebaseUid);
 
 // POST /api/usuarios/sync — obtener o crear usuario (idempotente, usado en login)
 router.post("/sync", obtenerOCrearUsuario);
+router.get("/state", obtenerEstadoUsuario);
+router.patch("/state", actualizarEstadoUsuario);
 
 export default router;

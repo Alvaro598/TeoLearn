@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle, XCircle, Lock } from "lucide-react";
 import { useAuth } from "../../application/context/useAuth";
 import { apiUrl } from "../../application/config/apiBase";
+import { authFetch } from "../../application/services/api";
 import {
   getQuizFinalProgress,
   isQuizFinalCompleted,
-  markQuizFinalCompleted,
+  guardarResultadoQuizFinal,
 } from "../../application/services/progress";
+import { obtenerEstadoUsuario } from "../../application/services/userState";
 import { playSuccess, playError } from "../../application/services/sound";
 
 function shuffleOptions(options = []) {
@@ -50,6 +52,42 @@ const PREGUNTAS_POR_MODULO = {
   ],
 };
 
+// Banco independiente: la evaluación final mide integración y transferencia,
+// no vuelve a presentar las preguntas de los quizzes de módulo.
+function preguntaFinal(moduloSlug, numero, pregunta, respuesta, distractores, explicacion) {
+  return {
+    id: `final-${moduloSlug}-${numero}`,
+    moduloSlug,
+    pregunta,
+    opciones: [respuesta, ...distractores],
+    respuesta,
+    explicacion,
+  };
+}
+
+const PREGUNTAS_EVALUACION_FINAL = [
+  preguntaFinal("ritmo", 1, "En 6/8, ¿cómo suelen agruparse los seis pulsos de corchea?", "En dos grupos de tres corcheas", ["En tres grupos de dos corcheas", "En seis grupos de una negra", "En cuatro grupos de tres corcheas"], "El 6/8 suele sentirse en dos pulsos principales, cada uno subdividido en tres corcheas."),
+  preguntaFinal("ritmo", 2, "Una ligadura une dos notas de la misma altura. ¿Qué haces al tocar la segunda?", "Mantienes el sonido sin volver a atacar la nota", ["La vuelves a atacar con más fuerza", "La conviertes en silencio", "La acortas a la mitad"], "La ligadura suma las duraciones y evita un nuevo ataque entre las notas unidas."),
+  preguntaFinal("ritmo", 3, "Un acento aparece en una parte débil del pulso y desplaza la sensación de apoyo. ¿Qué recurso produce?", "Síncopa", ["Anacrusa", "Ostinato", "Aumentación"], "La síncopa destaca una parte débil o prolonga un sonido hacia una parte fuerte."),
+  preguntaFinal("ritmo", 4, "¿En cuántas partes iguales divide un tresillo el valor que ocupa?", "En tres", ["En dos", "En cuatro", "En seis"], "El tresillo agrupa tres notas de igual duración en el espacio de dos valores equivalentes."),
+  preguntaFinal("ritmo", 5, "La indicación 120 BPM en un metrónomo que marca negras equivale a un pulso cada…", "0,5 segundos", ["0,25 segundos", "1 segundo", "2 segundos"], "120 pulsos por minuto son dos pulsos por segundo; cada pulso dura medio segundo."),
+  preguntaFinal("ritmo", 6, "¿Qué indica una calderón sobre una nota o un silencio?", "Que se prolonga a criterio musical más allá de su duración escrita", ["Que se repite desde el inicio", "Que se toca siempre al doble de velocidad", "Que debe omitirse"], "La calderón prolonga el sonido o el silencio; su duración depende de la interpretación."),
+
+  preguntaFinal("melodia", 1, "Si transpone toda una melodía de Do mayor un tono hacia arriba, ¿en qué tonalidad queda?", "Re mayor", ["Si bemol mayor", "Do menor", "Fa mayor"], "Al subir cada nota un tono, Do mayor se transpone a Re mayor y conserva sus relaciones interválicas."),
+  preguntaFinal("melodia", 2, "Una frase recorre Sol-Fa-Mi-Re. ¿Cuál es el contorno general?", "Descendente", ["Ascendente", "Estático", "En arco"], "Cada nota baja respecto de la anterior, así que el contorno es descendente."),
+  preguntaFinal("melodia", 3, "En Do mayor, ¿qué nota tiende a resolver por semitono hacia la tónica?", "Si", ["Fa", "Re", "La"], "Si es el séptimo grado de Do mayor y está a un semitono de Do."),
+  preguntaFinal("melodia", 4, "¿Qué relación hay entre Do4 y Do5?", "La misma nota en una octava superior", ["Una quinta justa", "Un semitono", "Una tercera menor"], "Ambas notas comparten el nombre y están separadas por una octava."),
+  preguntaFinal("melodia", 5, "¿Qué intervalo ascendente forman Do y Mi natural?", "Tercera mayor", ["Tercera menor", "Cuarta justa", "Quinta justa"], "De Do a Mi hay tres nombres de nota y cuatro semitonos: una tercera mayor."),
+  preguntaFinal("melodia", 6, "Una melodía presenta una idea breve y luego otra que parece responderle. ¿Cómo se describe esa organización?", "Pregunta y respuesta", ["Pedal armónico", "Acorde quebrado", "Canon al unísono"], "Las frases de pregunta y respuesta crean una sensación de diálogo y cierre musical."),
+
+  preguntaFinal("armonia", 1, "¿Cuántas notas distintas suele tener un acorde de séptima construido por terceras?", "Cuatro", ["Dos", "Tres", "Cinco"], "Al añadir una séptima sobre una tríada se obtienen cuatro notas distintas."),
+  preguntaFinal("armonia", 2, "En Do mayor, ¿qué grado representa La menor?", "vi", ["ii", "IV", "V"], "La menor es el acorde construido sobre el sexto grado de Do mayor: vi."),
+  preguntaFinal("armonia", 3, "En una inversión de acorde, ¿qué determina el bajo?", "La nota del acorde que suena más grave", ["La nota más aguda de la melodía", "La tonalidad de la pieza por sí sola", "El tempo de la progresión"], "La inversión depende de cuál nota del acorde ocupa el bajo, no necesariamente la fundamental."),
+  preguntaFinal("armonia", 4, "En Do mayor, ¿hacia qué acorde suele resolver A7 cuando funciona como dominante secundaria?", "Re menor", ["Fa mayor", "Do mayor", "Mi menor"], "A7 es V7 de Re; puede tonicizar Re menor, el acorde ii de Do mayor."),
+  preguntaFinal("armonia", 5, "Una misma nota grave se mantiene mientras cambian los acordes por encima. ¿Cómo se llama ese recurso?", "Pedal", ["Inversión", "Cadencia", "Arpegio"], "La nota pedal se sostiene o repite mientras la armonía superior cambia."),
+  preguntaFinal("armonia", 6, "¿Qué nota comparten los acordes Do mayor (Do-Mi-Sol) y La menor (La-Do-Mi)?", "Do y Mi", ["Mi y Sol", "La y Sol", "Do y La"], "Do mayor y La menor comparten las notas Do y Mi, lo que facilita una conducción suave de voces."),
+];
+
 const NOMBRE_MODULO = { ritmo: "Ritmo", melodia: "Melodía", armonia: "Armonía" };
 
 
@@ -58,20 +96,15 @@ export default function QuizModulo() {
   const { moduloSlug }  = useParams();
   const { usuarioDB }   = useAuth();
   const navigate = useNavigate();
-  const quizFinalCompletado = !moduloSlug && isQuizFinalCompleted();
+  const [quizFinalCompletado, setQuizFinalCompletado] = useState(
+    () => !moduloSlug && isQuizFinalCompleted()
+  );
 
   const preguntas = useMemo(() => {
     if (moduloSlug) {
       return PREGUNTAS_POR_MODULO[moduloSlug] || [];
     }
-
-    return Object.entries(PREGUNTAS_POR_MODULO).flatMap(([slug, moduloPreguntas]) =>
-      moduloPreguntas.map((pregunta) => ({
-        ...pregunta,
-        id: `${slug}-${pregunta.id}`,
-        moduloSlug: slug,
-      }))
-    );
+    return PREGUNTAS_EVALUACION_FINAL;
   }, [moduloSlug]);
 
   const nombreModulo = moduloSlug ? NOMBRE_MODULO[moduloSlug] : "Evaluación final";
@@ -80,6 +113,21 @@ export default function QuizModulo() {
   const [acceso, setAcceso]              = useState(null); // null=cargando, true/false
   const [porcentaje, setPorcentaje]      = useState(0);
 
+  useEffect(() => {
+    if (moduloSlug || !usuarioDB?.id) return;
+    let cancelled = false;
+    obtenerEstadoUsuario()
+      .then((state) => {
+        if (!cancelled && state.resultado_quiz_final) {
+          setQuizFinalCompletado(true);
+        }
+      })
+      .catch((error) => console.error("No se pudo consultar el quiz guardado:", error));
+    return () => {
+      cancelled = true;
+    };
+  }, [moduloSlug, usuarioDB?.id]);
+
   // Verificar acceso del módulo o del quiz final según la ruta
   useEffect(() => {
     if (!usuarioDB?.id || quizFinalCompletado) {
@@ -87,7 +135,7 @@ export default function QuizModulo() {
     }
 
     if (moduloSlug) {
-      fetch(apiUrl(`/progress/modulo/${usuarioDB.id}/${moduloSlug}`))
+      authFetch(apiUrl(`/progreso/modulo/${usuarioDB.id}/${moduloSlug}`))
         .then((r) => r.json())
         .then((data) => {
           setPorcentaje(data.porcentaje || 0);
@@ -146,12 +194,15 @@ export default function QuizModulo() {
         })
       );
       if (!moduloSlug) {
-        markQuizFinalCompleted({
+        const resultado = {
           moduloSlug: "Evaluación final",
           preguntas,
           respuestas: siguientesRespuestas,
           nombreUsuario: usuarioDB?.nombre,
-        });
+        };
+        guardarResultadoQuizFinal(resultado)
+          .then(() => setQuizFinalCompletado(true))
+          .catch((error) => console.error("No se pudo guardar el resultado final:", error));
       }
       navigate("/resultado-quiz");
     }
@@ -239,7 +290,7 @@ export default function QuizModulo() {
             <p className="text-gray-500">
               {preguntas.length} preguntas · {moduloSlug
                 ? "Casos de aplicación del módulo."
-                : "6 por categoría; integra conceptos de toda la ruta."}
+                : "6 preguntas nuevas por categoría; integra conceptos de toda la ruta."}
             </p>
           </div>
 

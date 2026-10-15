@@ -149,7 +149,7 @@ export default function Dashboard() {
               className="text-4xl font-extrabold text-white"
               style={{ fontFamily: "Syne,sans-serif" }}
             >
-              0
+              {loadingDashboard ? "…" : dashboardData?.racha_actual ?? 0}
             </p>
           </div>
 

@@ -26,9 +26,9 @@ const MIDI_POR_CATEGORIA = {
  * @param {string}   moduloSlug  — "ritmo" | "melodia" | "armonia" (opcional si
  *                                 exercise.contenido.categoria ya lo trae)
  */
-export default function EjercicioRenderer({ exercise, onEvaluate, disabled, moduloSlug }) {
+export default function EjercicioRenderer({ exercise, onEvaluate, disabled, moduloSlug, resultado }) {
   if (exercise.tipo === "quiz") {
-    return <EjercicioQuiz exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+    return <EjercicioQuiz exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
   }
 
   const categoria = exercise.contenido?.categoria || moduloSlug || "melodia";

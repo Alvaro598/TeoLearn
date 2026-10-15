@@ -136,3 +136,78 @@ export const obtenerOCrearUsuario = async (req, res) => {
     return res.status(500).json({ error: "Error sincronizando usuario" });
   }
 };
+
+export const obtenerEstadoUsuario = async (req, res) => {
+  try {
+    const uid = req.firebaseUser?.uid;
+    if (!uid) return res.status(401).json({ error: "Token de autenticación requerido" });
+
+    const result = await pool.query(
+      `
+      SELECT s.preferencias, s.historial_chat, s.resultado_quiz_final,
+             COALESCE(s.racha_actual, 0) AS racha_actual
+      FROM usuario u
+      LEFT JOIN teolearn_user_state s ON s.usuario_id = u.id
+      WHERE u.firebase_uid = $1
+      `,
+      [uid]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    const state = result.rows[0];
+    return res.json({
+      preferencias: state.preferencias || {},
+      historial_chat: state.historial_chat || [],
+      resultado_quiz_final: state.resultado_quiz_final || null,
+      racha_actual: state.racha_actual,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error obteniendo el estado del usuario" });
+  }
+};
+
+export const actualizarEstadoUsuario = async (req, res) => {
+  try {
+    const uid = req.firebaseUser?.uid;
+    if (!uid) return res.status(401).json({ error: "Token de autenticación requerido" });
+
+    const { preferencias, historial_chat, resultado_quiz_final } = req.body || {};
+    if (preferencias !== undefined && (!preferencias || typeof preferencias !== "object" || Array.isArray(preferencias))) {
+      return res.status(400).json({ error: "Preferencias inválidas" });
+    }
+    if (historial_chat !== undefined && (!Array.isArray(historial_chat) || historial_chat.length > 500)) {
+      return res.status(400).json({ error: "Historial de chat inválido" });
+    }
+    if (resultado_quiz_final !== undefined && resultado_quiz_final !== null && (typeof resultado_quiz_final !== "object" || Array.isArray(resultado_quiz_final))) {
+      return res.status(400).json({ error: "Resultado de quiz inválido" });
+    }
+
+    const userResult = await pool.query(
+      "SELECT id FROM usuario WHERE firebase_uid = $1",
+      [uid]
+    );
+    if (!userResult.rows[0]) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    const serializedPreferences = preferencias === undefined ? null : JSON.stringify(preferencias);
+    const serializedHistory = historial_chat === undefined ? null : JSON.stringify(historial_chat);
+    const serializedQuiz = resultado_quiz_final === undefined ? null : JSON.stringify(resultado_quiz_final);
+    const result = await pool.query(
+      `
+      INSERT INTO teolearn_user_state (usuario_id, preferencias, historial_chat, resultado_quiz_final)
+      VALUES ($1, COALESCE($2::jsonb, '{}'::jsonb), COALESCE($3::jsonb, '[]'::jsonb), $4::jsonb)
+      ON CONFLICT (usuario_id) DO UPDATE SET
+        preferencias = COALESCE($2::jsonb, teolearn_user_state.preferencias),
+        historial_chat = COALESCE($3::jsonb, teolearn_user_state.historial_chat),
+        resultado_quiz_final = COALESCE($4::jsonb, teolearn_user_state.resultado_quiz_final)
+      RETURNING preferencias, historial_chat, resultado_quiz_final, racha_actual
+      `,
+      [userResult.rows[0].id, serializedPreferences, serializedHistory, serializedQuiz]
+    );
+
+    return res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error guardando el estado del usuario" });
+  }
+};

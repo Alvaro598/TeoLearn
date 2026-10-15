@@ -40,7 +40,6 @@ function PracticaPatron({ exercise, onEvaluate, disabled }) {
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const respuesta = exercise.respuesta_correcta?.respuesta;
   const [reproducido, setReproducido] = useState(false);
 
   const reproducir = () => {
@@ -49,12 +48,7 @@ function PracticaPatron({ exercise, onEvaluate, disabled }) {
   };
 
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({
-      respuesta:  { respuesta: opcion },
-      correcta,
-      puntuacion: correcta ? exercise.puntos : 0,
-    });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -96,7 +90,6 @@ function SecuenciaRitmica({ exercise, onEvaluate, disabled }) {
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const respuesta = exercise.respuesta_correcta?.respuesta;
   const [reproducido, setReproducido] = useState(false);
 
   const reproducir = (ejemplo) => {
@@ -109,8 +102,7 @@ function SecuenciaRitmica({ exercise, onEvaluate, disabled }) {
   };
 
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -158,7 +150,6 @@ function PracticaDuracionAuditiva({ exercise, onEvaluate, disabled }) {
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const respuesta = exercise.respuesta_correcta?.respuesta;
   const bpm = contenido.bpm || 80;
   const [reproducido, setReproducido] = useState(false);
 
@@ -168,8 +159,7 @@ function PracticaDuracionAuditiva({ exercise, onEvaluate, disabled }) {
   };
 
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -211,7 +201,6 @@ function PruebaRelojInterno({ exercise, onEvaluate, disabled }) {
   const contenido     = exercise.contenido || {};
   const bpm             = contenido.bpm || 80;
   const pulsosGuia       = contenido.pulsosGuia || 4;   // cuántos clicks suenan antes de detenerse
-  const toleranciaMs     = exercise.respuesta_correcta?.toleranciaMs ?? 220;
 
   const [fase, setFase]   = useState("inicio");  // inicio → reproduciendo → esperando-tap → resultado
   const [resultadoMs, setResultadoMs] = useState(null);
@@ -239,11 +228,8 @@ function PruebaRelojInterno({ exercise, onEvaluate, disabled }) {
     setResultadoMs(Math.round(diferencia));
     setFase("resultado");
 
-    const correcta = diferencia <= toleranciaMs;
     onEvaluate({
       respuesta:  { diferenciaMs: Math.round(diferencia) },
-      correcta,
-      puntuacion: correcta ? exercise.puntos : 0,
     });
   };
 
@@ -288,8 +274,8 @@ function PruebaRelojInterno({ exercise, onEvaluate, disabled }) {
       )}
 
       {fase === "resultado" && resultadoMs !== null && (
-        <div className={`rounded-xl p-4 font-bold ${resultadoMs <= toleranciaMs ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-          Desviación: {resultadoMs} ms {resultadoMs <= toleranciaMs ? "(dentro de la tolerancia)" : "(fuera de la tolerancia)"}
+        <div className="rounded-xl bg-gray-100 p-4 font-bold text-gray-700">
+          Desviación medida: {resultadoMs} ms
         </div>
       )}
     </div>

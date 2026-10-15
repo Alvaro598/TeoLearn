@@ -1,7 +1,5 @@
 let audioContext;
-let backgroundNodes;
-let backgroundTrackId = null;
-let backgroundAudio = null;
+let backgroundPlayback = null;
 const METRONOME_STORAGE_KEY = "teolearn_metronome_bpm";
 
 // ─── Tabla de frecuencias ──────────────────────────────────────────────────────
@@ -421,160 +419,296 @@ export function stopMetronome() {
 export function isMetronomeRunning() { return false; }
 
 /* ═══════════════════════════════════════════════════════
-   MÚSICA DE FONDO — 4 PISTAS PRECARGADAS SELECCIONABLES
-   (100% sintetizadas con Web Audio API, sin archivos externos)
+   MÚSICA DE FONDO — COMPOSICIONES ORIGINALES EN WEB AUDIO
 ═══════════════════════════════════════════════════════ */
 
 export const BACKGROUND_TRACKS = [
-  { id: "ambient", label: "Ambiente suave",   description: "Pad cálido y envolvente. Ideal para lectura teórica." },
-  { id: "focus",   label: "Enfoque profundo", description: "Drone grave y estable. Ideal para ejercicios MIDI/auditivos." },
-  { id: "lofi",    label: "Lo-fi relajado",   description: "Sleepy Cat — Alejandro Magaña (Mixkit). Chill lo-fi para estudiar." },
-  { id: "piano",   label: "Piano de estudio", description: "Arpegios lentos tipo piano. Ideal para repaso de teoría." },
+  { id: "chiptune", label: "Chiptune de aventura", description: "Melodía original de 8 bits con bajo y percusión suave." },
+  { id: "calm", label: "Chiptune tranquilo", description: "Arpegios lentos y armonías suaves para concentrarse." },
+  { id: "arcade", label: "Arcade energético", description: "Ritmo más rápido y melodía retro para sesiones activas." },
+  { id: "lofi", label: "Lo-fi", description: "Acordes cálidos, melodía relajada y ritmo apagado." },
+  { id: "postpunk", label: "Post-punk", description: "Bajo marcado, guitarra sintetizada y pulso constante." },
+  { id: "synthwave", label: "Synthwave", description: "Capas brillantes y arpegios electrónicos retro." },
+  { id: "chillwave", label: "Chillwave", description: "Texturas suaves, notas largas y ambiente espacioso." },
 ];
 
-const BACKGROUND_TRACK_IDS = BACKGROUND_TRACKS.map((t) => t.id);
+const MUSIC_TRACKS = {
+  chiptune: {
+    bpm: 108,
+    leadWave: "square",
+    bassWave: "triangle",
+    padWave: "triangle",
+    leadVolume: 0.035,
+    bassVolume: 0.045,
+    padVolume: 0.012,
+    noteLength: 0.8,
+    drums: true,
+    melody: [72, 79, 76, 79, 74, 79, 76, 74, 81, 76, 72, 76, 77, 76, 72, 67],
+    bass: [36, 31, 33, 29],
+    chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]],
+  },
+  calm: {
+    bpm: 76,
+    leadWave: "triangle",
+    bassWave: "sine",
+    padWave: "sine",
+    leadVolume: 0.026,
+    bassVolume: 0.035,
+    padVolume: 0.018,
+    noteLength: 1.7,
+    drums: false,
+    melody: [69, 0, 72, 76, 0, 72, 74, 0, 67, 0, 72, 76, 0, 74, 72, 0],
+    bass: [33, 29, 36, 31],
+    chords: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]],
+  },
+  arcade: {
+    bpm: 132,
+    leadWave: "square",
+    bassWave: "square",
+    padWave: "triangle",
+    leadVolume: 0.03,
+    bassVolume: 0.035,
+    padVolume: 0.009,
+    noteLength: 0.68,
+    drums: true,
+    melody: [72, 76, 79, 84, 83, 79, 76, 79, 81, 84, 88, 84, 83, 81, 79, 76],
+    bass: [36, 43, 41, 45],
+    chords: [[60, 64, 67], [55, 59, 62], [53, 57, 60], [57, 60, 64]],
+  },
+  lofi: {
+    bpm: 82,
+    leadWave: "sine",
+    bassWave: "triangle",
+    padWave: "triangle",
+    leadVolume: 0.025,
+    bassVolume: 0.04,
+    padVolume: 0.018,
+    leadFilter: 1800,
+    bassFilter: 520,
+    padFilter: 1100,
+    leadDetune: -3,
+    noteLength: 1.35,
+    drums: true,
+    kickVolume: 0.018,
+    snareVolume: 0.006,
+    hatVolume: 0.0015,
+    melody: [69, 0, 72, 76, 72, 0, 69, 0, 67, 0, 72, 74, 72, 0, 69, 0],
+    bass: [45, 41, 48, 43],
+    chords: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]],
+  },
+  postpunk: {
+    bpm: 118,
+    leadWave: "sawtooth",
+    bassWave: "sawtooth",
+    padWave: "triangle",
+    leadVolume: 0.018,
+    bassVolume: 0.065,
+    padVolume: 0.009,
+    leadFilter: 1250,
+    bassFilter: 480,
+    padFilter: 900,
+    noteLength: 0.72,
+    drums: true,
+    kickVolume: 0.045,
+    snareVolume: 0.018,
+    hatVolume: 0.004,
+    melody: [57, 0, 57, 60, 62, 60, 57, 55, 53, 0, 53, 57, 60, 57, 55, 53],
+    bass: [45, 41, 43, 48],
+    chords: [[57, 60, 64], [53, 57, 60], [55, 59, 62], [60, 64, 67]],
+  },
+  synthwave: {
+    bpm: 102,
+    leadWave: "sawtooth",
+    bassWave: "triangle",
+    padWave: "sawtooth",
+    leadVolume: 0.026,
+    bassVolume: 0.044,
+    padVolume: 0.012,
+    leadFilter: 2600,
+    padFilter: 1500,
+    leadDetune: 5,
+    noteLength: 0.92,
+    drums: true,
+    kickVolume: 0.035,
+    snareVolume: 0.01,
+    hatVolume: 0.003,
+    melody: [76, 79, 83, 79, 76, 79, 86, 83, 74, 78, 81, 78, 74, 78, 85, 81],
+    bass: [40, 36, 38, 33],
+    chords: [[52, 55, 59], [48, 52, 55], [50, 54, 57], [45, 49, 52]],
+  },
+  chillwave: {
+    bpm: 78,
+    leadWave: "triangle",
+    bassWave: "sine",
+    padWave: "sine",
+    leadVolume: 0.019,
+    bassVolume: 0.032,
+    padVolume: 0.021,
+    leadFilter: 1450,
+    padFilter: 1000,
+    leadDetune: 9,
+    noteLength: 1.75,
+    drums: false,
+    melody: [72, 0, 76, 0, 79, 0, 76, 0, 74, 0, 72, 0, 69, 0, 72, 0],
+    bass: [36, 33, 29, 31],
+    chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]],
+  },
+};
 
-function buildAmbientPad(ctx, master) {
-  const freqs = [261.63, 329.63, 392.0, 493.88]; // C-E-G-B pad
-  return freqs.map((frequency, i) => {
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type            = i % 2 ? "sine" : "triangle";
-    osc.frequency.value = frequency / 2;
-    gain.gain.value     = 0.018;
-    osc.connect(gain);
-    gain.connect(master);
-    osc.start();
-    return osc;
-  });
+function midiFrequency(note) {
+  return 440 * (2 ** ((note - 69) / 12));
 }
 
-function buildFocusDrone(ctx, master) {
-  // Drone grave estable con un leve detune entre dos osciladores
-  // (sensación "binaural-like" de estabilidad, sin ser literalmente binaural).
-  const base = 110; // A2
-  const osc1 = ctx.createOscillator();
-  const osc2 = ctx.createOscillator();
-  const gain = ctx.createGain();
+function scheduleMusicNote(ctx, master, note, time, duration, waveform, volume, options = {}) {
+  if (!note || volume <= 0) return;
+  const oscillator = ctx.createOscillator();
+  const envelope = ctx.createGain();
+  const end = time + Math.max(0.06, duration);
 
-  osc1.type = "sine";
-  osc2.type = "sine";
-  osc1.frequency.value = base;
-  osc2.frequency.value = base * 1.5; // quinta justa por encima, drone estable
-  gain.gain.value = 0.022;
-
-  osc1.connect(gain);
-  osc2.connect(gain);
-  gain.connect(master);
-  osc1.start();
-  osc2.start();
-
-  return [osc1, osc2];
+  oscillator.type = waveform;
+  oscillator.frequency.value = midiFrequency(note);
+  oscillator.detune.value = options.detune ?? 0;
+  envelope.gain.setValueAtTime(0.0001, time);
+  envelope.gain.linearRampToValueAtTime(volume, time + 0.012);
+  envelope.gain.setValueAtTime(volume, Math.max(time + 0.013, end - 0.035));
+  envelope.gain.linearRampToValueAtTime(0.0001, end);
+  if (options.filterFrequency) {
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = options.filterFrequency;
+    oscillator.connect(filter);
+    filter.connect(envelope);
+  } else {
+    oscillator.connect(envelope);
+  }
+  envelope.connect(master);
+  oscillator.start(time);
+  oscillator.stop(end + 0.01);
 }
 
-function startLofiTrack() {
-  // Sleepy Cat by Alejandro Magaña, Mixkit Stock Music Free License.
-  const audio = new Audio("https://assets.mixkit.co/music/preview/mixkit-sleepy-cat-135.mp3");
-  audio.loop = true;
-  audio.volume = 0.28;
-  backgroundAudio = audio;
-  backgroundTrackId = "lofi";
-  audio.play().catch(() => {
-    // Los navegadores pueden bloquear audio automático hasta la primera interacción.
-  });
+function createNoiseBuffer(ctx) {
+  const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.12), ctx.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i += 1) samples[i] = Math.random() * 2 - 1;
+  return buffer;
 }
 
-function buildPianoArpeggio(ctx, master) {
-  // Arpegio lento en loop (C-E-G-B-C) tipo "piano de estudio", reprogramado
-  // cada vez que termina la secuencia mientras la pista siga activa.
-  const secuencia = [261.63, 329.63, 392.0, 493.88, 523.25];
-  const nodos = [];
-  let activo = true;
-  let stepIndex = 0;
+function scheduleNoiseHit(ctx, master, noiseBuffer, time, volume) {
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const envelope = ctx.createGain();
+  source.buffer = noiseBuffer;
+  filter.type = "highpass";
+  filter.frequency.value = 1600;
+  envelope.gain.setValueAtTime(volume, time);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.09);
+  source.connect(filter);
+  filter.connect(envelope);
+  envelope.connect(master);
+  source.start(time);
+  source.stop(time + 0.1);
+}
 
-  function tocarSiguiente() {
-    if (!activo) return;
-    const freq = secuencia[stepIndex % secuencia.length];
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.6);
-    osc.connect(gain);
-    gain.connect(master);
-    osc.start();
-    osc.stop(ctx.currentTime + 1.7);
-    stepIndex++;
-    nodos.push(osc);
-    if (activo) setTimeout(tocarSiguiente, 1400);
+function scheduleKick(ctx, master, time, volume = 0.035) {
+  const oscillator = ctx.createOscillator();
+  const envelope = ctx.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(135, time);
+  oscillator.frequency.exponentialRampToValueAtTime(48, time + 0.12);
+  envelope.gain.setValueAtTime(volume, time);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
+  oscillator.connect(envelope);
+  envelope.connect(master);
+  oscillator.start(time);
+  oscillator.stop(time + 0.15);
+}
+
+function scheduleMusicStep(ctx, master, noiseBuffer, track, step, time, stepDuration) {
+  const melodyNote = track.melody[step];
+  scheduleMusicNote(
+    ctx, master, melodyNote, time, stepDuration * track.noteLength,
+    track.leadWave, track.leadVolume,
+    { filterFrequency: track.leadFilter, detune: track.leadDetune }
+  );
+
+  if (step % 4 === 0) {
+    const chordIndex = step / 4;
+    scheduleMusicNote(
+      ctx, master, track.bass[chordIndex], time, stepDuration * 3.7,
+      track.bassWave, track.bassVolume, { filterFrequency: track.bassFilter }
+    );
+    track.chords[chordIndex].forEach((note) => {
+      scheduleMusicNote(
+        ctx, master, note, time, stepDuration * 3.7,
+        track.padWave, track.padVolume, { filterFrequency: track.padFilter }
+      );
+    });
   }
 
-  tocarSiguiente();
-
-  return {
-    stop: () => { activo = false; },
-    oscillators: nodos,
-  };
+  if (!track.drums) return;
+  if (step === 0 || step === 8) scheduleKick(ctx, master, time, track.kickVolume ?? 0.035);
+  if (step === 4 || step === 12) scheduleNoiseHit(ctx, master, noiseBuffer, time, track.snareVolume ?? 0.012);
+  if (step % 2 === 1) scheduleNoiseHit(ctx, master, noiseBuffer, time, track.hatVolume ?? 0.0035);
 }
 
-/**
- * startBackgroundMusic(trackId)
- * Si no se especifica trackId, usa "ambient" por defecto (retrocompatible).
- */
-export function startBackgroundMusic(trackId = "ambient") {
-  const id = BACKGROUND_TRACK_IDS.includes(trackId) ? trackId : "ambient";
+export function startBackgroundMusic(trackId = "chiptune") {
+  const id = Object.hasOwn(MUSIC_TRACKS, trackId) ? trackId : "chiptune";
+  const ctx = getContext();
 
-  // Si ya está sonando la misma pista, no reiniciar (evita "clics")
-  if (backgroundTrackId === id && (backgroundNodes || backgroundAudio)) return;
-
-  // Si hay otra pista sonando, detenerla primero
-  if (backgroundNodes || backgroundAudio) stopBackgroundMusic();
-
-  if (id === "lofi") {
-    startLofiTrack();
-    return;
+  if (backgroundPlayback?.trackId === id) {
+    if (ctx.state === "suspended") {
+      return ctx.resume().catch((error) => console.warn("No se pudo iniciar la música:", error));
+    }
+    return Promise.resolve();
   }
 
-  const ctx    = getContext();
+  stopBackgroundMusic();
+
+  const track = MUSIC_TRACKS[id];
   const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, ctx.currentTime);
+  master.gain.linearRampToValueAtTime(0.7, ctx.currentTime + 0.25);
   master.connect(ctx.destination);
 
-  let builderResult;
-  switch (id) {
-    case "focus":
-      builderResult = { oscillators: buildFocusDrone(ctx, master) };
-      break;
-    case "piano":
-      builderResult = buildPianoArpeggio(ctx, master);
-      break;
-    case "ambient":
-    default:
-      builderResult = { oscillators: buildAmbientPad(ctx, master) };
-      break;
-  }
+  const playback = {
+    trackId: id,
+    master,
+    active: true,
+    timer: null,
+    noiseBuffer: track.drums ? createNoiseBuffer(ctx) : null,
+  };
+  backgroundPlayback = playback;
 
-  backgroundTrackId = id;
-  backgroundNodes = { ...builderResult, master, trackId: id };
+  const stepDuration = 60 / track.bpm / 2;
+  let step = 0;
+  let nextTime = ctx.currentTime + 0.06;
+  const scheduleAhead = () => {
+    if (!playback.active) return;
+    while (nextTime < ctx.currentTime + 0.12) {
+      scheduleMusicStep(ctx, master, playback.noiseBuffer, track, step, nextTime, stepDuration);
+      step = (step + 1) % track.melody.length;
+      nextTime += stepDuration;
+    }
+    playback.timer = window.setTimeout(scheduleAhead, 25);
+  };
+
+  scheduleAhead();
+  if (ctx.state === "suspended") {
+    return ctx.resume().catch((error) => console.warn("No se pudo iniciar la música:", error));
+  }
+  return Promise.resolve();
 }
 
 export function stopBackgroundMusic() {
-  if (backgroundAudio) {
-    backgroundAudio.pause();
-    backgroundAudio.currentTime = 0;
-    backgroundAudio = null;
-  }
-  if (!backgroundNodes) return;
-  backgroundNodes.stop?.();
-  backgroundNodes.oscillators?.forEach((o) => { try { o.stop(); } catch { /* ya detenido */ } });
-  backgroundNodes.master.disconnect();
-  backgroundNodes = null;
-  backgroundTrackId = null;
-}
-
-export function getCurrentBackgroundTrack() {
-  return backgroundTrackId;
+  if (!backgroundPlayback) return;
+  const playback = backgroundPlayback;
+  backgroundPlayback = null;
+  playback.active = false;
+  window.clearTimeout(playback.timer);
+  const now = audioContext?.currentTime ?? 0;
+  playback.master.gain.cancelScheduledValues(now);
+  playback.master.gain.setTargetAtTime(0.0001, now, 0.025);
+  window.setTimeout(() => playback.master.disconnect(), 140);
 }
 
 // ─── Alias retrocompatible ─────────────────────────────────────────────────────

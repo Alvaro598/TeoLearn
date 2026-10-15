@@ -51,6 +51,12 @@ export function markQuizFinalCompleted(result) {
   localStorage.setItem(getFinalQuizStorageKey(), JSON.stringify(result));
 }
 
+export async function guardarResultadoQuizFinal(result) {
+  markQuizFinalCompleted(result);
+  const { actualizarEstadoUsuario } = await import("./userState");
+  await actualizarEstadoUsuario({ resultado_quiz_final: result });
+}
+
 function parseProgress(raw) {
   const parsed = JSON.parse(raw);
   return {
@@ -256,26 +262,16 @@ async function fetchJson(path) {
  * @param {boolean} params.correcta
  * @param {number}  params.puntuacion
  */
-export async function guardarIntento({
-  usuarioId,
-  ejercicioId,
-  respuestaUsuario,
-  correcta,
-  puntuacion,
-}) {
-  const response = await authFetch(`${PROGRESO_BASE}/intento`, {
+export async function evaluarRespuesta(ejercicioId, respuestaUsuario) {
+  const response = await authFetch(apiUrl(`/ejercicios/${ejercicioId}/evaluar`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      usuario_id: usuarioId,
-      ejercicio_id: ejercicioId,
       respuesta_usuario: respuestaUsuario,
-      correcta,
-      puntuacion,
     }),
   });
 
-  if (!response.ok) throw new Error("Error guardando intento");
+  if (!response.ok) throw new Error("No se pudo evaluar la respuesta");
   return response.json();
 }
 

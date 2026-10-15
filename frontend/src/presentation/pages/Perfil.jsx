@@ -1,4 +1,4 @@
-import { Music, Palette, Volume2, PlayCircle, RotateCcw } from "lucide-react";
+import { Palette, Volume2, PlayCircle, RotateCcw, Music } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../application/context/useAuth";
 import { usePreferences } from "../../application/context/usePreferences";
@@ -89,6 +89,7 @@ export default function Perfil() {
             </select>
           </div>
 
+          <div className="md:col-span-2 grid md:grid-cols-2 gap-4">
           {/* ── Accesibilidad: TTS + selector de voz ── */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <Volume2 className="text-brand-blue mb-3" />
@@ -166,24 +167,28 @@ export default function Perfil() {
                 onChange={(event) => updatePreferences({ soundEnabled: event.target.checked })}
               />
             </label>
+
           </div>
 
-          {/* ── Concentración: música de fondo + selector de pista ── */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <Music className="text-brand-blue mb-3" />
-            <h2 className="font-extrabold text-xl mb-3">Concentracion</h2>
-
+            <div className="flex items-center gap-2 mb-2">
+              <Music size={18} className="text-brand-blue" />
+              <h2 className="font-extrabold text-xl">Música para concentrarse</h2>
+            </div>
             <label className="flex items-center justify-between gap-4 py-2">
-              <span>Musica de fondo</span>
+              <span>Reproducir música de fondo</span>
               <input
                 type="checkbox"
+                role="switch"
                 checked={preferences.backgroundMusic}
                 onChange={(event) => updatePreferences({ backgroundMusic: event.target.checked })}
+                aria-label="Reproducir música de fondo"
               />
             </label>
 
             {preferences.backgroundMusic && (
-              <div className="mt-2 grid gap-2">
+              <fieldset className="mt-2 grid gap-2">
+                <legend className="mb-2 text-sm font-semibold text-gray-600">Elige un estilo</legend>
                 {BACKGROUND_TRACKS.map((track) => (
                   <label
                     key={track.id}
@@ -200,21 +205,18 @@ export default function Perfil() {
                       checked={preferences.backgroundMusicTrack === track.id}
                       onChange={() => updatePreferences({ backgroundMusicTrack: track.id })}
                     />
-                    <div>
-                      <p className="text-sm font-bold text-gray-800">{track.label}</p>
-                      <p className="text-xs text-gray-500">{track.description}</p>
-                    </div>
+                    <span>
+                      <span className="block text-sm font-bold text-gray-800">{track.label}</span>
+                      <span className="block text-xs text-gray-500">{track.description}</span>
+                    </span>
                   </label>
                 ))}
-              </div>
+              </fieldset>
             )}
 
-            <p className="text-sm text-gray-500 mt-3">
-              Incluye “Sleepy Cat” de Alejandro Magaña, una pista real de Mixkit que requiere conexión a internet y se usa bajo su licencia gratuita.
-              {" "}<a href="https://mixkit.co/free-stock-music/lo-fi-beats/" target="_blank" rel="noreferrer" className="underline">Ver pista</a>
-              {" · "}<a href="https://mixkit.co/license/" target="_blank" rel="noreferrer" className="underline">Licencia Mixkit</a>
-            </p>
           </div>
+          </div>
+
         </section>
       </div>
     </div>

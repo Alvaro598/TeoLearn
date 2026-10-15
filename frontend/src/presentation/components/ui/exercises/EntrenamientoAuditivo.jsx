@@ -17,18 +17,12 @@ function shuffleOptions(options = []) {
 export default function EntrenamientoAuditivo({ exercise, onEvaluate, disabled }) {
   const options = useMemo(
     () => shuffleOptions(exercise.contenido?.opciones || ["C4", "D4", "E4", "G4"]),
-    [exercise.id, exercise.contenido?.opciones]
+    [exercise.contenido?.opciones]
   );
-  const target = exercise.respuesta_correcta?.respuesta || exercise.contenido?.nota;
+  const target = exercise.contenido?.nota;
 
   const answer = (option) => {
-    const correct = option === target;
-
-    onEvaluate({
-      respuesta: { respuesta: option },
-      correcta: correct,
-      puntuacion: correct ? exercise.puntos : 0,
-    });
+    onEvaluate({ respuesta: { respuesta: option } });
   };
 
   return (

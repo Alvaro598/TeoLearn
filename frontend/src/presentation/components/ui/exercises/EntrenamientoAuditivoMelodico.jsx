@@ -46,11 +46,8 @@ function CompararAlturas({ exercise, onEvaluate, disabled }) {
     () => shuffleOptions(contenido.opciones || ["El primero", "El segundo"]),
     [contenido.opciones]
   );
-  const respuesta = exercise.respuesta_correcta?.respuesta;
-
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -88,11 +85,8 @@ function CompararEscalas({ exercise, onEvaluate, disabled }) {
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const respuesta = exercise.respuesta_correcta?.respuesta;
-
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -135,11 +129,8 @@ function Intervalo({ exercise, onEvaluate, disabled }) {
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const respuesta = exercise.respuesta_correcta?.respuesta;
-
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -175,13 +166,12 @@ function NotaIndividual({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const opciones  = useMemo(
     () => shuffleOptions(contenido.opciones || ["C4", "D4", "E4", "G4"]),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
-  const objetivo   = exercise.respuesta_correcta?.respuesta || contenido.nota;
+  const objetivo   = contenido.nota;
 
   const responder = (opcion) => {
-    const correcta = opcion === objetivo;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -218,15 +208,12 @@ function DireccionMelodica({ exercise, onEvaluate, disabled }) {
   const notas      = contenido.notas || ["C4", "G4"];
   const opciones    = useMemo(
     () => shuffleOptions(contenido.opciones || ["Sube", "Baja", "Se mantiene igual"]),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
-  const objetivo     = exercise.respuesta_correcta?.respuesta;
-
   const reproducir = () => playSequence(notas, 0.5);
 
   const responder = (opcion) => {
-    const correcta = opcion === objetivo;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -261,19 +248,17 @@ function DireccionMelodica({ exercise, onEvaluate, disabled }) {
 function GradoTonal({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
   const tonica     = contenido.tonica || "C4";
-  const notaObjetivo = exercise.respuesta_correcta?.nota || contenido.nota;
+  const notaObjetivo = contenido.nota;
   const opciones      = useMemo(
     () => shuffleOptions(contenido.opciones || ["1", "2", "3", "4", "5", "6", "7"]),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
-  const gradoCorrecto  = exercise.respuesta_correcta?.respuesta;
 
   const reproducirTonica = () => playNote(tonica, 0.9);
   const reproducirNota   = () => playNote(notaObjetivo, 0.7);
 
   const responder = (opcion) => {
-    const correcta = opcion === gradoCorrecto;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -320,15 +305,13 @@ function PedalTonica({ exercise, onEvaluate, disabled }) {
   const fragmento  = contenido.notas || ["C4", "E4", "G4", "E4", "D4"];
   const opciones    = useMemo(
     () => shuffleOptions(contenido.opciones || ["C4", "D4", "E4", "F4"]),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
-  const tonicaCorrecta = exercise.respuesta_correcta?.respuesta;
 
   const reproducir = () => playSequence(fragmento, 0.35);
 
   const responder = (opcion) => {
-    const correcta = opcion === tonicaCorrecta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -365,16 +348,14 @@ function ResolucionTension({ exercise, onEvaluate, disabled }) {
   const notaTension   = contenido.nota || "B4";
   const opciones        = useMemo(
     () => shuffleOptions(contenido.opciones || ["C5", "A4", "G4", "B4"]),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
-  const resolucionCorrecta = exercise.respuesta_correcta?.respuesta;
 
   const reproducirTension = () => playNote(notaTension, 0.8);
   const reproducirOpcion  = (opcion) => playInterval(notaTension, opcion, "melodico", 0.5);
 
   const responder = (opcion) => {
-    const correcta = opcion === resolucionCorrecta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (

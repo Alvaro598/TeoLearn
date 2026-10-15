@@ -5,6 +5,17 @@ import { pathToFileURL } from "url";
 export async function ensureLearningPathSchema() {
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS teolearn_user_state (
+      usuario_id INTEGER PRIMARY KEY REFERENCES usuario(id) ON DELETE CASCADE,
+      preferencias JSONB NOT NULL DEFAULT '{}'::jsonb,
+      historial_chat JSONB NOT NULL DEFAULT '[]'::jsonb,
+      resultado_quiz_final JSONB,
+      racha_actual INTEGER NOT NULL DEFAULT 0,
+      ultima_practica DATE
+    )
+  `);
+
+  await pool.query(`
     ALTER TABLE modulo
     ADD COLUMN IF NOT EXISTS slug VARCHAR(80) UNIQUE
   `);

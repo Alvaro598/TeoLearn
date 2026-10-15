@@ -8,7 +8,7 @@ export const defaultPreferences = {
   ttsVoiceURI: "",
   soundEnabled: true,
   backgroundMusic: false,
-  backgroundMusicTrack: "ambient",
+  backgroundMusicTrack: "chiptune",
   onboardingDone: false,
 };
 

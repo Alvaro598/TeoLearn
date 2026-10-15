@@ -1,8 +1,11 @@
 import { Download, RotateCcw, Trophy } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 import { getQuizFinalResult } from "../../application/services/progress";
 import { generarPDF } from "../../application/services/quizPdf";
+import { obtenerEstadoUsuario } from "../../application/services/userState";
+import { useAuth } from "../../application/context/useAuth";
 
 const RESULT_STORAGE_KEY = "teolearn-quiz-result";
 
@@ -18,7 +21,23 @@ function leerResultadoGuardado() {
 export default function ResultadoQuiz() {
   const location = useLocation();
   const navigate = useNavigate();
-  const resultado = location.state || leerResultadoGuardado();
+  const { usuarioDB } = useAuth();
+  const [resultado, setResultado] = useState(() => location.state || leerResultadoGuardado());
+
+  useEffect(() => {
+    if (location.state || !usuarioDB?.id) return;
+    let cancelled = false;
+    obtenerEstadoUsuario()
+      .then((state) => {
+        if (!cancelled && state.resultado_quiz_final) {
+          setResultado(state.resultado_quiz_final);
+        }
+      })
+      .catch((error) => console.error("No se pudo cargar el resultado final:", error));
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state, usuarioDB?.id]);
 
   if (!resultado) {
     return (

@@ -31,7 +31,7 @@ const ONBOARDING_STEPS = [
     icon: <BookOpen size={40} className="text-brand-blue" />,
     titulo: "Cómo está organizado",
     cuerpo:
-      "El contenido tiene tres módulos (Ritmo, Melodía, Armonía), cada uno con 4 unidades temáticas. Cada unidad agrupa 3 lecciones con teoría, práctica auditiva y editor MIDI.",
+      "El contenido tiene tres módulos (Ritmo, Melodía, Armonía), cada uno con 2 unidades temáticas. Cada unidad agrupa 3 lecciones con teoría, práctica auditiva y editor MIDI.",
     imagen: (
       <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-xl p-4 text-sm font-mono text-gray-600 dark:text-gray-300 leading-relaxed">
         <p>📦 Módulo → ⚡ Ritmo</p>

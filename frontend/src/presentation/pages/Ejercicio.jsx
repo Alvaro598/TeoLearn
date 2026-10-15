@@ -28,6 +28,7 @@ import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../../application/config/apiBase";
+import { authFetch } from "../../application/services/api";
 import { useAuth } from "../../application/context/useAuth";
 import { usePreferences } from "../../application/context/usePreferences";
 import { solicitarFeedbackIA } from "../../application/services/feedbackIA";
@@ -37,8 +38,7 @@ import { useEjercicioTimer } from "../../application/services/useEjercicioTimer"
 import {
   getCompletedExerciseIds,
   markExerciseCompletedLocal,
-  guardarIntento,
-  guardarLeccionCompletada,
+  evaluarRespuesta,
   obtenerEjerciciosCompletados,
   registerLessonAttemptLocal,
 } from "../../application/services/progress";
@@ -60,12 +60,16 @@ export default function Ejercicio() {
   const { leccionId } = useParams();
   const navigate      = useNavigate();
   const { preferences }                  = usePreferences();
-  const { usuarioDB, refrescarUsuarioDB } = useAuth();
+  const { usuarioDB } = useAuth();
 
   const [leccion, setLeccion]                       = useState(null);
   const [ejercicios, setEjercicios]                 = useState([]);
   const [loading, setLoading]                       = useState(true);
+  const [errorCarga, setErrorCarga]                 = useState(null);
   const [activeIndex, setActiveIndex]               = useState(0);
+  const [ejerciciosAprobados, setEjerciciosAprobados] = useState(() => new Set());
+  const [modoRepaso, setModoRepaso]                 = useState(false);
+  const [avisoNavegacion, setAvisoNavegacion]         = useState("");
   const [attempt, setAttempt]                       = useState(0);
   const [resultadoActual, setResultadoActual]       = useState(null);
   const [avanzando, setAvanzando]                   = useState(false);
@@ -75,6 +79,8 @@ export default function Ejercicio() {
   const evaluarRef                                  = useRef(null);
 
   const currentExercise = ejercicios[activeIndex];
+  const todosLosEjerciciosAprobados = ejercicios.length > 0
+    && ejercicios.every((exercise) => ejerciciosAprobados.has(String(exercise.id)));
 
   // ── TIMER ─────────────────────────────────────────────────────────────────
   // Activo = hay ejercicio, no hay resultado visible y no estamos avanzando.
@@ -112,12 +118,23 @@ export default function Ejercicio() {
     const obtenerDatos = async () => {
       try {
         const leccionResponse = await fetch(apiUrl(`/lecciones/${leccionId}`));
-        const leccionData = await leccionResponse.json();
+        const leccionData = await leccionResponse.json().catch(() => null);
+        if (!leccionResponse.ok) {
+          throw new Error(leccionData?.error || `No se pudo cargar la lección (${leccionResponse.status}).`);
+        }
         if (cancelado) return;
         setLeccion(leccionData);
 
-        const ejerciciosResponse = await fetch(apiUrl(`/ejercicios/leccion/${leccionId}`));
-        const ejerciciosData = await ejerciciosResponse.json();
+        const ejerciciosResponse = await authFetch(apiUrl(`/ejercicios/leccion/${leccionId}`));
+        const ejerciciosData = await ejerciciosResponse.json().catch(() => null);
+        if (!ejerciciosResponse.ok) {
+          const error = new Error(ejerciciosData?.error || `No se pudieron cargar los ejercicios (${ejerciciosResponse.status}).`);
+          error.status = ejerciciosResponse.status;
+          throw error;
+        }
+        if (!Array.isArray(ejerciciosData)) {
+          throw new Error("El servidor devolvió un formato inesperado al cargar los ejercicios.");
+        }
         if (cancelado) return;
         setEjercicios(ejerciciosData);
 
@@ -127,15 +144,23 @@ export default function Ejercicio() {
         const completados = new Set([
           ...getCompletedExerciseIds(leccionId),
           ...completadosEnServidor,
-        ]);
+        ].map(String));
         const siguientePendiente = ejerciciosData.findIndex(
           (ex) => !completados.has(String(ex.id))
         );
 
         // Si la lección ya estaba completada, permitir repasar desde el inicio.
+        setEjerciciosAprobados(completados);
+        setModoRepaso(ejerciciosData.length > 0 && siguientePendiente === -1);
         setActiveIndex(siguientePendiente === -1 ? 0 : siguientePendiente);
       } catch (error) {
-        if (!cancelado) console.error("Error obteniendo ejercicios:", error);
+        if (!cancelado) {
+          console.error("Error obteniendo ejercicios:", error);
+          setErrorCarga({
+            leccionId,
+            mensaje: error.message || "No se pudieron cargar los ejercicios.",
+          });
+        }
       } finally {
         if (!cancelado) setLoading(false);
       }
@@ -149,51 +174,52 @@ export default function Ejercicio() {
     const feedbackRequestId = ++feedbackRequestIdRef.current;
 
     setAvanzando(true);
+    let evaluacion;
+    try {
+      evaluacion = await evaluarRespuesta(exercise.id, payload.respuesta);
+    } catch (error) {
+      console.error("No se pudo evaluar la respuesta en el servidor:", error);
+      setResultadoActual({
+        ...payload,
+        correcta: false,
+        errorEvaluacion: true,
+        puntuacion: 0,
+        feedback: "No se pudo validar la respuesta. Comprueba tu conexión e inténtalo de nuevo.",
+        feedbackRequestId,
+      });
+      setAvanzando(false);
+      return;
+    }
+
+    const resultadoValidado = { ...payload, ...evaluacion };
     setResultadoActual({
-      ...payload,
+      ...resultadoValidado,
       feedback: "Generando retroalimentación...",
       feedbackRequestId,
     });
 
-    if (preferences.soundEnabled) {
-      if (payload.correcta) {
-        const nuevaRacha = rachaAciertos + 1;
-        setRachaAciertos(nuevaRacha);
+    if (resultadoValidado.correcta) {
+      setEjerciciosAprobados((actuales) => new Set([...actuales, String(exercise.id)]));
+      const nuevaRacha = rachaAciertos + 1;
+      setRachaAciertos(nuevaRacha);
+      if (preferences.soundEnabled) {
         nuevaRacha >= 3 ? playPerfectStreak() : playSuccess();
-      } else {
-        setRachaAciertos(0);
-        playError();
       }
-    }
-
-    if (usuarioDB?.id) {
-      try {
-        await guardarIntento({
-          usuarioId:        usuarioDB.id,
-          ejercicioId:      exercise.id,
-          respuestaUsuario: payload.respuesta,
-          correcta:         payload.correcta,
-          puntuacion:       payload.puntuacion,
-        });
-      } catch (err) {
-        console.error("No se pudo guardar el intento en la BD:", err);
-      }
-    }
-
-    registerLessonAttemptLocal(leccionId, payload.correcta, payload.puntuacion);
-
-    if (payload.correcta) {
       markExerciseCompletedLocal(leccionId, exercise.id);
+    } else {
+      setRachaAciertos(0);
+      if (preferences.soundEnabled) playError();
     }
 
+    registerLessonAttemptLocal(leccionId, resultadoValidado.correcta, resultadoValidado.puntuacion);
     setAvanzando(false);
 
     try {
       const feedback = await solicitarFeedbackIA({
         ejercicio:        exercise,
         respuestaUsuario: payload.respuesta,
-        correcta:         payload.correcta,
-        puntuacion:       payload.puntuacion,
+        correcta:         resultadoValidado.correcta,
+        puntuacion:       resultadoValidado.puntuacion,
       });
 
       setResultadoActual((cur) => {
@@ -202,20 +228,17 @@ export default function Ejercicio() {
       });
     } catch (error) {
       console.error("Error generando feedback:", error);
-      const respuestaCorrecta = describirRespuesta(
-        exercise.respuesta_correcta ?? "no especificada"
-      );
       const respuestaEnviada = describirRespuesta(payload.respuesta);
-      const fallback = payload.correcta
-        ? `¡Correcto! Tu respuesta (${respuestaEnviada}) coincide con la respuesta esperada (${respuestaCorrecta}). El ejercicio trabaja este concepto: ${exercise.pregunta || exercise.tipo}. Repítelo una vez más y fíjate en qué dato te permitió reconocer la respuesta.`
-        : `La respuesta correcta es ${respuestaCorrecta}; tu respuesta fue ${respuestaEnviada}. El ejercicio trata sobre: ${exercise.pregunta || exercise.tipo}. Vuelve a leer la consigna y compara la respuesta esperada con las opciones antes de intentarlo otra vez.`;
+      const fallback = resultadoValidado.correcta
+        ? `¡Correcto! Registré tu respuesta (${respuestaEnviada}). El ejercicio trabaja este concepto: ${exercise.pregunta || exercise.tipo}.`
+        : `Tu respuesta fue ${respuestaEnviada}. Repasa este concepto y vuelve a intentarlo: ${exercise.pregunta || exercise.tipo}.`;
 
       setResultadoActual((cur) => {
         if (!cur || cur.feedbackRequestId !== feedbackRequestId) return cur;
         return { ...cur, feedback: fallback };
       });
     }
-  }, [leccionId, preferences.soundEnabled, rachaAciertos, usuarioDB]);
+  }, [leccionId, preferences.soundEnabled, rachaAciertos]);
 
   useEffect(() => {
     evaluarRef.current = evaluar;
@@ -242,21 +265,35 @@ export default function Ejercicio() {
     const esUltimo = activeIndex >= ejercicios.length - 1;
 
     if (esUltimo) {
-      const puntuacionTotal = ejercicios.reduce((s, ex) => s + (ex.puntos || 0), 0);
+      const aprobados = new Set([
+        ...ejerciciosAprobados,
+        ...getCompletedExerciseIds(leccionId),
+      ]);
+      const todosAprobados = ejercicios.length > 0
+        && ejercicios.every((exercise) => aprobados.has(String(exercise.id)));
 
-      if (usuarioDB?.id) {
-        try {
-          await guardarLeccionCompletada(usuarioDB.id, Number(leccionId), puntuacionTotal);
-          await refrescarUsuarioDB();
-        } catch (err) {
-          console.error("No se pudo guardar la lección completada:", err);
-        }
+      if (todosAprobados) {
+        navigate(`/resultado/${leccionId}`, {
+          replace: true,
+          state: { modoRepaso },
+        });
+        return;
       }
 
-      navigate(`/resultado/${leccionId}`, { replace: true });
+      const primerPendiente = ejercicios.findIndex(
+        (exercise) => !aprobados.has(String(exercise.id))
+      );
+      if (primerPendiente >= 0 && primerPendiente !== activeIndex) {
+        setResultadoActual(null);
+        setActiveIndex(primerPendiente);
+        setAvisoNavegacion("Aún tienes ejercicios sin aprobar. Te llevo al primero pendiente; la página de resultados aparecerá cuando todos estén aprobados.");
+      } else {
+        setAvisoNavegacion("Aprueba este ejercicio para ver los resultados de la lección.");
+      }
       return;
     }
 
+    setAvisoNavegacion("");
     setResultadoActual(null);
     setActiveIndex((cur) => cur + 1);
     // reiniciar() se llama en el useEffect [activeIndex] de arriba.
@@ -267,10 +304,28 @@ export default function Ejercicio() {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (loading) {
+  if (loading || String(leccion?.id) !== String(leccionId)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         Cargando ejercicios...
+      </div>
+    );
+  }
+
+  if (errorCarga?.leccionId === leccionId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-lg w-full rounded-xl border border-red-200 bg-white p-6 text-center shadow-sm">
+          <h1 className="text-xl font-extrabold text-gray-900">No se pudo cargar la lección</h1>
+          <p className="mt-3 text-sm text-red-700">{errorCarga.mensaje}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white"
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     );
   }
@@ -307,6 +362,11 @@ export default function Ejercicio() {
         </div>
 
         <div className="space-y-6">
+          {avisoNavegacion && (
+            <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+              {avisoNavegacion}
+            </p>
+          )}
           {currentExercise ? (
             <article
               key={currentExercise.id}
@@ -353,6 +413,7 @@ export default function Ejercicio() {
                   exercise={currentExercise}
                   disabled={avanzando || !!resultadoActual}
                   moduloSlug={leccion.modulo_slug}
+                  resultado={resultadoActual}
                   onEvaluate={(payload) => evaluar(currentExercise, payload)}
                 />
               </div>
@@ -361,14 +422,18 @@ export default function Ejercicio() {
               {resultadoActual && (
                 <div
                   className={`mt-5 rounded-xl p-4 ${
-                    resultadoActual.correcta
+                    resultadoActual.errorEvaluacion
+                      ? "bg-amber-50 text-amber-900"
+                      : resultadoActual.correcta
                       ? "bg-green-50 text-green-800"
                       : "bg-red-50 text-red-800"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-extrabold">
-                      {resultadoActual.correcta
+                      {resultadoActual.errorEvaluacion
+                        ? "No se pudo comprobar tu respuesta. Vuelve a intentarlo cuando haya conexión."
+                        : resultadoActual.correcta
                         ? `Correcto +${resultadoActual.puntuacion} XP. Puedes continuar cuando estés listo.`
                         : resultadoActual.respuesta?.respuesta === "__tiempo_agotado__"
                         ? "⏱ Tiempo agotado. Revisa el concepto e inténtalo de nuevo."
@@ -399,7 +464,7 @@ export default function Ejercicio() {
                           className="bg-gray-950 text-white px-4 py-2 rounded-lg text-sm font-bold"
                         >
                           {activeIndex >= ejercicios.length - 1
-                            ? "Finalizar ejercicio"
+                            ? todosLosEjerciciosAprobados ? "Ver resultados" : "Revisar pendientes"
                             : "Siguiente ejercicio"}
                         </button>
                         <button
@@ -423,7 +488,7 @@ export default function Ejercicio() {
                           }}
                           className="bg-brand-pink text-white px-4 py-2 rounded-lg text-sm font-bold"
                         >
-                          Intentar nuevamente
+                          {resultadoActual.errorEvaluacion ? "Reintentar validación" : "Intentar nuevamente"}
                         </button>
                         <button
                           type="button"

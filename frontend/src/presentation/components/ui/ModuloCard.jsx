@@ -94,16 +94,26 @@ export default function ModuloCard({
               🔒 Módulo bloqueado
             </button>
           ) : (
-            <Link id = "botones-modulos"
-              to={`/modulos/${id}/unidades`}
-              className={`w-full py-2 rounded-lg text-center block font-bold text-white ${
-                completado
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-brand-blue hover:bg-blue-800"
-              }`}
-            >
-              {completado ? "Repasar lecciones" : "Ver lecciones"}
-            </Link>
+            <>
+              <Link id = "botones-modulos"
+                to={`/modulos/${id}/unidades`}
+                className={`w-full py-2 rounded-lg text-center block font-bold text-white ${
+                  completado
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-brand-blue hover:bg-blue-800"
+                }`}
+              >
+                {completado ? "Repasar lecciones" : "Ver lecciones"}
+              </Link>
+              {completado && (
+                <Link
+                  to={`/quiz-modulo/${title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`}
+                  className="w-full py-2 rounded-lg text-center block font-bold text-gray-900 border border-gray-300 hover:bg-gray-50"
+                >
+                  Quiz del módulo
+                </Link>
+              )}
+            </>
           )}
         </div>
       </div>

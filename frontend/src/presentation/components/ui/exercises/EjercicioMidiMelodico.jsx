@@ -6,7 +6,6 @@ import { playSequence } from "../../../../application/services/sound";
 import { TECNICA_LABEL } from "../../../../application/services/musicTheoryHelpers";
 import {
   alturaNotaMidi,
-  compararNotasEnarmonicas,
   etiquetaNotaMidi,
   notasCromaticasEnRango,
 } from "../../../../application/services/musicTheoryHelpers";
@@ -25,10 +24,8 @@ const TECNICA_TITULOS = {
 
 export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }) {
   const contenido    = exercise.contenido || {};
-  const notasObjetivo = exercise.respuesta_correcta?.notas || [];
   const notasDisponibles = Array.from(new Set([
     ...(contenido.notasDisponibles || NOTAS_DEFECTO),
-    ...notasObjetivo,
   ]));
   const noteRows = notasCromaticasEnRango(notasDisponibles)
     .sort((a, b) => alturaNotaMidi(b) - alturaNotaMidi(a));
@@ -36,7 +33,6 @@ export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }
   const tecnica         = contenido.tecnica || "motivo-variacion";
   const articulacion    = contenido.articulacion;
   const pistaDada       = contenido.pista || [];   // motivo/pregunta ya colocada (no editable)
-  const targetNotes     = exercise.respuesta_correcta?.notas || [];
   const { bpm } = useMetronomo();
 
   const [selected, setSelected] = useState([]);
@@ -68,12 +64,8 @@ export default function EjercicioMidiMelodico({ exercise, onEvaluate, disabled }
 
   const submit = () => {
     const received = orderedSelection.map((i) => i.note);
-    const correct = compararNotasEnarmonicas(targetNotes, received);
-
     onEvaluate({
       respuesta:  { notas: received },
-      correcta:   correct,
-      puntuacion: correct ? exercise.puntos : 0,
     });
   };
 

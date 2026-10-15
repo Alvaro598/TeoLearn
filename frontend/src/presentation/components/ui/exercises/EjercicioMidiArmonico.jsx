@@ -5,7 +5,6 @@ import { Play, Eraser } from "lucide-react";
 import { playProgression } from "../../../../application/services/sound";
 import {
   alturaNotaMidi,
-  compararStacksEnarmonicos,
   etiquetaNotaMidi,
   notasCromaticasEnRango,
 } from "../../../../application/services/musicTheoryHelpers";
@@ -21,7 +20,6 @@ export default function EjercicioMidiArmonico({ exercise, onEvaluate, disabled }
   const noteRows = notasCromaticasEnRango(notasDisponibles)
     .sort((a, b) => alturaNotaMidi(b) - alturaNotaMidi(a));
   const columnas        = progresion.length;
-  const stackObjetivo   = exercise.respuesta_correcta?.stack || [];
 
   // selected[columnIndex] = Set de notas en ese acorde
   const [selected, setSelected] = useState(() =>
@@ -56,12 +54,8 @@ export default function EjercicioMidiArmonico({ exercise, onEvaluate, disabled }
   };
 
   const enviar = () => {
-    const correcta = compararStacksEnarmonicos(stackObjetivo, stackActual);
-
     onEvaluate({
       respuesta:  { stack: stackActual },
-      correcta,
-      puntuacion: correcta ? exercise.puntos : 0,
     });
   };
 

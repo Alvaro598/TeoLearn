@@ -41,15 +41,12 @@ function IntervaloParejas({ exercise, onEvaluate, disabled }) {
   const modo        = contenido.subtipo === "intervalo" ? "melodico" : contenido.modo || "armonico";
   const opciones      = useMemo(
     () => shuffleOptions(contenido.opciones || ["2ª", "3ª", "4ª", "5ª", "6ª", "8ª"]),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
-  const respuesta       = exercise.respuesta_correcta?.respuesta;
-
   const reproducir = () => playInterval(n1, n2, modo, 0.9);
 
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -85,8 +82,6 @@ function CompararArmonia({ exercise, onEvaluate, disabled }) {
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const respuesta = exercise.respuesta_correcta?.respuesta;
-
   const reproducir = (ejemplo) => {
     if (contenido.subtipo === "comparar-progresiones") {
       playProgression(ejemplo.acordes || [], 0.9, 0.12);
@@ -99,8 +94,7 @@ function CompararArmonia({ exercise, onEvaluate, disabled }) {
   };
 
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -148,19 +142,16 @@ function CompararArmonia({ exercise, onEvaluate, disabled }) {
 // ── 2. Fundamental de acorde en canción conocida ─────────────────────────────
 function FundamentalCancion({ exercise, onEvaluate, disabled }) {
   const contenido = exercise.contenido || {};
-  const acorde     = contenido.acorde || ["C4", "E4", "G4"];
+  const acorde     = useMemo(() => contenido.acorde || ["C4", "E4", "G4"], [contenido.acorde]);
   const referencia  = contenido.cancionReferencia;
   const opciones      = useMemo(
     () => shuffleOptions(contenido.opciones || acorde),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones, acorde]
   );
-  const respuesta       = exercise.respuesta_correcta?.respuesta;
-
   const reproducir = () => playChord(acorde, 1.4);
 
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -199,15 +190,12 @@ function ProgresionComun({ exercise, onEvaluate, disabled }) {
   const progresion = contenido.progresion || [];
   const opciones      = useMemo(
     () => shuffleOptions(contenido.opciones || ["I-IV-V-I", "I-V-vi-IV", "ii-V-I"]),
-    [exercise.id, contenido.opciones]
+    [contenido.opciones]
   );
-  const respuesta       = exercise.respuesta_correcta?.respuesta;
-
   const reproducir = () => playProgression(progresion, 0.9, 0.1);
 
   const responder = (opcion) => {
-    const correcta = opcion === respuesta;
-    onEvaluate({ respuesta: { respuesta: opcion }, correcta, puntuacion: correcta ? exercise.puntos : 0 });
+    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (

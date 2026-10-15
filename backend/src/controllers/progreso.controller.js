@@ -34,49 +34,6 @@ async function ensureUsuarioOwnedByFirebase(req, res, usuarioId) {
 }
 
 // ==========================================
-// GUARDAR INTENTO DE EJERCICIO
-// Registra cada respuesta en intento_ejercicio.
-// No modifica progreso_usuario ni XP por sí solo.
-// ==========================================
-export const guardarIntento = async (req, res) => {
-  try {
-    const { usuario_id, ejercicio_id, respuesta_usuario, correcta, puntuacion } = req.body;
-    const parsedUsuarioId = parsePositiveInt(usuario_id);
-    const parsedEjercicioId = parsePositiveInt(ejercicio_id);
-
-    if (!parsedUsuarioId || !parsedEjercicioId) {
-      return res.status(400).json({ error: "usuario_id y ejercicio_id deben ser enteros positivos" });
-    }
-
-    const ownership = await ensureUsuarioOwnedByFirebase(req, res, parsedUsuarioId);
-    if (ownership?.error) {
-      return ownership.error;
-    }
-
-    const resultado = await pool.query(
-      `
-      INSERT INTO intento_ejercicio
-        (usuario_id, ejercicio_id, respuesta_usuario, correcta, puntuacion)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-      `,
-      [
-        parsedUsuarioId,
-        parsedEjercicioId,
-        JSON.stringify(respuesta_usuario),
-        correcta ?? false,
-        puntuacion ?? 0,
-      ]
-    );
-
-    return res.status(201).json({ intento: resultado.rows[0] });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Error guardando intento" });
-  }
-};
-
-// ==========================================
 // OBTENER EJERCICIOS COMPLETADOS DE UNA LECCIÓN
 // Un ejercicio queda completado al registrar al menos un intento correcto.
 // ==========================================
@@ -159,6 +116,27 @@ export const completarLeccion = async (req, res) => {
     let xpGanada = 0;
 
     if (existente.rows.length === 0) {
+      const ejerciciosResult = await client.query(
+        `
+        SELECT
+          COUNT(DISTINCT e.id)::int AS total,
+          COUNT(DISTINCT ie.ejercicio_id) FILTER (WHERE ie.correcta = true)::int AS aprobados
+        FROM ejercicio e
+        LEFT JOIN intento_ejercicio ie
+          ON ie.ejercicio_id = e.id AND ie.usuario_id = $1
+        WHERE e.leccion_id = $2
+        `,
+        [parsedUsuarioId, parsedLeccionId]
+      );
+
+      const { total, aprobados } = ejerciciosResult.rows[0];
+      if (total === 0 || aprobados !== total) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({
+          error: "Debes aprobar todos los ejercicios antes de completar la lección.",
+        });
+      }
+
       // Obtener xp_recompensa de la lección
       const leccion = await client.query(
         `SELECT xp_recompensa FROM leccion WHERE id = $1`,
@@ -272,6 +250,11 @@ export const obtenerDashboard = async (req, res) => {
 
     const { xp, nivel } = usuarioResult.rows[0];
 
+    const streakResult = await pool.query(
+      `SELECT racha_actual FROM teolearn_user_state WHERE usuario_id = $1`,
+      [ownership.usuarioId]
+    );
+
     // Total de lecciones y completadas globalmente
     const globalResult = await pool.query(
       `
@@ -336,6 +319,7 @@ export const obtenerDashboard = async (req, res) => {
       xp: parseInt(xp, 10),
       nivel: parseInt(nivel, 10),
       xp_nivel: parseInt(xp, 10) % 200,
+      racha_actual: streakResult.rows[0]?.racha_actual || 0,
       lecciones_completadas: parseInt(lecciones_completadas, 10),
       total_lecciones: parseInt(total_lecciones, 10),
       lecciones_completadas_ids: completedLessonsResult.rows.map((row) =>
