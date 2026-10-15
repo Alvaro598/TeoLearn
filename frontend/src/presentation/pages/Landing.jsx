@@ -16,13 +16,13 @@ export default function Landing() {
       <Navbar />
 
       {/* HERO */}
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 flex flex-col lg:flex-row items-center gap-12">
-        <div className="flex-1 text-center lg:text-left pb-20">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 lg:py-16 flex flex-col lg:flex-row items-center gap-10 lg:gap-12">
+        <div className="w-full min-w-0 flex-1 text-center lg:text-left">
           <span className="inline-flex items-center gap-2 bg-brand-yellow/20 text-brand-dark text-xs font-semibold px-4 py-1.5 rounded-full mb-6">
             🎵 APRENDIZAJE CON IA
           </span>
 
-          <h1 className="text-5xl lg:text-4xl font-extrabold leading-tight mb-6" style={{ fontFamily: 'Syne,sans-serif' }}>
+          <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight break-words mb-6" style={{ fontFamily: 'Syne,sans-serif' }}>
             Domina la{" "}
             <span className="text-brand-pink">teoría</span>{" "}
             <span className="text-brand-pink">musical</span>{" "}
@@ -46,7 +46,7 @@ export default function Landing() {
 
         {/* Tarjeta demo */}
         <div className="flex-1 flex justify-center">
-          <div className="bg-white rounded-3xl shadow-xl p-6 w-80 border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-xl p-5 sm:p-6 w-full max-w-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-brand-pink rounded-xl flex items-center justify-center">
                 <span className="text-white text-lg">🎵</span>
@@ -74,7 +74,7 @@ export default function Landing() {
 
   
       {/* VIDEO INTRODUCTORIO */}
-      <section className="max-w-5xl mx-auto px-6 pb-20">
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
 
         <div className="text-center mb-10">
 
@@ -83,7 +83,7 @@ export default function Landing() {
           </p>
 
           <h2
-            className="text-4xl font-extrabold mb-4"
+            className="text-3xl sm:text-4xl font-extrabold mb-4"
             style={{ fontFamily: "Syne,sans-serif" }}
           >
             Aprende teoría musical de forma interactiva
@@ -112,14 +112,14 @@ export default function Landing() {
       </section>
 
       {/* FEATURES */}
-      <section className="max-w-6xl mx-auto px-6 pb-20">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
 
         <p className="text-center text-xs font-bold text-gray-400 tracking-widest mb-3">
           POR QUÉ TEOLEARN
         </p>
 
         <h2
-          className="text-4xl font-extrabold text-center mb-12"
+          className="text-3xl sm:text-4xl font-extrabold text-center mb-10 sm:mb-12"
           style={{ fontFamily: "Syne,sans-serif" }}
         >
           Aprende como nunca antes
@@ -186,7 +186,7 @@ export default function Landing() {
       </section>
 
       {/* MÓDULOS */}
-      <section className="max-w-6xl mx-auto px-6 pb-20">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { color: "bg-ritmo", icon: "⚡", title: "Ritmo", sub: "Pulso, compás y figuras" },
@@ -203,10 +203,10 @@ export default function Landing() {
       </section>
 
       {/* CTA */}
-      <section className="bg-brand-dark text-white rounded-3xl max-w-5xl mx-auto mb-20 mx-6 p-16 text-center">
-        <h2 className="text-4xl font-extrabold mb-4" style={{ fontFamily: 'Syne,sans-serif' }}>¿Listo para componer tu futuro?</h2>
+      <section className="bg-brand-dark text-white rounded-3xl max-w-5xl mx-4 sm:mx-auto mb-16 sm:mb-20 p-6 sm:p-10 lg:p-16 text-center">
+        <h2 className="text-3xl sm:text-4xl font-extrabold mb-4" style={{ fontFamily: 'Syne,sans-serif' }}>¿Listo para componer tu futuro?</h2>
         <p className="text-gray-400 mb-8">Únete a quienes ya están dominando la teoría musical con IA.</p>
-        <Link to="/register" className="bg-brand-yellow text-brand-dark font-bold px-10 py-4 rounded-full hover:bg-opacity-90 transition inline-flex items-center gap-2">
+        <Link to="/register" className="bg-brand-yellow text-brand-dark font-bold px-6 sm:px-10 py-4 rounded-full hover:bg-opacity-90 transition inline-flex items-center gap-2">
           Crear cuenta →
         </Link>
       </section>

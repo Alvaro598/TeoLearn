@@ -99,7 +99,7 @@ export default function DetalleLeccion() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-6 py-10 animate-fade-in">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10 animate-fade-in">
         <button
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 mb-8 font-bold"
@@ -112,7 +112,7 @@ export default function DetalleLeccion() {
           Leccion
         </p>
 
-        <h1 className="text-5xl sm:text-6xl font-extrabold mb-4 text-gray-950">
+        <h1 className="w-full min-w-0 text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-tight break-words mb-4 text-gray-950">
           {leccion.titulo}
         </h1>
 
