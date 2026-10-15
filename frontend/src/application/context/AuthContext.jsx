@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { onIdTokenChanged, signOut } from "firebase/auth";
 import { auth } from "../../infrastructure/config/firebase";
 import { apiUrl } from "../config/apiBase";
@@ -6,26 +6,43 @@ import { authFetch, getAuthHeaders } from "../services/api";
 import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }) {
-  // firebaseUser  → objeto User de Firebase (o null)
-  // usuarioDB     → registro de la tabla `usuarios` en PostgreSQL (o null)
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [usuarioDB, setUsuarioDB] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, async (user) => {
-      setFirebaseUser(user);
+    let active = true;
+    let revision = 0;
 
-      if (user) {
-        // 1. Guardar token de Firebase en sesión
+    const unsubscribe = onIdTokenChanged(auth, async (user) => {
+      const currentRevision = ++revision;
+
+      if (active) {
+        setLoading(true);
+        setFirebaseUser(user);
+      }
+
+      try {
+        if (!user) {
+          if (!active || currentRevision !== revision) return;
+          localStorage.removeItem("token");
+          localStorage.removeItem("teolearn-firebase-uid");
+          localStorage.removeItem("teolearn-user-email");
+          localStorage.removeItem("teolearn-user-id");
+          setUsuarioDB(null);
+          return;
+        }
+
         const token = await user.getIdToken();
-        localStorage.setItem("token", token);  // LOCAL: sobrevive recarga y cierre de pestaña
+        if (!active || currentRevision !== revision) return;
+
+        // Todos los servicios usan localStorage para el token.
+        localStorage.setItem("token", token);
         localStorage.setItem("teolearn-firebase-uid", user.uid);
         if (user.email) {
           localStorage.setItem("teolearn-user-email", user.email);
         }
 
-        // 2. Sincronizar con la BD (obtener o crear el registro)
         try {
           const response = await fetch(apiUrl("/usuarios/sync"), {
             method: "POST",
@@ -34,79 +51,86 @@ export function AuthProvider({ children }) {
               ...(getAuthHeaders() || {}),
             },
             body: JSON.stringify({
-              nombre: user.displayName || user.email?.split("@")[0] || "Estudiante",
+              nombre:
+                user.displayName ||
+                user.email?.split("@")[0] ||
+                "Estudiante",
               correo: user.email,
             }),
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            setUsuarioDB(data.usuario);
-            if (data.usuario?.id) {
-              localStorage.setItem("teolearn-user-id", String(data.usuario.id));
-            } else {
-              localStorage.removeItem("teolearn-user-id");
-            }
-          } else {
-            // Si el sync falla no bloqueamos el login; usuarioDB queda null.
-            console.error("No se pudo sincronizar el usuario con la BD");
-            setUsuarioDB(null);
+          if (!response.ok) {
+            throw new Error(`No se pudo sincronizar el usuario (${response.status}).`);
           }
-        } catch (err) {
-          console.error("Error al conectar con el servidor:", err);
+
+          const data = await response.json();
+          if (!active || currentRevision !== revision) return;
+
+          setUsuarioDB(data.usuario ?? null);
+          if (data.usuario?.id != null) {
+            localStorage.setItem("teolearn-user-id", String(data.usuario.id));
+          } else {
+            localStorage.removeItem("teolearn-user-id");
+          }
+        } catch (error) {
+          if (active && currentRevision === revision) {
+            console.error("Error al sincronizar el usuario con la BD:", error);
+            setUsuarioDB(null);
+            localStorage.removeItem("teolearn-user-id");
+          }
+        }
+      } catch (error) {
+        if (active && currentRevision === revision) {
+          console.error("Error al inicializar la sesión de Firebase:", error);
           setUsuarioDB(null);
         }
-      } else {
-        localStorage.removeItem("token");
-        localStorage.removeItem("teolearn-firebase-uid");
-        localStorage.removeItem("teolearn-user-email");
-        localStorage.removeItem("teolearn-user-id");
-        setUsuarioDB(null);
+      } finally {
+        if (active && currentRevision === revision) {
+          setLoading(false);
+        }
       }
-
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
-  // Refresca el usuario de BD desde el servidor (útil tras ganar XP)
-  const refrescarUsuarioDB = async () => {
+  const refrescarUsuarioDB = useCallback(async () => {
     if (!firebaseUser) return;
 
     try {
       const response = await authFetch(
         apiUrl(`/usuarios/firebase/${firebaseUser.uid}`)
       );
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsuarioDB(data.usuario);
+      if (!response.ok) {
+        throw new Error(`No se pudo actualizar el usuario (${response.status}).`);
       }
-    } catch (err) {
-      console.error("Error refrescando usuario de BD:", err);
-    }
-  };
 
-  const logout = async () => {
+      const data = await response.json();
+      setUsuarioDB(data.usuario ?? null);
+    } catch (error) {
+      console.error("Error refrescando usuario de BD:", error);
+    }
+  }, [firebaseUser]);
+
+  const logout = useCallback(async () => {
     localStorage.removeItem("token");
     localStorage.removeItem("teolearn-firebase-uid");
     localStorage.removeItem("teolearn-user-email");
     localStorage.removeItem("teolearn-user-id");
     setUsuarioDB(null);
     await signOut(auth);
-  };
-
+  }, []);
 
   return (
     <AuthContext.Provider
       value={{
-        
         usuario: firebaseUser,
-       
         firebaseUser,
         usuarioDB,
-        isAuthenticated: !!firebaseUser,
+        isAuthenticated: Boolean(firebaseUser),
         loading,
         logout,
         refrescarUsuarioDB,
