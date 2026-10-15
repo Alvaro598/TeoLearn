@@ -69,7 +69,7 @@ export default function Lecciones() {
           ← Volver
         </button>
 
-        <h1 className="text-5xl font-extrabold mb-10">
+        <h1 className="text-3xl md:text-5xl font-extrabold mb-10">
           Lecciones
         </h1>
 
