@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Timer as TimerIcon, Hand } from "lucide-react";
 import { playDrumPattern, playRhythm, playTone } from "../../../../application/services/sound";
+import OpcionesAuditivas from "./OpcionesAuditivas";
 
 function shuffleOptions(options = []) {
   if (!Array.isArray(options) || options.length < 2) return options;
@@ -14,7 +15,7 @@ function shuffleOptions(options = []) {
   return next;
 }
 
-export default function EntrenamientoAuditivoRitmico({ exercise, onEvaluate, disabled }) {
+export default function EntrenamientoAuditivoRitmico({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const subtipo    = contenido.subtipo || "identificar-figura";
 
@@ -22,16 +23,16 @@ export default function EntrenamientoAuditivoRitmico({ exercise, onEvaluate, dis
     return <PruebaRelojInterno exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
   }
   if (subtipo === "secuencia-rítmica") {
-    return <SecuenciaRitmica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+    return <SecuenciaRitmica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
   }
   if (subtipo === "duracion-auditiva" || subtipo === "duracion-comparar") {
-    return <PracticaDuracionAuditiva exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+    return <PracticaDuracionAuditiva exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
   }
 
-  return <PracticaPatron exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+  return <PracticaPatron exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
 }
 
-function PracticaPatron({ exercise, onEvaluate, disabled }) {
+function PracticaPatron({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const subtipo = contenido.subtipo || "identificar-figura";
   const patron = contenido.patron || [];
@@ -45,10 +46,6 @@ function PracticaPatron({ exercise, onEvaluate, disabled }) {
   const reproducir = () => {
     playRhythm(patron, bpm);
     setReproducido(true);
-  };
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -66,24 +63,18 @@ function PracticaPatron({ exercise, onEvaluate, disabled }) {
         <p className="text-xs text-gray-400">Escucha al menos una vez antes de responder.</p>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-3">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-left font-bold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas
+        opciones={opciones}
+        onEvaluate={onEvaluate}
+        disabled={disabled}
+        resultado={resultado}
+        gridClassName="grid sm:grid-cols-2 gap-3"
+      />
     </div>
   );
 }
 
-function SecuenciaRitmica({ exercise, onEvaluate, disabled }) {
+function SecuenciaRitmica({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const ejemplos = contenido.ejemplos || [];
   const opciones = useMemo(
@@ -99,10 +90,6 @@ function SecuenciaRitmica({ exercise, onEvaluate, disabled }) {
     }));
     playDrumPattern(golpes, ejemplo.bpm || contenido.bpm || 80);
     setReproducido(true);
-  };
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -123,24 +110,19 @@ function SecuenciaRitmica({ exercise, onEvaluate, disabled }) {
         ))}
       </div>
       {!reproducido && <p className="text-xs text-gray-400">Escucha al menos un ejemplo antes de responder.</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled || !reproducido}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas
+        opciones={opciones}
+        onEvaluate={onEvaluate}
+        disabled={disabled || !reproducido}
+        resultado={resultado}
+        gridClassName="grid gap-3 sm:grid-cols-2"
+        optionClassName="p-4 text-left font-bold"
+      />
     </div>
   );
 }
 
-function PracticaDuracionAuditiva({ exercise, onEvaluate, disabled }) {
+function PracticaDuracionAuditiva({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const comparar = contenido.subtipo === "duracion-comparar";
   const ejemplos = comparar
@@ -156,10 +138,6 @@ function PracticaDuracionAuditiva({ exercise, onEvaluate, disabled }) {
   const reproducir = (ejemplo) => {
     playTone(261.63, (60 / bpm) * ejemplo.duracionPulsos, "square", 0.08);
     setReproducido(true);
-  };
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -179,19 +157,14 @@ function PracticaDuracionAuditiva({ exercise, onEvaluate, disabled }) {
         ))}
       </div>
       {!reproducido && <p className="text-xs text-gray-400">Escucha el sonido antes de responder.</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled || !reproducido}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas
+        opciones={opciones}
+        onEvaluate={onEvaluate}
+        disabled={disabled || !reproducido}
+        resultado={resultado}
+        gridClassName="grid gap-3 sm:grid-cols-2"
+        optionClassName="p-4 text-left font-bold"
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Play } from "lucide-react";
 import { playNote } from "../../../../application/services/sound";
+import OpcionesAuditivas from "./OpcionesAuditivas";
 
 function shuffleOptions(options = []) {
   if (!Array.isArray(options) || options.length < 2) return options;
@@ -14,16 +15,12 @@ function shuffleOptions(options = []) {
   return next;
 }
 
-export default function EntrenamientoAuditivo({ exercise, onEvaluate, disabled }) {
+export default function EntrenamientoAuditivo({ exercise, onEvaluate, disabled, resultado }) {
   const options = useMemo(
     () => shuffleOptions(exercise.contenido?.opciones || ["C4", "D4", "E4", "G4"]),
     [exercise.contenido?.opciones]
   );
   const target = exercise.contenido?.nota;
-
-  const answer = (option) => {
-    onEvaluate({ respuesta: { respuesta: option } });
-  };
 
   return (
     <div className="space-y-4">
@@ -37,19 +34,13 @@ export default function EntrenamientoAuditivo({ exercise, onEvaluate, disabled }
         Escuchar ejemplo
       </button>
 
-      <div className="grid sm:grid-cols-2 gap-3">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            disabled={disabled}
-            onClick={() => answer(option)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-left font-bold"
-          >
-            {option}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas
+        opciones={options}
+        onEvaluate={onEvaluate}
+        disabled={disabled}
+        resultado={resultado}
+        gridClassName="grid sm:grid-cols-2 gap-3"
+      />
     </div>
   );
 }

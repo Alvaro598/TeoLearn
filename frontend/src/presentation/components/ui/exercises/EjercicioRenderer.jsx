@@ -35,7 +35,7 @@ export default function EjercicioRenderer({ exercise, onEvaluate, disabled, modu
 
   if (exercise.tipo === "auditivo") {
     const Componente = AUDITIVO_POR_CATEGORIA[categoria] || EntrenamientoAuditivoMelodico;
-    return <Componente exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+    return <Componente exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
   }
 
   if (exercise.tipo === "midi") {

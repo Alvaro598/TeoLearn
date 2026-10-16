@@ -1,6 +1,7 @@
 
 import { useMemo } from "react";
 import { playChord, playInterval, playProgression, playSequence } from "../../../../application/services/sound";
+import OpcionesAuditivas from "./OpcionesAuditivas";
 
 function shuffleOptions(options = []) {
   if (!Array.isArray(options) || options.length < 2) return options;
@@ -14,7 +15,7 @@ function shuffleOptions(options = []) {
   return next;
 }
 
-export default function EntrenamientoAuditivoArmonico({ exercise, onEvaluate, disabled }) {
+export default function EntrenamientoAuditivoArmonico({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const subtipo    = contenido.subtipo || "intervalo-parejas";
 
@@ -23,19 +24,19 @@ export default function EntrenamientoAuditivoArmonico({ exercise, onEvaluate, di
     case "comparar-progresiones":
     case "textura-acorde":
     case "contar-notas":
-      return <CompararArmonia exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <CompararArmonia exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "fundamental-cancion":
-      return <FundamentalCancion exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <FundamentalCancion exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "progresion-comun":
-      return <ProgresionComun exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <ProgresionComun exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "intervalo-parejas":
     default:
-      return <IntervaloParejas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <IntervaloParejas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
   }
 }
 
 // ── 1. Intervalos por parejas ────────────────────────────────────────────────
-function IntervaloParejas({ exercise, onEvaluate, disabled }) {
+function IntervaloParejas({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const [n1, n2]   = contenido.notas || ["C4", "G4"];
   const modo        = contenido.subtipo === "intervalo" ? "melodico" : contenido.modo || "armonico";
@@ -44,10 +45,6 @@ function IntervaloParejas({ exercise, onEvaluate, disabled }) {
     [contenido.opciones]
   );
   const reproducir = () => playInterval(n1, n2, modo, 0.9);
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -58,24 +55,12 @@ function IntervaloParejas({ exercise, onEvaluate, disabled }) {
       >
         🎧 Escuchar intervalo ({modo === "armonico" ? "simultáneo" : "sucesivo"})
       </button>
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-3 rounded-xl text-center font-extrabold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid grid-cols-3 sm:grid-cols-6 gap-2" optionClassName="p-3 rounded-xl text-center font-extrabold" />
     </div>
   );
 }
 
-function CompararArmonia({ exercise, onEvaluate, disabled }) {
+function CompararArmonia({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const ejemplos = contenido.ejemplos || [];
   const opciones = useMemo(
@@ -91,10 +76,6 @@ function CompararArmonia({ exercise, onEvaluate, disabled }) {
     } else if (ejemplo.notas) {
       playChord(ejemplo.notas, 1.2);
     }
-  };
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
   };
 
   return (
@@ -122,25 +103,13 @@ function CompararArmonia({ exercise, onEvaluate, disabled }) {
         )}
       </div>
       {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid gap-3 sm:grid-cols-2" optionClassName="p-4 text-left font-bold" />
     </div>
   );
 }
 
 // ── 2. Fundamental de acorde en canción conocida ─────────────────────────────
-function FundamentalCancion({ exercise, onEvaluate, disabled }) {
+function FundamentalCancion({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const acorde     = useMemo(() => contenido.acorde || ["C4", "E4", "G4"], [contenido.acorde]);
   const referencia  = contenido.cancionReferencia;
@@ -149,10 +118,6 @@ function FundamentalCancion({ exercise, onEvaluate, disabled }) {
     [contenido.opciones, acorde]
   );
   const reproducir = () => playChord(acorde, 1.4);
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -167,25 +132,13 @@ function FundamentalCancion({ exercise, onEvaluate, disabled }) {
         🎧 Escuchar acorde
       </button>
       <p className="text-xs text-gray-500">Identifica (o canta) la nota fundamental del acorde.</p>
-      <div className="grid sm:grid-cols-3 gap-3">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-center font-bold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid sm:grid-cols-3 gap-3" optionClassName="p-4 rounded-xl text-center font-bold" />
     </div>
   );
 }
 
 // ── 3. Reconocimiento de progresión común ────────────────────────────────────
-function ProgresionComun({ exercise, onEvaluate, disabled }) {
+function ProgresionComun({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const progresion = contenido.progresion || [];
   const opciones      = useMemo(
@@ -193,10 +146,6 @@ function ProgresionComun({ exercise, onEvaluate, disabled }) {
     [contenido.opciones]
   );
   const reproducir = () => playProgression(progresion, 0.9, 0.1);
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -208,19 +157,7 @@ function ProgresionComun({ exercise, onEvaluate, disabled }) {
         🎧 Escuchar progresión
       </button>
       <p className="text-xs text-gray-500">¿Qué progresión armónica común reconoces?</p>
-      <div className="grid sm:grid-cols-2 gap-3">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-center font-bold font-mono"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid sm:grid-cols-2 gap-3" optionClassName="p-4 rounded-xl text-center font-bold font-mono" />
     </div>
   );
 }

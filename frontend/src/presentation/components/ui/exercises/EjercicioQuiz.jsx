@@ -35,10 +35,12 @@ export default function EjercicioQuiz({ exercise, onEvaluate, disabled, resultad
           const esSeleccionada = seleccionada === opcion;
           const evaluado = Boolean(resultado);
           const estadoError = resultado?.errorEvaluacion;
-          const claseResultado = evaluado && !estadoError
+          const claseResultado = evaluado && !estadoError && esSeleccionada
             ? resultado.correcta
               ? "exercise-option--correct"
               : "exercise-option--incorrect"
+            : !evaluado && esSeleccionada
+              ? "exercise-option--pending"
             : "";
           const claseEstado = !evaluado
             ? esSeleccionada

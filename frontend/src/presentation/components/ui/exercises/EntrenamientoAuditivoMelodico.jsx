@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Play, Pin } from "lucide-react";
 import { playNote, playSequence, playInterval } from "../../../../application/services/sound";
+import OpcionesAuditivas from "./OpcionesAuditivas";
 
 function shuffleOptions(options = []) {
   if (!Array.isArray(options) || options.length < 2) return options;
@@ -14,42 +15,38 @@ function shuffleOptions(options = []) {
   return next;
 }
 
-export default function EntrenamientoAuditivoMelodico({ exercise, onEvaluate, disabled }) {
+export default function EntrenamientoAuditivoMelodico({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const subtipo    = contenido.subtipo || "nota-individual";
 
   switch (subtipo) {
     case "comparar-alturas":
-      return <CompararAlturas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <CompararAlturas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "comparar-escalas":
-      return <CompararEscalas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <CompararEscalas exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "intervalo":
-      return <Intervalo exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <Intervalo exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "direccion-melodica":
-      return <DireccionMelodica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <DireccionMelodica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "grado-tonal":
-      return <GradoTonal exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <GradoTonal exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "pedal-tonica":
-      return <PedalTonica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <PedalTonica exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "resolucion-tension":
-      return <ResolucionTension exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <ResolucionTension exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
     case "nota-individual":
     default:
-      return <NotaIndividual exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} />;
+      return <NotaIndividual exercise={exercise} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} />;
   }
 }
 
-function CompararAlturas({ exercise, onEvaluate, disabled }) {
+function CompararAlturas({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const notas = contenido.notas || ["C4", "G4"];
   const opciones = useMemo(
     () => shuffleOptions(contenido.opciones || ["El primero", "El segundo"]),
     [contenido.opciones]
   );
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
-
   return (
     <div className="space-y-4">
       <button
@@ -61,34 +58,18 @@ function CompararAlturas({ exercise, onEvaluate, disabled }) {
         Escuchar sonidos
       </button>
       {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid gap-3 sm:grid-cols-2" optionClassName="p-4 text-left font-bold" />
     </div>
   );
 }
 
-function CompararEscalas({ exercise, onEvaluate, disabled }) {
+function CompararEscalas({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const ejemplos = contenido.ejemplos || [];
   const opciones = useMemo(
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">
@@ -105,34 +86,18 @@ function CompararEscalas({ exercise, onEvaluate, disabled }) {
         ))}
       </div>
       {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid gap-3 sm:grid-cols-2" optionClassName="p-4 text-left font-bold" />
     </div>
   );
 }
 
-function Intervalo({ exercise, onEvaluate, disabled }) {
+function Intervalo({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const notas = contenido.notas || ["C4", "G4"];
   const opciones = useMemo(
     () => shuffleOptions(contenido.opciones || []),
     [contenido.opciones]
   );
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
-
   return (
     <div className="space-y-4">
       <button
@@ -144,35 +109,19 @@ function Intervalo({ exercise, onEvaluate, disabled }) {
         Escuchar intervalo
       </button>
       {contenido.referencia && <p className="text-sm text-gray-600">{contenido.referencia}</p>}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 p-4 text-left font-bold hover:bg-gray-200 disabled:opacity-60"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid grid-cols-2 gap-3 sm:grid-cols-4" optionClassName="p-4 text-left font-bold" />
     </div>
   );
 }
 
 // ── 1. Nota individual ───────────────────────────────────────────────────────
-function NotaIndividual({ exercise, onEvaluate, disabled }) {
+function NotaIndividual({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const opciones  = useMemo(
     () => shuffleOptions(contenido.opciones || ["C4", "D4", "E4", "G4"]),
     [contenido.opciones]
   );
   const objetivo   = contenido.nota;
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -185,25 +134,13 @@ function NotaIndividual({ exercise, onEvaluate, disabled }) {
         <Play size={18} fill="currentColor" />
         Escuchar nota
       </button>
-      <div className="grid sm:grid-cols-2 gap-3">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-left font-bold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid sm:grid-cols-2 gap-3" />
     </div>
   );
 }
 
 // ── 2. Dirección melódica ────────────────────────────────────────────────────
-function DireccionMelodica({ exercise, onEvaluate, disabled }) {
+function DireccionMelodica({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const notas      = contenido.notas || ["C4", "G4"];
   const opciones    = useMemo(
@@ -211,10 +148,6 @@ function DireccionMelodica({ exercise, onEvaluate, disabled }) {
     [contenido.opciones]
   );
   const reproducir = () => playSequence(notas, 0.5);
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -227,25 +160,13 @@ function DireccionMelodica({ exercise, onEvaluate, disabled }) {
         <Play size={18} fill="currentColor" />
         Escuchar fragmento
       </button>
-      <div className="grid sm:grid-cols-3 gap-3">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-center font-bold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid sm:grid-cols-3 gap-3" optionClassName="p-4 rounded-xl text-center font-bold" />
     </div>
   );
 }
 
 // ── 3. Dictado de grado tonal ────────────────────────────────────────────────
-function GradoTonal({ exercise, onEvaluate, disabled }) {
+function GradoTonal({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const tonica     = contenido.tonica || "C4";
   const notaObjetivo = contenido.nota;
@@ -256,10 +177,6 @@ function GradoTonal({ exercise, onEvaluate, disabled }) {
 
   const reproducirTonica = () => playNote(tonica, 0.9);
   const reproducirNota   = () => playNote(notaObjetivo, 0.7);
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -282,25 +199,13 @@ function GradoTonal({ exercise, onEvaluate, disabled }) {
         </button>
       </div>
       <p className="text-xs text-gray-500">¿Qué grado de la escala es la nota respecto a la tónica?</p>
-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-3 rounded-xl text-center font-extrabold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid grid-cols-4 sm:grid-cols-7 gap-2" optionClassName="p-3 rounded-xl text-center font-extrabold" />
     </div>
   );
 }
 
 // ── 4. Pedal (canto de la fundamental / tónica) ──────────────────────────────
-function PedalTonica({ exercise, onEvaluate, disabled }) {
+function PedalTonica({ exercise, onEvaluate, disabled, resultado }) {
   const contenido = exercise.contenido || {};
   const fragmento  = contenido.notas || ["C4", "E4", "G4", "E4", "D4"];
   const opciones    = useMemo(
@@ -309,10 +214,6 @@ function PedalTonica({ exercise, onEvaluate, disabled }) {
   );
 
   const reproducir = () => playSequence(fragmento, 0.35);
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -325,25 +226,13 @@ function PedalTonica({ exercise, onEvaluate, disabled }) {
         Escuchar fragmento
       </button>
       <p className="text-xs text-gray-500">¿Cuál es la tónica (nota fundamental / pedal) de este fragmento?</p>
-      <div className="grid sm:grid-cols-2 gap-3">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => responder(opcion)}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-left font-bold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas opciones={opciones} onEvaluate={onEvaluate} disabled={disabled} resultado={resultado} gridClassName="grid sm:grid-cols-2 gap-3" />
     </div>
   );
 }
 
 // ── 5. Resolución de tensión (ej. sensible → tónica) ─────────────────────────
-function ResolucionTension({ exercise, onEvaluate, disabled }) {
+function ResolucionTension({ exercise, onEvaluate, disabled, resultado }) {
   const contenido   = exercise.contenido || {};
   const notaTension   = contenido.nota || "B4";
   const opciones        = useMemo(
@@ -353,10 +242,6 @@ function ResolucionTension({ exercise, onEvaluate, disabled }) {
 
   const reproducirTension = () => playNote(notaTension, 0.8);
   const reproducirOpcion  = (opcion) => playInterval(notaTension, opcion, "melodico", 0.5);
-
-  const responder = (opcion) => {
-    onEvaluate({ respuesta: { respuesta: opcion } });
-  };
 
   return (
     <div className="space-y-4">
@@ -369,19 +254,16 @@ function ResolucionTension({ exercise, onEvaluate, disabled }) {
         Escuchar nota de tensión
       </button>
       <p className="text-xs text-gray-500">¿Hacia qué nota resuelve naturalmente esta tensión?</p>
-      <div className="grid sm:grid-cols-2 gap-3">
-        {opciones.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            disabled={disabled}
-            onClick={() => { reproducirOpcion(opcion); responder(opcion); }}
-            className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 p-4 rounded-xl text-left font-bold"
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
+      <OpcionesAuditivas
+        opciones={opciones}
+        onEvaluate={(payload) => {
+          reproducirOpcion(payload.respuesta.respuesta);
+          onEvaluate(payload);
+        }}
+        disabled={disabled}
+        resultado={resultado}
+        gridClassName="grid sm:grid-cols-2 gap-3"
+      />
     </div>
   );
 }
