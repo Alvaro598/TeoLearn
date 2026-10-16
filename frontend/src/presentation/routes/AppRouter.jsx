@@ -33,7 +33,7 @@ const Perfil = lazy(() => import("../pages/Perfil"));
 const ConfirmarCerrarSesion = lazy(() => import("../pages/ConfirmarCerrarSesion"));
 const ResultadoQuiz = lazy(() => import("../pages/ResultadoQuiz"));
 const QuizFinal = lazy(() => import("../pages/QuizFinal"));
-const QuizModulo = QuizFinal;
+const QuizModulo = lazy(() => import("../pages/QuizModulo"));
 
 function GlobalChatbot() {
   const { pathname } = useLocation();
