@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 
 import Navbar from "../components/ui/Navbar";
+import GlobalMusicControl from "../components/ui/GlobalMusicControl";
 
 import Chatbot from "../components/ui/chatbot/chatbot";
 
@@ -27,6 +28,7 @@ export default function AppLayout() {
       {/* CHATBOT */}
       {!hideChatbot && <Chatbot />}
 
+      <GlobalMusicControl />
 
     </div>
   );

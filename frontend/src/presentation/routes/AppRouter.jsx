@@ -16,7 +16,6 @@ from "./PrivateRoute";
 import AppLayout
 from "../layouts/AppLayout";
 import Chatbot from "../components/ui/chatbot/chatbot";
-import GlobalMusicControl from "../components/ui/GlobalMusicControl";
 
 /* PÁGINAS: cada ruta carga su código solo cuando se visita. */
 const Landing = lazy(() => import("../pages/Landing"));
@@ -59,7 +58,6 @@ export default function AppRouter() {
       <BrowserRouter>
 
         <GlobalChatbot />
-        <GlobalMusicControl />
 
         <Suspense
           fallback={
