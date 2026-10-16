@@ -35,6 +35,11 @@ export default function EjercicioQuiz({ exercise, onEvaluate, disabled, resultad
           const esSeleccionada = seleccionada === opcion;
           const evaluado = Boolean(resultado);
           const estadoError = resultado?.errorEvaluacion;
+          const claseResultado = evaluado && !estadoError
+            ? resultado.correcta
+              ? "exercise-option--correct"
+              : "exercise-option--incorrect"
+            : "";
           const claseEstado = !evaluado
             ? esSeleccionada
               ? "bg-blue-100 text-blue-900"
@@ -55,7 +60,7 @@ export default function EjercicioQuiz({ exercise, onEvaluate, disabled, resultad
               type="button"
               onClick={() => responder(opcion)}
               disabled={disabled || !!seleccionada}
-              className={`w-full flex items-center justify-between gap-3 p-4 rounded-xl text-left font-bold transition ${claseEstado} disabled:cursor-not-allowed`}
+              className={`exercise-option w-full flex items-center justify-between gap-3 p-4 rounded-xl text-left font-bold transition ${claseEstado} ${claseResultado} disabled:cursor-not-allowed`}
             >
               <span>{opcion}</span>
               {evaluado && esSeleccionada && !estadoError && resultado.correcta && (

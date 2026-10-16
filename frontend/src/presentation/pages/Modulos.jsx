@@ -1,12 +1,3 @@
-/**
- * Modulos.jsx
- * Ruta: frontend/src/presentation/pages/Modulos.jsx
- *
- * CAMBIOS:
- *  - Pasa `orden` y `porcentajeAnterior` a ModuloCard para la lógica de
- *    desbloqueo basada en progreso real de la BD (no localStorage).
- *  - El módulo N se desbloquea cuando el módulo N-1 tiene progreso = 100%.
- */
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../../application/context/useAuth";

@@ -327,3 +327,234 @@ html[data-theme="oscuro"] #boton-enviar-chat-tutor {
 html[data-theme="oscuro"] #boton-ir-ejercicios {
   background-color: #055ac2 !important;
 }
+
+/* ── Contraste de opciones y estados en modo oscuro ───────────────────────── */
+html[data-theme="oscuro"] .text-green-900 {
+  color: #dcfce7 !important;
+}
+
+html[data-theme="oscuro"] .text-red-900 {
+  color: #fee2e2 !important;
+}
+
+html[data-theme="oscuro"] button.exercise-option--correct,
+html[data-theme="oscuro"] button.quiz-answer--correct {
+  background-color: #14532d !important;
+  border-color: #4ade80 !important;
+  color: #dcfce7 !important;
+}
+
+html[data-theme="oscuro"] button.exercise-option--incorrect,
+html[data-theme="oscuro"] button.quiz-answer--incorrect {
+  background-color: #7f1d1d !important;
+  border-color: #f87171 !important;
+  color: #fee2e2 !important;
+}
+
+html[data-theme="oscuro"] button.quiz-answer--revealed-correct {
+  background-color: #052e16 !important;
+  border-color: #22c55e !important;
+  color: #bbf7d0 !important;
+}
+
+html[data-theme="oscuro"] button.quiz-answer--correct .text-green-600 {
+  color: #86efac !important;
+}
+
+html[data-theme="oscuro"] button.quiz-answer--incorrect .text-red-500 {
+  color: #fca5a5 !important;
+}
+
+html[data-theme="oscuro"] button.quiz-answer--idle:hover:not(:disabled) {
+  background-color: #30343b !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme="oscuro"] .module-quiz-link {
+  background-color: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="oscuro"] .module-quiz-link:hover {
+  background-color: #30343b !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="oscuro"] .music-track-option {
+  background-color: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+html[data-theme="oscuro"] .music-track-option:hover {
+  background-color: #27272a;
+  border-color: rgba(147, 197, 253, 0.55) !important;
+}
+
+html[data-theme="oscuro"] .music-track-option--selected,
+html[data-theme="oscuro"] .music-track-option--selected:hover {
+  background-color: #172554 !important;
+  border-color: #60a5fa !important;
+}
+
+html[data-theme="oscuro"] .music-track-option .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="oscuro"] .music-track-option .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+
+/* ── Control flotante global de música ───────────────────────────────────── */
+.global-music-control {
+  position: fixed;
+  z-index: 60;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  font-family: 'Inter', sans-serif;
+}
+
+.global-music-dock {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+}
+
+.global-music-toggle,
+.global-music-settings,
+.global-music-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: #1f2937;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.global-music-toggle {
+  padding: 0.5rem 0.75rem;
+}
+
+.global-music-settings,
+.global-music-close {
+  width: 2.5rem;
+  padding: 0;
+}
+
+.global-music-toggle:hover,
+.global-music-settings:hover,
+.global-music-close:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.global-music-panel {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  left: 0;
+  width: min(21rem, calc(100vw - 2rem));
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
+  padding: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 1rem;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.24);
+}
+
+.global-music-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.global-music-panel-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.global-music-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.global-music-style-label {
+  display: block;
+  margin: 0.5rem 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.global-music-select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+}
+
+.global-music-description {
+  margin: 0.5rem 0 0;
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+html[data-theme="oscuro"] .global-music-dock,
+html[data-theme="oscuro"] .global-music-panel {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #18181b;
+  color: #f1f5f9;
+}
+
+html[data-theme="oscuro"] .global-music-toggle,
+html[data-theme="oscuro"] .global-music-settings,
+html[data-theme="oscuro"] .global-music-close {
+  color: #f1f5f9;
+}
+
+html[data-theme="oscuro"] .global-music-toggle:hover,
+html[data-theme="oscuro"] .global-music-settings:hover,
+html[data-theme="oscuro"] .global-music-close:hover {
+  background: #30343b !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="oscuro"] .global-music-select {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: #27272a !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="oscuro"] .global-music-description {
+  color: #cbd5e1;
+}
+
+@media (max-width: 480px) {
+  .global-music-toggle {
+    padding-inline: 0.6rem;
+    font-size: 0.8rem;
+  }
+}

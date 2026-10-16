@@ -66,26 +66,26 @@ function preguntaFinal(moduloSlug, numero, pregunta, respuesta, distractores, ex
 }
 
 const PREGUNTAS_EVALUACION_FINAL = [
-  preguntaFinal("ritmo", 1, "En 6/8, ¿cómo suelen agruparse los seis pulsos de corchea?", "En dos grupos de tres corcheas", ["En tres grupos de dos corcheas", "En seis grupos de una negra", "En cuatro grupos de tres corcheas"], "El 6/8 suele sentirse en dos pulsos principales, cada uno subdividido en tres corcheas."),
-  preguntaFinal("ritmo", 2, "Una ligadura une dos notas de la misma altura. ¿Qué haces al tocar la segunda?", "Mantienes el sonido sin volver a atacar la nota", ["La vuelves a atacar con más fuerza", "La conviertes en silencio", "La acortas a la mitad"], "La ligadura suma las duraciones y evita un nuevo ataque entre las notas unidas."),
-  preguntaFinal("ritmo", 3, "Un acento aparece en una parte débil del pulso y desplaza la sensación de apoyo. ¿Qué recurso produce?", "Síncopa", ["Anacrusa", "Ostinato", "Aumentación"], "La síncopa destaca una parte débil o prolonga un sonido hacia una parte fuerte."),
-  preguntaFinal("ritmo", 4, "¿En cuántas partes iguales divide un tresillo el valor que ocupa?", "En tres", ["En dos", "En cuatro", "En seis"], "El tresillo agrupa tres notas de igual duración en el espacio de dos valores equivalentes."),
-  preguntaFinal("ritmo", 5, "La indicación 120 BPM en un metrónomo que marca negras equivale a un pulso cada…", "0,5 segundos", ["0,25 segundos", "1 segundo", "2 segundos"], "120 pulsos por minuto son dos pulsos por segundo; cada pulso dura medio segundo."),
-  preguntaFinal("ritmo", 6, "¿Qué indica una calderón sobre una nota o un silencio?", "Que se prolonga a criterio musical más allá de su duración escrita", ["Que se repite desde el inicio", "Que se toca siempre al doble de velocidad", "Que debe omitirse"], "La calderón prolonga el sonido o el silencio; su duración depende de la interpretación."),
+  preguntaFinal("ritmo", 1, "En el estribillo, la caja cae entre los pulsos fuertes mientras el bombo mantiene el patrón regular. ¿Qué efecto rítmico busca el arreglo?", "Síncopa", ["Acento métrico regular", "Anacrusa", "Aumentación"], "La síncopa destaca una parte débil del pulso y crea un acento desplazado."),
+  preguntaFinal("ritmo", 2, "La voz inicia el coro con dos notas antes de que empiece el primer compás completo. ¿Cómo se llama esa entrada anticipada?", "Anacrusa", ["Ostinato", "Calderón", "Contratiempo"], "La anacrusa es una entrada que ocurre antes del primer pulso fuerte del compás."),
+  preguntaFinal("ritmo", 3, "El percusionista repite sin cambios una frase corta durante toda la estrofa para sostener la canción. ¿Qué recurso está usando?", "Ostinato", ["Anacrusa", "Cadencia", "Aumentación"], "Un ostinato es un patrón rítmico o melódico que se repite como base de una sección."),
+  preguntaFinal("ritmo", 4, "En una interpretación de swing, el baterista transforma cada pareja de corcheas rectas. ¿Cómo se siente normalmente esa pareja?", "La primera dura más que la segunda", ["Las dos duran exactamente lo mismo", "La segunda dura el doble que la primera", "Se reemplazan por un silencio"], "El swing suele alargar la primera subdivisión y acortar la segunda, creando una sensación ternaria."),
+  preguntaFinal("ritmo", 5, "En un ensayo, el bajo marca dos pulsos regulares mientras la percusión reparte tres golpes iguales en ese mismo espacio. ¿Qué combinación se escucha?", "Polirritmia", ["Unísono", "Ostinato armónico", "Acelerando"], "La polirritmia combina patrones con subdivisiones distintas que ocurren simultáneamente."),
+  preguntaFinal("ritmo", 6, "El director sostiene la mano sobre el último silencio y el grupo espera su gesto antes de continuar. ¿Qué indicación permite esa prolongación expresiva?", "Calderón", ["Ligadura", "Anacrusa", "Repetición"], "Un calderón prolonga el sonido o el silencio hasta que el intérprete o director indique continuar."),
 
-  preguntaFinal("melodia", 1, "Si transpone toda una melodía de Do mayor un tono hacia arriba, ¿en qué tonalidad queda?", "Re mayor", ["Si bemol mayor", "Do menor", "Fa mayor"], "Al subir cada nota un tono, Do mayor se transpone a Re mayor y conserva sus relaciones interválicas."),
-  preguntaFinal("melodia", 2, "Una frase recorre Sol-Fa-Mi-Re. ¿Cuál es el contorno general?", "Descendente", ["Ascendente", "Estático", "En arco"], "Cada nota baja respecto de la anterior, así que el contorno es descendente."),
-  preguntaFinal("melodia", 3, "En Do mayor, ¿qué nota tiende a resolver por semitono hacia la tónica?", "Si", ["Fa", "Re", "La"], "Si es el séptimo grado de Do mayor y está a un semitono de Do."),
-  preguntaFinal("melodia", 4, "¿Qué relación hay entre Do4 y Do5?", "La misma nota en una octava superior", ["Una quinta justa", "Un semitono", "Una tercera menor"], "Ambas notas comparten el nombre y están separadas por una octava."),
-  preguntaFinal("melodia", 5, "¿Qué intervalo ascendente forman Do y Mi natural?", "Tercera mayor", ["Tercera menor", "Cuarta justa", "Quinta justa"], "De Do a Mi hay tres nombres de nota y cuatro semitonos: una tercera mayor."),
-  preguntaFinal("melodia", 6, "Una melodía presenta una idea breve y luego otra que parece responderle. ¿Cómo se describe esa organización?", "Pregunta y respuesta", ["Pedal armónico", "Acorde quebrado", "Canon al unísono"], "Las frases de pregunta y respuesta crean una sensación de diálogo y cierre musical."),
+  preguntaFinal("melodia", 1, "Una cantante no alcanza la nota más aguda. La banda desplaza toda la melodía la misma distancia y conserva su forma. ¿Qué hizo el arreglista?", "Transpuso la melodía", ["Invirtió los acordes", "Cambió el compás", "Añadió un ostinato"], "Transponer mueve todas las notas manteniendo las distancias entre ellas, por ejemplo para adaptar una canción a otra voz."),
+  preguntaFinal("melodia", 2, "La segunda frase repite el motivo inicial comenzando una nota más arriba y conserva el mismo diseño. ¿Qué procedimiento describe el arreglo?", "Secuencia melódica", ["Pedal de tónica", "Cadencia plagal", "Acorde quebrado"], "Una secuencia repite una idea melódica a otra altura, conservando su patrón."),
+  preguntaFinal("melodia", 3, "La melodía sube hasta su nota más alta y luego desciende hacia el cierre. ¿Qué contorno dibuja la frase?", "En arco", ["Estático", "En espiral", "Descendente desde el inicio"], "El contorno en arco asciende hacia un punto culminante y después desciende."),
+  preguntaFinal("melodia", 4, "Para que el final de una frase suene más completo, la intérprete alarga la última nota y deja espacio antes de la siguiente idea. ¿Qué elemento está moldeando?", "El fraseo de la melodía", ["La armadura de clave", "El número de líneas del pentagrama", "La inversión del acorde"], "La duración y el espacio entre frases ayudan a dar forma y sentido a la melodía."),
+  preguntaFinal("melodia", 5, "Un compositor presenta Do-Re-Mi y luego cambia solo las últimas notas para que la idea no suene repetida. ¿Qué hizo con el motivo?", "Lo varió", ["Lo transpuso una octava", "Lo convirtió en un silencio", "Lo invirtió como acorde"], "Variar un motivo conserva una parte reconocible y modifica otra para desarrollar la idea musical."),
+  preguntaFinal("melodia", 6, "En una melodía, una nota breve conecta dos notas estables por movimiento conjunto y no pertenece al acorde del acompañamiento. ¿Qué función suele cumplir?", "Nota de paso", ["Nota pedal", "Fundamental", "Nota de reposo"], "La nota de paso conecta notas del acorde mediante movimiento melódico conjunto."),
 
-  preguntaFinal("armonia", 1, "¿Cuántas notas distintas suele tener un acorde de séptima construido por terceras?", "Cuatro", ["Dos", "Tres", "Cinco"], "Al añadir una séptima sobre una tríada se obtienen cuatro notas distintas."),
-  preguntaFinal("armonia", 2, "En Do mayor, ¿qué grado representa La menor?", "vi", ["ii", "IV", "V"], "La menor es el acorde construido sobre el sexto grado de Do mayor: vi."),
-  preguntaFinal("armonia", 3, "En una inversión de acorde, ¿qué determina el bajo?", "La nota del acorde que suena más grave", ["La nota más aguda de la melodía", "La tonalidad de la pieza por sí sola", "El tempo de la progresión"], "La inversión depende de cuál nota del acorde ocupa el bajo, no necesariamente la fundamental."),
-  preguntaFinal("armonia", 4, "En Do mayor, ¿hacia qué acorde suele resolver A7 cuando funciona como dominante secundaria?", "Re menor", ["Fa mayor", "Do mayor", "Mi menor"], "A7 es V7 de Re; puede tonicizar Re menor, el acorde ii de Do mayor."),
-  preguntaFinal("armonia", 5, "Una misma nota grave se mantiene mientras cambian los acordes por encima. ¿Cómo se llama ese recurso?", "Pedal", ["Inversión", "Cadencia", "Arpegio"], "La nota pedal se sostiene o repite mientras la armonía superior cambia."),
-  preguntaFinal("armonia", 6, "¿Qué nota comparten los acordes Do mayor (Do-Mi-Sol) y La menor (La-Do-Mi)?", "Do y Mi", ["Mi y Sol", "La y Sol", "Do y La"], "Do mayor y La menor comparten las notas Do y Mi, lo que facilita una conducción suave de voces."),
+  preguntaFinal("armonia", 1, "El pianista toca Do-Mi-Sol y el bajista coloca Mi como nota más grave. ¿Qué cambio de disposición tiene el acorde?", "Está en primera inversión", ["Se convirtió en una escala", "Está en posición fundamental", "Se convirtió en una cadencia"], "Cuando la tercera del acorde queda en el bajo, la tríada está en primera inversión."),
+  preguntaFinal("armonia", 2, "Al pasar de Do mayor a La menor, la guitarrista conserva Do y Mi en las voces superiores para que el cambio sea suave. ¿Qué está aprovechando?", "Notas comunes entre los acordes", ["Una nueva armadura", "Una síncopa", "Una modulación obligatoria"], "Do mayor y La menor comparten Do y Mi; mantener esas notas reduce los desplazamientos entre voces."),
+  preguntaFinal("armonia", 3, "El bajista toca La mientras el teclado sostiene Fa mayor (Fa-La-Do). ¿Qué nombre recibe esa disposición del acorde?", "Fa mayor en primera inversión", ["Fa mayor en posición fundamental", "La menor en segunda inversión", "Do mayor en primera inversión"], "La es la tercera de Fa mayor; al quedar en el bajo, el acorde está en primera inversión."),
+  preguntaFinal("armonia", 4, "En una balada, el bajo repite Do mientras los acordes de la mano derecha cambian encima. ¿Qué recurso crea ese punto de apoyo?", "Pedal de tónica", ["Arpegio ascendente", "Cadencia auténtica", "Inversión de dominante"], "Un pedal mantiene o repite una nota mientras cambia la armonía; aquí Do funciona como centro grave."),
+  preguntaFinal("armonia", 5, "El arreglista quiere que el acompañamiento suene más amplio y añade una nota a la tríada de Sol para formar Sol-Si-Re-Fa. ¿Qué acorde obtiene?", "Sol séptima", ["Sol suspendido", "Do mayor", "Re menor"], "Al agregar la séptima Fa a Sol-Si-Re se forma Sol séptima, un acorde de cuatro notas."),
+  preguntaFinal("armonia", 6, "Durante un cambio de acordes, cada instrumento mantiene su nota cercana en vez de saltar a la siguiente nota disponible. ¿Qué busca el grupo?", "Conducción de voces suave", ["Un cambio de tempo", "Una nueva métrica", "Un silencio armónico"], "La conducción de voces busca enlazar acordes con movimientos pequeños y claros entre las notas."),
 ];
 
 const NOMBRE_MODULO = { ritmo: "Ritmo", melodia: "Melodía", armonia: "Armonía" };
@@ -290,7 +290,7 @@ export default function QuizModulo() {
             <p className="text-gray-500">
               {preguntas.length} preguntas · {moduloSlug
                 ? "Casos de aplicación del módulo."
-                : "6 preguntas nuevas por categoría; integra conceptos de toda la ruta."}
+                : "18 retos de aplicación nuevos; preguntas distintas a los quizzes de módulo."}
             </p>
           </div>
 
@@ -343,13 +343,22 @@ export default function QuizModulo() {
                     const seleccionada = respuestas[pregunta.id] === opcion;
                     const correcta     = opcion === pregunta.respuesta;
                     const respondida   = !!respuestas[pregunta.id];
+                    const claseEstado = !respondida
+                      ? "quiz-answer--idle"
+                      : seleccionada
+                        ? correcta
+                          ? "quiz-answer--correct"
+                          : "quiz-answer--incorrect"
+                        : correcta
+                          ? "quiz-answer--revealed-correct"
+                          : "quiz-answer--muted";
 
                     return (
                       <button
                         key={opcion}
                         onClick={() => responder(pregunta, opcion)}
                         disabled={respondida}
-                        className={`p-4 rounded-xl text-left font-bold flex items-center gap-2 transition ${
+                        className={`quiz-answer p-4 rounded-xl text-left font-bold flex items-center gap-2 transition ${claseEstado} ${
                           respondida
                             ? seleccionada
                               ? correcta

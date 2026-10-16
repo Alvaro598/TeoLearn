@@ -1,16 +1,3 @@
-/**
- * ModuloCard.jsx
- * Ruta: frontend/src/presentation/components/ui/ModuloCard.jsx
- *
- * CAMBIOS:
- *  - Muestra el módulo como BLOQUEADO si el módulo anterior no está
- *    completado al 100%. El orden es: Ritmo → Melodía → Armonía.
- *  - La lógica de desbloqueo se basa en `porcentajeAnterior` (prop nueva)
- *    que Modulos.jsx calcula desde la BD (no localStorage).
- *  - Módulo bloqueado: card en gris, sin Link, con candado visible.
- *  - El módulo de índice 0 (Ritmo) siempre está desbloqueado.
- *  - Se añade enlace al quiz por módulo cuando el módulo está completado.
- */
 
 import { Lock, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -108,7 +95,7 @@ export default function ModuloCard({
               {completado && (
                 <Link
                   to={`/quiz-modulo/${title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`}
-                  className="w-full py-2 rounded-lg text-center block font-bold text-gray-900 border border-gray-300 hover:bg-gray-50"
+                  className="module-quiz-link w-full py-2 rounded-lg text-center block font-bold text-gray-900 border border-gray-300 hover:bg-gray-50"
                 >
                   Quiz del módulo
                 </Link>

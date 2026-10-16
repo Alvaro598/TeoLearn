@@ -192,9 +192,9 @@ export default function Perfil() {
                 {BACKGROUND_TRACKS.map((track) => (
                   <label
                     key={track.id}
-                    className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                    className={`music-track-option flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
                       preferences.backgroundMusicTrack === track.id
-                        ? "border-brand-blue bg-blue-50"
+                        ? "music-track-option--selected border-brand-blue bg-blue-50"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
