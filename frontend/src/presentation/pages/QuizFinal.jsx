@@ -126,27 +126,22 @@ export default function QuizFinal({ mode = "final" }) {
     opcion === pregunta.respuesta ? playSuccess() : playError();
 
     if (preguntas.every((item) => siguientesRespuestas[item.id])) {
-      sessionStorage.setItem(
-        "teolearn-quiz-result",
-        JSON.stringify({
-          moduloSlug: moduloSlug || "Evaluación final",
-          preguntas,
-          respuestas: siguientesRespuestas,
-          nombreUsuario: usuarioDB?.nombre,
-        })
-      );
+      const resultado = {
+        moduloSlug: moduloSlug || "Evaluación final",
+        preguntas,
+        respuestas: siguientesRespuestas,
+        nombreUsuario: usuarioDB?.nombre,
+      };
+      sessionStorage.setItem("teolearn-quiz-result", JSON.stringify(resultado));
+
       if (!moduloSlug) {
-        const resultado = {
-          moduloSlug: "Evaluación final",
-          preguntas,
-          respuestas: siguientesRespuestas,
-          nombreUsuario: usuarioDB?.nombre,
-        };
         guardarResultadoQuizFinal(resultado)
           .then(() => setQuizFinalCompletado(true))
           .catch((error) => console.error("No se pudo guardar el resultado final:", error));
       }
-      navigate("/resultado-quiz");
+      navigate("/resultado-quiz", {
+        state: { tipo: moduloSlug ? "modulo" : "final", resultado },
+      });
     }
   };
 
@@ -167,6 +162,7 @@ export default function QuizFinal({ mode = "final" }) {
           </p>
           <Link
             to="/resultado-quiz"
+            state={{ tipo: "final" }}
             className="inline-flex rounded-xl bg-brand-blue px-5 py-3 font-extrabold text-white"
           >
             Ver resultados

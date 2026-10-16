@@ -7,13 +7,18 @@ import { calcularAciertos } from "../../../../shared/quizQuestions.js";
 import { generarPDF } from "../../application/services/quizPdf";
 import { obtenerEstadoUsuario } from "../../application/services/userState";
 import { useAuth } from "../../application/context/useAuth";
+import {
+  debeCargarResultadoFinal,
+  resolverResultadoQuiz,
+} from "../../application/services/quizResults";
 
 const RESULT_STORAGE_KEY = "teolearn-quiz-result";
+const NOMBRE_MODULO = { ritmo: "Ritmo", melodia: "Melodía", armonia: "Armonía" };
 
-function leerResultadoGuardado() {
+function leerResultadoDeSesion() {
   try {
     const resultado = sessionStorage.getItem(RESULT_STORAGE_KEY);
-    return resultado ? JSON.parse(resultado) : getQuizFinalResult();
+    return resultado ? JSON.parse(resultado) : null;
   } catch {
     return null;
   }
@@ -23,10 +28,19 @@ export default function ResultadoQuiz() {
   const location = useLocation();
   const navigate = useNavigate();
   const { usuarioDB } = useAuth();
-  const [resultado, setResultado] = useState(() => location.state || leerResultadoGuardado());
+  const [resultado, setResultado] = useState(() => resolverResultadoQuiz({
+    estadoNavegacion: location.state,
+    resultadoSesion: leerResultadoDeSesion(),
+    resultadoFinal: getQuizFinalResult(),
+  }));
+  const cargarResultadoFinal = debeCargarResultadoFinal({
+    estadoNavegacion: location.state,
+    resultadoActual: resultado,
+    usuarioId: usuarioDB?.id,
+  });
 
   useEffect(() => {
-    if (location.state || !usuarioDB?.id) return;
+    if (!cargarResultadoFinal) return;
     let cancelled = false;
     obtenerEstadoUsuario()
       .then((state) => {
@@ -38,7 +52,7 @@ export default function ResultadoQuiz() {
     return () => {
       cancelled = true;
     };
-  }, [location.state, usuarioDB?.id]);
+  }, [cargarResultadoFinal, usuarioDB?.id]);
 
   if (!resultado) {
     return (
@@ -63,6 +77,9 @@ export default function ResultadoQuiz() {
   }
 
   const { moduloSlug, preguntas, respuestas, nombreUsuario } = resultado;
+  const nombreEvaluacion = !moduloSlug || moduloSlug === "Evaluación final"
+    ? "Evaluación final"
+    : `Quiz de ${NOMBRE_MODULO[moduloSlug] || moduloSlug}`;
   const aciertos = calcularAciertos(preguntas, respuestas);
   const errores = preguntas.length - aciertos;
   const porcentaje = preguntas.length
@@ -81,7 +98,7 @@ export default function ResultadoQuiz() {
             <Trophy size={32} />
           </div>
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-brand-pink">
-            Quiz completado
+            {nombreEvaluacion} completado
           </p>
           <h1 className="mb-3 text-4xl font-extrabold text-gray-950">
             Estos son tus resultados
@@ -109,7 +126,7 @@ export default function ResultadoQuiz() {
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-extrabold text-gray-950">Resumen de la evaluación</h2>
+              <h2 className="text-xl font-extrabold text-gray-950">Resumen: {nombreEvaluacion}</h2>
               <p className="text-sm text-gray-500">{preguntas.length} preguntas respondidas</p>
             </div>
             <button
