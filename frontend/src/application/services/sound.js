@@ -444,6 +444,9 @@ const MUSIC_TRACKS = {
     noteLength: 0.8,
     drums: true,
     melody: [72, 79, 76, 79, 74, 79, 76, 74, 81, 76, 72, 76, 77, 76, 72, 67],
+    melodyB: [72, 76, 79, 84, 79, 76, 74, 79, 81, 79, 76, 72, 74, 76, 79, 72],
+    counterWave: "sine",
+    counterVolume: 0.012,
     bass: [36, 31, 33, 29],
     chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]],
   },
@@ -458,6 +461,9 @@ const MUSIC_TRACKS = {
     noteLength: 1.7,
     drums: false,
     melody: [69, 0, 72, 76, 0, 72, 74, 0, 67, 0, 72, 76, 0, 74, 72, 0],
+    melodyB: [69, 0, 76, 0, 72, 74, 72, 0, 67, 0, 74, 0, 72, 76, 72, 0],
+    counterWave: "sine",
+    counterVolume: 0.008,
     bass: [33, 29, 36, 31],
     chords: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]],
   },
@@ -472,6 +478,9 @@ const MUSIC_TRACKS = {
     noteLength: 0.68,
     drums: true,
     melody: [72, 76, 79, 84, 83, 79, 76, 79, 81, 84, 88, 84, 83, 81, 79, 76],
+    melodyB: [79, 76, 72, 76, 79, 84, 83, 79, 76, 79, 81, 84, 83, 81, 79, 76],
+    counterWave: "square",
+    counterVolume: 0.01,
     bass: [36, 43, 41, 45],
     chords: [[60, 64, 67], [55, 59, 62], [53, 57, 60], [57, 60, 64]],
   },
@@ -493,6 +502,10 @@ const MUSIC_TRACKS = {
     snareVolume: 0.006,
     hatVolume: 0.0015,
     melody: [69, 0, 72, 76, 72, 0, 69, 0, 67, 0, 72, 74, 72, 0, 69, 0],
+    melodyB: [72, 0, 76, 72, 69, 0, 67, 0, 69, 0, 72, 74, 76, 0, 72, 0],
+    counterWave: "sine",
+    counterVolume: 0.009,
+    counterFilter: 1500,
     bass: [45, 41, 48, 43],
     chords: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]],
   },
@@ -513,6 +526,10 @@ const MUSIC_TRACKS = {
     snareVolume: 0.018,
     hatVolume: 0.004,
     melody: [57, 0, 57, 60, 62, 60, 57, 55, 53, 0, 53, 57, 60, 57, 55, 53],
+    melodyB: [57, 0, 60, 62, 0, 60, 57, 0, 55, 0, 53, 55, 57, 60, 57, 53],
+    counterWave: "square",
+    counterVolume: 0.008,
+    counterFilter: 1800,
     bass: [45, 41, 43, 48],
     chords: [[57, 60, 64], [53, 57, 60], [55, 59, 62], [60, 64, 67]],
   },
@@ -533,6 +550,10 @@ const MUSIC_TRACKS = {
     snareVolume: 0.01,
     hatVolume: 0.003,
     melody: [76, 79, 83, 79, 76, 79, 86, 83, 74, 78, 81, 78, 74, 78, 85, 81],
+    melodyB: [76, 83, 79, 83, 81, 78, 74, 78, 76, 85, 81, 85, 83, 79, 76, 74],
+    counterWave: "triangle",
+    counterVolume: 0.01,
+    counterFilter: 2200,
     bass: [40, 36, 38, 33],
     chords: [[52, 55, 59], [48, 52, 55], [50, 54, 57], [45, 49, 52]],
   },
@@ -550,6 +571,10 @@ const MUSIC_TRACKS = {
     noteLength: 1.75,
     drums: false,
     melody: [72, 0, 76, 0, 79, 0, 76, 0, 74, 0, 72, 0, 69, 0, 72, 0],
+    melodyB: [72, 0, 74, 0, 76, 0, 79, 0, 76, 0, 74, 0, 72, 0, 69, 0],
+    counterWave: "sine",
+    counterVolume: 0.009,
+    counterFilter: 1200,
     bass: [36, 33, 29, 31],
     chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]],
   },
@@ -568,10 +593,15 @@ function scheduleMusicNote(ctx, master, note, time, duration, waveform, volume, 
   oscillator.type = waveform;
   oscillator.frequency.value = midiFrequency(note);
   oscillator.detune.value = options.detune ?? 0;
-  envelope.gain.setValueAtTime(0.0001, time);
-  envelope.gain.linearRampToValueAtTime(volume, time + 0.012);
-  envelope.gain.setValueAtTime(volume, Math.max(time + 0.013, end - 0.035));
-  envelope.gain.linearRampToValueAtTime(0.0001, end);
+  if (options.pluck) {
+    envelope.gain.setValueAtTime(volume, time);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, end);
+  } else {
+    envelope.gain.setValueAtTime(0.0001, time);
+    envelope.gain.linearRampToValueAtTime(volume, time + 0.012);
+    envelope.gain.setValueAtTime(volume, Math.max(time + 0.013, end - 0.035));
+    envelope.gain.linearRampToValueAtTime(0.0001, end);
+  }
   if (options.filterFrequency) {
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
@@ -623,32 +653,86 @@ function scheduleKick(ctx, master, time, volume = 0.035) {
   oscillator.stop(time + 0.15);
 }
 
-function scheduleMusicStep(ctx, master, noiseBuffer, track, step, time, stepDuration) {
-  const melodyNote = track.melody[step];
+function scheduleMusicStep(ctx, master, noiseBuffer, track, step, time, stepDuration, arrangementCycle = 0) {
+  const bar = Math.floor(step / 8) % 16;
+  const section = Math.floor(bar / 2);
+  const barInSection = bar % 2;
+  const phrase = Math.floor(step / 16) % 8;
+  const phraseStep = step % 16;
+  const phraseOrder = [false, true, true, false, true, false, false, true];
+  const usaVariacion = phraseOrder[(phrase + arrangementCycle * 3) % phraseOrder.length];
+  const melodia = usaVariacion ? (track.melodyB || track.melody) : track.melody;
+  const melodyNote = melodia[phraseStep];
+  const chordIndex = (bar + Math.floor(bar / 4)) % track.chords.length;
+  const acorde = track.chords[chordIndex];
+  const pulsoEnCompas = step % 8;
+
   scheduleMusicNote(
     ctx, master, melodyNote, time, stepDuration * track.noteLength,
-    track.leadWave, track.leadVolume,
+    track.leadWave, track.leadVolume * (section === 0 ? 0.88 : 1),
     { filterFrequency: track.leadFilter, detune: track.leadDetune }
   );
 
-  if (step % 4 === 0) {
-    const chordIndex = step / 4;
+  if (pulsoEnCompas === 0) {
     scheduleMusicNote(
-      ctx, master, track.bass[chordIndex], time, stepDuration * 3.7,
+      ctx, master, track.bass[chordIndex], time, stepDuration * 7.6,
       track.bassWave, track.bassVolume, { filterFrequency: track.bassFilter }
     );
-    track.chords[chordIndex].forEach((note) => {
+    acorde.forEach((note) => {
       scheduleMusicNote(
-        ctx, master, note, time, stepDuration * 3.7,
+        ctx, master, note, time, stepDuration * 7.6,
         track.padWave, track.padVolume, { filterFrequency: track.padFilter }
       );
     });
   }
 
+  if (section >= 1 && (pulsoEnCompas === 2 || (section >= 2 && pulsoEnCompas === 6))) {
+    const notaContramelodia = acorde[(bar + Math.floor(pulsoEnCompas / 2) + arrangementCycle) % acorde.length] + 12;
+    scheduleMusicNote(
+      ctx,
+      master,
+      notaContramelodia,
+      time,
+      stepDuration * (section === 1 ? 0.75 : 1.1),
+      track.counterWave || "sine",
+      track.counterVolume || track.leadVolume * 0.4,
+      { filterFrequency: track.counterFilter, pluck: true }
+    );
+  }
+
+  // Refuerza el pulso en las secciones centrales y añade un pequeño fill al
+  // cerrar la frase larga, en lugar de repetir el mismo patrón de batería.
   if (!track.drums) return;
-  if (step === 0 || step === 8) scheduleKick(ctx, master, time, track.kickVolume ?? 0.035);
-  if (step === 4 || step === 12) scheduleNoiseHit(ctx, master, noiseBuffer, time, track.snareVolume ?? 0.012);
-  if (step % 2 === 1) scheduleNoiseHit(ctx, master, noiseBuffer, time, track.hatVolume ?? 0.0035);
+  if (section === 0) {
+    if (pulsoEnCompas === 0 && barInSection === 0) {
+      scheduleKick(ctx, master, time, (track.kickVolume ?? 0.035) * 0.72);
+    }
+    if (barInSection === 1 && pulsoEnCompas === 7) {
+      scheduleNoiseHit(ctx, master, noiseBuffer, time, (track.hatVolume ?? 0.0035) * 0.55);
+    }
+    return;
+  }
+
+  const breakSection = arrangementCycle === 0 ? 4 : 6;
+  const kickExtra = section >= 2 && section !== breakSection && pulsoEnCompas === 6 && barInSection === 1;
+  if (pulsoEnCompas === 0 || kickExtra) {
+    scheduleKick(ctx, master, time, track.kickVolume ?? 0.035);
+  }
+  const snareFillBeat = arrangementCycle === 0 ? 6 : 7;
+  if (pulsoEnCompas === 4 || (section === 7 && barInSection === 1 && pulsoEnCompas === snareFillBeat)) {
+    scheduleNoiseHit(ctx, master, noiseBuffer, time, track.snareVolume ?? 0.012);
+  }
+  const breakEnPlatillos = section === breakSection && barInSection === 0;
+  const cierreConFill = section === 7 && barInSection === 1 && pulsoEnCompas >= 5;
+  if ((pulsoEnCompas % 2 === 1 && !breakEnPlatillos) || cierreConFill) {
+    scheduleNoiseHit(
+      ctx,
+      master,
+      noiseBuffer,
+      time,
+      (track.hatVolume ?? 0.0035) * (cierreConFill ? 1.35 : 1)
+    );
+  }
 }
 
 export function startBackgroundMusic(trackId = "chiptune") {
@@ -680,13 +764,19 @@ export function startBackgroundMusic(trackId = "chiptune") {
   backgroundPlayback = playback;
 
   const stepDuration = 60 / track.bpm / 2;
+  const arrangementSteps = 16 * 8;
   let step = 0;
+  let arrangementCycle = 0;
   let nextTime = ctx.currentTime + 0.06;
   const scheduleAhead = () => {
     if (!playback.active) return;
     while (nextTime < ctx.currentTime + 0.12) {
-      scheduleMusicStep(ctx, master, playback.noiseBuffer, track, step, nextTime, stepDuration);
-      step = (step + 1) % track.melody.length;
+      scheduleMusicStep(ctx, master, playback.noiseBuffer, track, step, nextTime, stepDuration, arrangementCycle);
+      step += 1;
+      if (step === arrangementSteps) {
+        step = 0;
+        arrangementCycle = (arrangementCycle + 1) % 2;
+      }
       nextTime += stepDuration;
     }
     playback.timer = window.setTimeout(scheduleAhead, 25);
