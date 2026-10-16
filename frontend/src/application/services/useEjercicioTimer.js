@@ -37,69 +37,57 @@ export function useEjercicioTimer(tipo, activo, onAgotado) {
   const config  = TIMER_CONFIG[tipo] || TIMER_CONFIG.quiz;
   const total   = config.segundos;
 
-  const [restante, setRestante] = useState(total);
+  const [timerState, setTimerState] = useState(() => ({ tipo, restante: total }));
+  const [reinicio, setReinicio] = useState(0);
   const agotadoRef  = useRef(false);   // evita disparar onAgotado más de una vez
   const intervalRef = useRef(null);
-  const activoRef = useRef(Boolean(activo));
   const onAgotadoRef = useRef(onAgotado);
+  const tipoRef = useRef(tipo);
+  const restanteRef = useRef(total);
+
+  // Si cambia el tipo, muestra el tiempo inicial de inmediato. El efecto
+  // sincroniza el contador interno sin actualizar estado durante el efecto.
+  const restante = timerState.tipo === tipo ? timerState.restante : total;
 
   /** Reinicia el estado a los segundos del tipo actual */
   const reiniciar = useCallback(() => {
     clearInterval(intervalRef.current);
     agotadoRef.current = false;
-    setRestante(total);
-
-    // Si el timer está activo en este momento, iniciar el intervalo
-    // inmediatamente para que la cuenta vuelva a correr tras reiniciar().
-    if (activoRef.current) {
-      intervalRef.current = setInterval(() => {
-        setRestante((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            if (!agotadoRef.current) {
-              agotadoRef.current = true;
-              setTimeout(() => onAgotadoRef.current?.(), 0);
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1_000);
-    }
-  }, [total]);
-
-  // Reiniciar automáticamente cuando cambia el tipo
-  useEffect(() => {
-    reiniciar();
-  }, [tipo, reiniciar]);
+    restanteRef.current = total;
+    setTimerState({ tipo, restante: total });
+    setReinicio((actual) => actual + 1);
+  }, [tipo, total]);
 
   // Arrancar o pausar el intervalo según `activo`
   useEffect(() => {
+    if (tipoRef.current !== tipo) {
+      tipoRef.current = tipo;
+      restanteRef.current = total;
+      agotadoRef.current = false;
+    }
+
+    onAgotadoRef.current = onAgotado;
     if (!activo) {
       clearInterval(intervalRef.current);
-      activoRef.current = false;
       return;
     }
-    activoRef.current = true;
-    onAgotadoRef.current = onAgotado;
 
     intervalRef.current = setInterval(() => {
-      setRestante((prev) => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current);
-          if (!agotadoRef.current) {
-            agotadoRef.current = true;
-            // Llamar fuera del setState para no causar efectos secundarios en render
-            setTimeout(() => onAgotadoRef.current?.(), 0);
-          }
-          return 0;
+      const siguiente = Math.max(restanteRef.current - 1, 0);
+      restanteRef.current = siguiente;
+      setTimerState({ tipo, restante: siguiente });
+
+      if (siguiente === 0) {
+        clearInterval(intervalRef.current);
+        if (!agotadoRef.current) {
+          agotadoRef.current = true;
+          onAgotadoRef.current?.();
         }
-        return prev - 1;
-      });
+      }
     }, 1_000);
 
     return () => clearInterval(intervalRef.current);
-  }, [activo, onAgotado]);
+  }, [activo, onAgotado, tipo, total, reinicio]);
 
   const porcentaje = Math.round((restante / total) * 100);
   const enAlerta   = restante <= config.alerta && restante > 0;

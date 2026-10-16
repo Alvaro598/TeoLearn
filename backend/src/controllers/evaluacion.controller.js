@@ -2,6 +2,7 @@ import pool from "../database/db.js";
 import {
   PREGUNTAS_EVALUACION_FINAL,
   PREGUNTAS_POR_MODULO,
+  calcularAciertos,
 } from "../database/quizQuestions.js";
 
 const MODULOS_REQUERIDOS = ["ritmo", "melodia", "armonia"];
@@ -103,7 +104,7 @@ export async function evaluarEvaluacion(req, res) {
       return res.status(400).json({ error: "Debes responder todas las preguntas con una opción válida" });
     }
 
-    const aciertos = preguntas.filter((question) => respuestas[question.id] === question.respuesta).length;
+    const aciertos = calcularAciertos(preguntas, respuestas);
     const result = {
       moduloSlug: slug === "final" ? "Evaluación final" : slug,
       nombreUsuario: usuario.nombre,

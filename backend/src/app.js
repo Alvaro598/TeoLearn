@@ -10,6 +10,7 @@ import ejercicioRoutes from "./routes/ejercicio.routes.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
 import usuarioRoutes from "./routes/usuario.routes.js";
 import progresoRoutes from "./routes/progreso.routes.js";
+import evaluacionRoutes from "./routes/evaluacion.routes.js";
 import pool from "./database/db.js";
 import { ensureLearningPathSchema, seedLearningPath } from "./database/seedLearningPath.js";
 import { rateLimit } from "./middleware/rateLimit.js";
@@ -54,6 +55,7 @@ app.use("/api/ejercicios", verifyFirebaseToken, ejercicioRoutes);
 app.use("/api/feedback", rateLimit({ windowMs: 60000, max: 30 }), verifyFirebaseToken, feedbackRoutes);
 app.use("/api/usuarios", rateLimit({ windowMs: 60000, max: 60 }), verifyFirebaseToken, usuarioRoutes);
 app.use("/api/progreso", rateLimit({ windowMs: 60000, max: 60 }), verifyFirebaseToken, progresoRoutes);
+app.use("/api/evaluaciones", rateLimit({ windowMs: 60000, max: 30 }), verifyFirebaseToken, evaluacionRoutes);
 
 app.get("/", (req, res) => {
   res.send("API funcionando 🚀");

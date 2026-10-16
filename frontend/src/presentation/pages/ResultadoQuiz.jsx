@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import { getQuizFinalResult } from "../../application/services/progress";
+import { calcularAciertos } from "../../../../shared/quizQuestions.js";
 import { generarPDF } from "../../application/services/quizPdf";
 import { obtenerEstadoUsuario } from "../../application/services/userState";
 import { useAuth } from "../../application/context/useAuth";
@@ -62,9 +63,7 @@ export default function ResultadoQuiz() {
   }
 
   const { moduloSlug, preguntas, respuestas, nombreUsuario } = resultado;
-  const aciertos = preguntas.filter(
-    (pregunta) => respuestas[pregunta.id] === pregunta.respuesta
-  ).length;
+  const aciertos = calcularAciertos(preguntas, respuestas);
   const errores = preguntas.length - aciertos;
   const porcentaje = preguntas.length
     ? Math.round((aciertos / preguntas.length) * 100)

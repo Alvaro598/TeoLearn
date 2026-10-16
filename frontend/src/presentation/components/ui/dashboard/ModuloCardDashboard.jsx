@@ -1,8 +1,5 @@
-import { Link } from "react-router-dom";
-
 export default function ModuloCardDashboard({
   nombre,
-  path,
   emoji,
   porcentaje,
   color
