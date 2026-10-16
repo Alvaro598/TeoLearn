@@ -145,6 +145,7 @@ export const obtenerEstadoUsuario = async (req, res) => {
     const result = await pool.query(
       `
       SELECT s.preferencias, s.historial_chat, s.resultado_quiz_final,
+             s.resultados_quiz_modulo,
              COALESCE(s.racha_actual, 0) AS racha_actual
       FROM usuario u
       LEFT JOIN teolearn_user_state s ON s.usuario_id = u.id
@@ -159,6 +160,7 @@ export const obtenerEstadoUsuario = async (req, res) => {
       preferencias: state.preferencias || {},
       historial_chat: state.historial_chat || [],
       resultado_quiz_final: state.resultado_quiz_final || null,
+      resultados_quiz_modulo: state.resultados_quiz_modulo || {},
       racha_actual: state.racha_actual,
     });
   } catch (error) {
@@ -172,7 +174,7 @@ export const actualizarEstadoUsuario = async (req, res) => {
     const uid = req.firebaseUser?.uid;
     if (!uid) return res.status(401).json({ error: "Token de autenticación requerido" });
 
-    const { preferencias, historial_chat, resultado_quiz_final } = req.body || {};
+    const { preferencias, historial_chat, resultado_quiz_final, resultados_quiz_modulo } = req.body || {};
     if (preferencias !== undefined && (!preferencias || typeof preferencias !== "object" || Array.isArray(preferencias))) {
       return res.status(400).json({ error: "Preferencias inválidas" });
     }
@@ -181,6 +183,28 @@ export const actualizarEstadoUsuario = async (req, res) => {
     }
     if (resultado_quiz_final !== undefined && resultado_quiz_final !== null && (typeof resultado_quiz_final !== "object" || Array.isArray(resultado_quiz_final))) {
       return res.status(400).json({ error: "Resultado de quiz inválido" });
+    }
+    if (resultados_quiz_modulo !== undefined) {
+      const modulosValidos = new Set(["ritmo", "melodia", "armonia"]);
+      if (!resultados_quiz_modulo || typeof resultados_quiz_modulo !== "object" || Array.isArray(resultados_quiz_modulo)) {
+        return res.status(400).json({ error: "Resultados de quizzes modulares inválidos" });
+      }
+
+      for (const [slug, resultado] of Object.entries(resultados_quiz_modulo)) {
+        if (
+          !modulosValidos.has(slug)
+          || !resultado
+          || typeof resultado !== "object"
+          || Array.isArray(resultado)
+          || resultado.moduloSlug !== slug
+          || !Array.isArray(resultado.preguntas)
+          || !resultado.respuestas
+          || typeof resultado.respuestas !== "object"
+          || Array.isArray(resultado.respuestas)
+        ) {
+          return res.status(400).json({ error: "Resultado de quiz modular inválido" });
+        }
+      }
     }
 
     const userResult = await pool.query(
@@ -192,17 +216,19 @@ export const actualizarEstadoUsuario = async (req, res) => {
     const serializedPreferences = preferencias === undefined ? null : JSON.stringify(preferencias);
     const serializedHistory = historial_chat === undefined ? null : JSON.stringify(historial_chat);
     const serializedQuiz = resultado_quiz_final === undefined ? null : JSON.stringify(resultado_quiz_final);
+    const serializedModuleQuizzes = resultados_quiz_modulo === undefined ? null : JSON.stringify(resultados_quiz_modulo);
     const result = await pool.query(
       `
-      INSERT INTO teolearn_user_state (usuario_id, preferencias, historial_chat, resultado_quiz_final)
-      VALUES ($1, COALESCE($2::jsonb, '{}'::jsonb), COALESCE($3::jsonb, '[]'::jsonb), $4::jsonb)
+      INSERT INTO teolearn_user_state (usuario_id, preferencias, historial_chat, resultado_quiz_final, resultados_quiz_modulo)
+      VALUES ($1, COALESCE($2::jsonb, '{}'::jsonb), COALESCE($3::jsonb, '[]'::jsonb), $4::jsonb, COALESCE($5::jsonb, '{}'::jsonb))
       ON CONFLICT (usuario_id) DO UPDATE SET
         preferencias = COALESCE($2::jsonb, teolearn_user_state.preferencias),
         historial_chat = COALESCE($3::jsonb, teolearn_user_state.historial_chat),
-        resultado_quiz_final = COALESCE($4::jsonb, teolearn_user_state.resultado_quiz_final)
-      RETURNING preferencias, historial_chat, resultado_quiz_final, racha_actual
+        resultado_quiz_final = COALESCE($4::jsonb, teolearn_user_state.resultado_quiz_final),
+        resultados_quiz_modulo = COALESCE($5::jsonb, '{}'::jsonb) || COALESCE(teolearn_user_state.resultados_quiz_modulo, '{}'::jsonb)
+      RETURNING preferencias, historial_chat, resultado_quiz_final, resultados_quiz_modulo, racha_actual
       `,
-      [userResult.rows[0].id, serializedPreferences, serializedHistory, serializedQuiz]
+      [userResult.rows[0].id, serializedPreferences, serializedHistory, serializedQuiz, serializedModuleQuizzes]
     );
 
     return res.json(result.rows[0]);

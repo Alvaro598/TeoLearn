@@ -10,6 +10,13 @@ import {
   guardarResultadoQuizFinal,
 } from "../../application/services/progress";
 import { obtenerEstadoUsuario } from "../../application/services/userState";
+import {
+  getQuizModuloResult,
+  guardarResultadoQuizModulo,
+  markQuizModuloCompleted,
+  resolverResultadoQuizModulo,
+  sincronizarResultadoQuizModuloLocal,
+} from "../../application/services/quizResults";
 import { playSuccess, playError } from "../../application/services/sound";
 import {
   PREGUNTAS_POR_MODULO,
@@ -41,6 +48,23 @@ export default function QuizFinal({ mode = "final" }) {
   const [quizFinalCompletado, setQuizFinalCompletado] = useState(
     () => !moduloSlug && isQuizFinalCompleted()
   );
+  const [quizModuloEstado, setQuizModuloEstado] = useState({
+    moduloSlug: null,
+    usuarioId: null,
+    resultado: null,
+    verificado: false,
+    error: false,
+  });
+  const [reintentoEstadoModulo, setReintentoEstadoModulo] = useState(0);
+  const resultadoModuloLocal = moduloSlug ? getQuizModuloResult(moduloSlug) : null;
+  const estadoModuloCorresponde = quizModuloEstado.moduloSlug === moduloSlug
+    && quizModuloEstado.usuarioId === usuarioDB?.id;
+  const resultadoQuizModulo = (estadoModuloCorresponde && quizModuloEstado.resultado)
+    || resultadoModuloLocal;
+  const quizModuloVerificado = !moduloSlug
+    || Boolean(resultadoModuloLocal)
+    || (estadoModuloCorresponde && quizModuloEstado.verificado);
+  const quizCompletado = moduloSlug ? Boolean(resultadoQuizModulo) : quizFinalCompletado;
 
   const preguntas = useMemo(() => {
     if (moduloSlug) {
@@ -70,9 +94,73 @@ export default function QuizFinal({ mode = "final" }) {
     };
   }, [moduloSlug, usuarioDB?.id]);
 
+  useEffect(() => {
+    if (!moduloSlug || !usuarioDB?.id) return;
+    let cancelled = false;
+
+    obtenerEstadoUsuario()
+      .then((state) => {
+        if (cancelled) return;
+
+        const resultadoLocal = getQuizModuloResult(moduloSlug);
+        const resultado = resolverResultadoQuizModulo({
+          moduloSlug,
+          resultadosServidor: state.resultados_quiz_modulo,
+          resultadoLocal,
+        });
+        if (state.resultados_quiz_modulo?.[moduloSlug] && resultado) {
+          sincronizarResultadoQuizModuloLocal(moduloSlug, resultado);
+        }
+        setQuizModuloEstado({
+          moduloSlug,
+          usuarioId: usuarioDB.id,
+          resultado,
+          verificado: true,
+          error: false,
+        });
+
+        if (resultadoLocal && !state.resultados_quiz_modulo?.[moduloSlug]) {
+          guardarResultadoQuizModulo(moduloSlug, resultadoLocal)
+            .then((guardado) => {
+              if (cancelled || !guardado) return;
+              markQuizModuloCompleted(moduloSlug, guardado);
+              setQuizModuloEstado({
+                moduloSlug,
+                usuarioId: usuarioDB.id,
+                resultado: guardado,
+                verificado: true,
+                error: false,
+              });
+            })
+            .catch((error) => console.error("No se pudo sincronizar el resultado del quiz modular:", error));
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const resultadoLocal = getQuizModuloResult(moduloSlug);
+        setQuizModuloEstado({
+          moduloSlug,
+          usuarioId: usuarioDB.id,
+          resultado: resultadoLocal,
+          verificado: Boolean(resultadoLocal),
+          error: !resultadoLocal,
+        });
+        if (resultadoLocal) {
+          guardarResultadoQuizModulo(moduloSlug, resultadoLocal)
+            .catch((syncError) => console.error("No se pudo sincronizar el resultado del quiz modular:", syncError));
+        } else {
+          console.error("No se pudo verificar si el quiz modular ya fue completado:", error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [moduloSlug, usuarioDB?.id, reintentoEstadoModulo]);
+
   // Verificar acceso del módulo o del quiz final según la ruta
   useEffect(() => {
-    if (!usuarioDB?.id || quizFinalCompletado) {
+    if (!usuarioDB?.id || quizCompletado) {
       return;
     }
 
@@ -104,7 +192,7 @@ export default function QuizFinal({ mode = "final" }) {
         setAcceso(false);
         setPorcentaje(0);
       });
-  }, [usuarioDB?.id, moduloSlug, quizFinalCompletado]);
+  }, [usuarioDB?.id, moduloSlug, quizCompletado]);
 
   const aciertos = useMemo(
     () => calcularAciertos(preguntas, respuestas),
@@ -138,6 +226,28 @@ export default function QuizFinal({ mode = "final" }) {
         guardarResultadoQuizFinal(resultado)
           .then(() => setQuizFinalCompletado(true))
           .catch((error) => console.error("No se pudo guardar el resultado final:", error));
+      } else {
+        markQuizModuloCompleted(moduloSlug, resultado);
+        setQuizModuloEstado({
+          moduloSlug,
+          usuarioId: usuarioDB?.id,
+          resultado,
+          verificado: true,
+          error: false,
+        });
+        guardarResultadoQuizModulo(moduloSlug, resultado)
+          .then((guardado) => {
+            if (!guardado) return;
+            markQuizModuloCompleted(moduloSlug, guardado);
+            setQuizModuloEstado({
+              moduloSlug,
+              usuarioId: usuarioDB?.id,
+              resultado: guardado,
+              verificado: true,
+              error: false,
+            });
+          })
+          .catch((error) => console.error("No se pudo guardar el resultado del quiz modular:", error));
       }
       navigate("/resultado-quiz", {
         state: { tipo: moduloSlug ? "modulo" : "final", resultado },
@@ -147,12 +257,13 @@ export default function QuizFinal({ mode = "final" }) {
 
   const todasRespondidas = preguntas.every((p) => respuestas[p.id]);
 
-  if (quizFinalCompletado) {
+  if (quizCompletado) {
+    const resultadoCompletado = moduloSlug ? resultadoQuizModulo : null;
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
         <div className="max-w-md w-full rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
           <p className="mb-2 text-sm font-bold uppercase tracking-widest text-brand-pink">
-            Evaluación final completada
+            {moduloSlug ? `Quiz de ${nombreModulo} completado` : "Evaluación final completada"}
           </p>
           <h1 className="mb-3 text-2xl font-extrabold text-gray-950">
             Ya realizaste este quiz
@@ -162,11 +273,44 @@ export default function QuizFinal({ mode = "final" }) {
           </p>
           <Link
             to="/resultado-quiz"
-            state={{ tipo: "final" }}
+            state={{
+              tipo: moduloSlug ? "modulo" : "final",
+              resultado: resultadoCompletado || undefined,
+            }}
             className="inline-flex rounded-xl bg-brand-blue px-5 py-3 font-extrabold text-white"
           >
             Ver resultados
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (moduloSlug && !quizModuloVerificado) {
+    const errorVerificacion = estadoModuloCorresponde && quizModuloEstado.error;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md w-full rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <p className="mb-2 text-sm font-bold uppercase tracking-widest text-brand-pink">
+            Quiz de {nombreModulo}
+          </p>
+          <h1 className="mb-3 text-2xl font-extrabold text-gray-950">
+            {errorVerificacion ? "No se pudo verificar el intento" : "Verificando el estado del quiz..."}
+          </h1>
+          <p className="mb-6 text-gray-600">
+            {errorVerificacion
+              ? "Necesitamos comprobar si este quiz ya fue completado antes de permitir otro intento."
+              : "Un momento mientras comprobamos si ya completaste este quiz."}
+          </p>
+          {errorVerificacion && (
+            <button
+              type="button"
+              onClick={() => setReintentoEstadoModulo((actual) => actual + 1)}
+              className="rounded-xl bg-brand-blue px-5 py-3 font-bold text-white"
+            >
+              Reintentar
+            </button>
+          )}
         </div>
       </div>
     );

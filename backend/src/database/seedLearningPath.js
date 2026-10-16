@@ -10,9 +10,15 @@ export async function ensureLearningPathSchema() {
       preferencias JSONB NOT NULL DEFAULT '{}'::jsonb,
       historial_chat JSONB NOT NULL DEFAULT '[]'::jsonb,
       resultado_quiz_final JSONB,
+      resultados_quiz_modulo JSONB NOT NULL DEFAULT '{}'::jsonb,
       racha_actual INTEGER NOT NULL DEFAULT 0,
       ultima_practica DATE
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE teolearn_user_state
+    ADD COLUMN IF NOT EXISTS resultados_quiz_modulo JSONB NOT NULL DEFAULT '{}'::jsonb
   `);
 
   await pool.query(`
