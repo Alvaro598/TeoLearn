@@ -5,6 +5,7 @@ import {
   browserSessionPersistence,
   setPersistence,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
@@ -13,6 +14,8 @@ import { auth } from "../../infrastructure/config/firebase";
 import { getFirebaseAuthMessage } from "../../application/services/authErrors";
 
 const SUCCESS_MESSAGE_DURATION = 1200;
+const PASSWORD_RECOVERY_MESSAGE =
+  "Si la cuenta usa correo y contraseña, recibirás un enlace para cambiarla. Si ingresas con Google, continúa con el botón de Google.";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,6 +27,9 @@ export default function Login() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(0);
@@ -88,12 +94,13 @@ export default function Login() {
 
     setError("");
     setSuccess("");
+    setRecoveryMessage("");
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") || "").trim();
+    const submittedEmail = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
 
-    if (!email || !password) {
+    if (!submittedEmail || !password) {
       setError("Ingresa tu correo y contraseña para continuar.");
       return;
     }
@@ -113,7 +120,7 @@ export default function Login() {
 
       const credential = await signInWithEmailAndPassword(
         auth,
-        email,
+        submittedEmail,
         password
       );
 
@@ -155,12 +162,58 @@ export default function Login() {
     }
   };
 
+  const handlePasswordRecovery = async () => {
+    if (submittingRef.current) return;
+
+    setError("");
+    setSuccess("");
+    setRecoveryMessage("");
+
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError("Ingresa tu correo para enviarte las instrucciones de recuperación.");
+      return;
+    }
+
+    submittingRef.current = true;
+    setRecoveryLoading(true);
+
+    try {
+      await sendPasswordResetEmail(auth, normalizedEmail);
+      if (!mountedRef.current) return;
+
+      setRecoveryMessage(PASSWORD_RECOVERY_MESSAGE);
+    } catch (err) {
+      if (!mountedRef.current) return;
+
+      if (err?.code === "auth/user-not-found") {
+        setRecoveryMessage(PASSWORD_RECOVERY_MESSAGE);
+        return;
+      }
+
+      setError(
+        getFirebaseAuthMessage(
+          err,
+          "No pudimos enviar las instrucciones. Revisa el correo e inténtalo de nuevo."
+        )
+      );
+    } finally {
+      submittingRef.current = false;
+
+      if (mountedRef.current) {
+        setRecoveryLoading(false);
+      }
+    }
+  };
+
   const loginWithGoogle = async () => {
     if (submittingRef.current) return;
 
     submittingRef.current = true;
     setError("");
     setSuccess("");
+    setRecoveryMessage("");
     setLoading(true);
 
     try {
@@ -248,9 +301,11 @@ export default function Login() {
               autoCapitalize="none"
               spellCheck={false}
               placeholder="correo@ejemplo.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               className="w-full pl-10 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              disabled={loading || Boolean(success)}
+              disabled={loading || recoveryLoading || Boolean(success)}
             />
           </div>
 
@@ -267,13 +322,34 @@ export default function Login() {
               placeholder="••••••••"
               className="w-full pl-10 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              disabled={loading || Boolean(success)}
+              disabled={loading || recoveryLoading || Boolean(success)}
             />
           </div>
 
+          <div className="-mt-2 text-right">
+            <button
+              type="button"
+              onClick={handlePasswordRecovery}
+              disabled={loading || recoveryLoading || Boolean(success)}
+              className="text-sm text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {recoveryLoading ? "Enviando instrucciones..." : "¿Olvidaste tu contraseña?"}
+            </button>
+          </div>
+
+          {recoveryMessage && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-lg"
+            >
+              {recoveryMessage}
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={loading || Boolean(success)}
+            disabled={loading || recoveryLoading || Boolean(success)}
             className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-2 rounded-lg font-semibold transition disabled:opacity-60"
           >
             {loading ? "Ingresando..." : "Iniciar sesión"}
@@ -299,7 +375,7 @@ export default function Login() {
         <button
           type="button"
           onClick={loginWithGoogle}
-          disabled={loading || Boolean(success)}
+          disabled={loading || recoveryLoading || Boolean(success)}
           className="w-full border border-gray-300 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition disabled:opacity-60"
         >
           <img

@@ -3,6 +3,8 @@ const AUTH_MESSAGES = {
   "auth/invalid-email": "El correo no tiene un formato válido.",
   "auth/weak-password": "La contraseña debe tener mínimo 10 caracteres, con letras y números.",
   "auth/user-not-found": "No encontramos una cuenta con ese correo.",
+  "auth/missing-email": "Ingresa tu correo para continuar.",
+  "auth/too-many-requests": "Se realizaron demasiadas solicitudes. Espera un momento antes de intentarlo de nuevo.",
   "auth/wrong-password": "La contraseña no coincide.",
   "auth/popup-closed-by-user": "Cerraste la ventana de Google antes de terminar.",
   "auth/cancelled-popup-request": "La solicitud con Google fue cancelada.",
