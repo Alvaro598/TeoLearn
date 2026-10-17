@@ -14,8 +14,8 @@ import { auth } from "../../infrastructure/config/firebase";
 import { getFirebaseAuthMessage } from "../../application/services/authErrors";
 
 const SUCCESS_MESSAGE_DURATION = 1200;
-const PASSWORD_RECOVERY_MESSAGE =
-  "Si la cuenta usa correo y contraseña, recibirás un enlace para cambiarla. Si ingresas con Google, continúa con el botón de Google.";
+const PASSWORD_RECOVERY_MESSAGE = (address) =>
+  `Si existe una cuenta con ese correo y usa contraseña, recibirás un enlace en ${address} para elegir una nueva. Si ingresas con Google, continúa con el botón de Google. Revisa también la carpeta de spam.`;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -180,15 +180,18 @@ export default function Login() {
     setRecoveryLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, normalizedEmail);
+      auth.languageCode = "es";
+      await sendPasswordResetEmail(auth, normalizedEmail, {
+        url: `${window.location.origin}/login?passwordReset=success`,
+      });
       if (!mountedRef.current) return;
 
-      setRecoveryMessage(PASSWORD_RECOVERY_MESSAGE);
+      setRecoveryMessage(PASSWORD_RECOVERY_MESSAGE(normalizedEmail));
     } catch (err) {
       if (!mountedRef.current) return;
 
       if (err?.code === "auth/user-not-found") {
-        setRecoveryMessage(PASSWORD_RECOVERY_MESSAGE);
+        setRecoveryMessage(PASSWORD_RECOVERY_MESSAGE(normalizedEmail));
         return;
       }
 
@@ -259,6 +262,17 @@ export default function Login() {
             Bienvenido. Ingresa tus datos.
           </p>
         </div>
+
+        {new URLSearchParams(location.search).get("passwordReset") ===
+          "success" && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="bg-green-100 border border-green-300 text-green-700 text-sm px-4 py-3 rounded-lg mb-4"
+            >
+              Contraseña actualizada. Ya puedes iniciar sesión con la nueva.
+            </div>
+          )}
 
         {error && (
           <div

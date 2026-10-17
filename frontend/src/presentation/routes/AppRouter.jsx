@@ -21,6 +21,7 @@ import Chatbot from "../components/ui/chatbot/chatbot";
 const Landing = lazy(() => import("../pages/Landing"));
 const Login = lazy(() => import("../pages/Login"));
 const Register = lazy(() => import("../pages/Register"));
+const ResetPassword = lazy(() => import("../pages/ResetPassword"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
 const Modulos = lazy(() => import("../pages/Modulos"));
 const Unidades = lazy(() => import("../pages/Unidades"));
@@ -42,6 +43,7 @@ function GlobalChatbot() {
     pathname === "/chat" ||
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/reset-password" ||
     pathname === "/quiz-final" ||
     pathname.startsWith("/ejercicio/");
 
@@ -82,6 +84,11 @@ export default function AppRouter() {
           <Route
             path="/register"
             element={<Register />}
+          />
+
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
           />
 
           {/* PRIVADAS */}
